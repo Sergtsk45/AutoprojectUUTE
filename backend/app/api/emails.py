@@ -7,12 +7,13 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models import OrderStatus, EmailType
 from app.schemas import EmailLogResponse
 from app.services import OrderService
 
-router = APIRouter(prefix="/emails", tags=["emails"])
+router = APIRouter(prefix="/emails", tags=["emails"], dependencies=[Depends(verify_admin_key)])
 
 
 def get_service(db: AsyncSession = Depends(get_db)) -> OrderService:

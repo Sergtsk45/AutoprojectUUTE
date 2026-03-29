@@ -3,13 +3,15 @@
 Публичные (без авторизации) — вызываются фронтендом.
 """
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.services import OrderService
-from app.schemas import OrderCreate
+from app.schemas import OrderCreate, UploadPageInfo
 
 router = APIRouter(prefix="/landing", tags=["landing"])
 
@@ -132,4 +134,32 @@ async def partnership_request(data: PartnershipRequest):
     return SimpleResponse(
         success=True,
         message="Заявка на партнёрство отправлена",
+    )
+
+
+# ── Клиентская страница загрузки (публичная) ─────────────────────────────────
+
+
+@router.get("/orders/{order_id}/upload-page", response_model=UploadPageInfo)
+async def get_upload_page_info(
+    order_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Информация для клиентской страницы загрузки файлов.
+
+    Клиент получает ссылку в письме:
+    https://yourdomain.ru/upload/<order_id>
+    """
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    files = await svc.get_files_by_order(order_id)
+
+    return UploadPageInfo(
+        order_id=order.id,
+        client_name=order.client_name,
+        missing_params=order.missing_params or [],
+        files_uploaded=files,
     )

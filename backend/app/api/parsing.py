@@ -6,11 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models import OrderStatus
 from app.services import OrderService
 
-router = APIRouter(prefix="/parsing", tags=["parsing"])
+router = APIRouter(prefix="/parsing", tags=["parsing"], dependencies=[Depends(verify_admin_key)])
 
 
 def get_service(db: AsyncSession = Depends(get_db)) -> OrderService:

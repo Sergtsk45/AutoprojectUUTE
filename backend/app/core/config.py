@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     # Admin
     admin_email: str = "admin@yourdomain.ru"
+    admin_api_key: str = "change-me-in-production"
 
     # App
     app_base_url: str = "http://localhost:8000"

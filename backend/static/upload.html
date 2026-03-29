@@ -486,7 +486,7 @@
     // ── Init ────────────────────────────────────────────────────────────
     async function init() {
       try {
-        const resp = await fetch(`${API_BASE}/orders/${ORDER_ID}/upload-page`);
+        const resp = await fetch(`${API_BASE}/landing/orders/${ORDER_ID}/upload-page`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         orderData = await resp.json();
 

@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models import OrderStatus, FileCategory
 from app.schemas import (
@@ -11,11 +12,10 @@ from app.schemas import (
     OrderResponse,
     OrderListItem,
     FileResponse,
-    UploadPageInfo,
 )
 from app.services import OrderService
 
-router = APIRouter(prefix="/orders", tags=["orders"])
+router = APIRouter(prefix="/orders", tags=["orders"], dependencies=[Depends(verify_admin_key)])
 
 
 def get_service(db: AsyncSession = Depends(get_db)) -> OrderService:
@@ -134,30 +134,3 @@ async def list_files(
     return await svc.get_files_by_order(order_id, category=category)
 
 
-# ── Страница загрузки для клиента ────────────────────────────────────────────
-
-
-@router.get("/{order_id}/upload-page", response_model=UploadPageInfo)
-async def get_upload_page_info(
-    order_id: uuid.UUID,
-    svc: OrderService = Depends(get_service),
-):
-    """Информация для клиентской страницы загрузки файлов.
-
-    Клиент получает ссылку в письме:
-    https://yourdomain.ru/upload/<order_id>
-    Фронтенд запрашивает этот эндпоинт, чтобы понять,
-    какие файлы нужно загрузить.
-    """
-    order = await svc.get_order(order_id)
-    if order is None:
-        raise HTTPException(status_code=404, detail="Заявка не найдена")
-
-    files = await svc.get_files_by_order(order_id)
-
-    return UploadPageInfo(
-        order_id=order.id,
-        client_name=order.client_name,
-        missing_params=order.missing_params or [],
-        files_uploaded=files,
-    )

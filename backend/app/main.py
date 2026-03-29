@@ -10,6 +10,7 @@ from app.api.orders import router as orders_router
 from app.api.pipeline import router as pipeline_router
 from app.api.emails import router as emails_router
 from app.api.parsing import router as parsing_router
+from app.api.admin import router as admin_router
 from app.api.landing import router as landing_router
 from app.core.config import settings
 
@@ -45,6 +46,7 @@ app.include_router(pipeline_router, prefix="/api/v1")
 app.include_router(emails_router, prefix="/api/v1")
 app.include_router(parsing_router, prefix="/api/v1")
 app.include_router(landing_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 
 
 @app.get("/health")
@@ -60,6 +62,12 @@ async def upload_page(order_id: str):
     https://yourdomain.ru/upload/<order_id>
     """
     return FileResponse(STATIC_DIR / "upload.html", media_type="text/html")
+
+
+@app.get("/admin")
+async def admin_page():
+    """Админ-панель для инженера."""
+    return FileResponse(STATIC_DIR / "admin.html", media_type="text/html")
 
 
 # Статика (JS, CSS если понадобятся)

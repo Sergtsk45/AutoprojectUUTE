@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models import OrderStatus, FileCategory
 from app.schemas import FileResponse
@@ -36,6 +37,7 @@ class PipelineResponse(BaseModel):
 async def start_pipeline(
     order_id: uuid.UUID,
     svc: OrderService = Depends(get_service),
+    _key: str = Depends(verify_admin_key),
 ):
     """Запустить обработку заявки (после загрузки ТУ).
 
@@ -141,6 +143,7 @@ async def client_upload_done(
 async def approve_project(
     order_id: uuid.UUID,
     svc: OrderService = Depends(get_service),
+    _key: str = Depends(verify_admin_key),
 ):
     """Инженер одобрил проект — отправить клиенту."""
     order = await svc.get_order(order_id)

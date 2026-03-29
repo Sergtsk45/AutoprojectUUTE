@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админка — УУТЭ Проектировщик</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f3f4f6;
+      --c-card: #ffffff;
+      --c-primary: #2563eb;
+      --c-primary-hover: #1d4ed8;
+      --c-success: #16a34a;
+      --c-success-bg: #f0fdf4;
+      --c-warn: #d97706;
+      --c-warn-bg: #fffbeb;
+      --c-error: #dc2626;
+      --c-error-bg: #fef2f2;
+      --c-text: #1f2937;
+      --c-text-secondary: #6b7280;
+      --c-border: #e5e7eb;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Golos Text', sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ───────────────────────────────────── */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--c-primary);
+    }
+    .header .subtitle {
+      font-size: 13px;
+      color: var(--c-text-secondary);
+      margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* ── Card ─────────────────────────────────────── */
+    .card {
+      background: var(--c-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--c-text);
+    }
+
+    /* ── Buttons ──────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--c-primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--c-primary-hover); box-shadow: var(--shadow-lg); }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #15803d; }
+    .btn-warn { background: #d97706; color: #fff; }
+    .btn-warn:hover:not(:disabled) { background: #b45309; }
+    .btn-danger { background: var(--c-error); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+    .btn-ghost { background: transparent; color: var(--c-primary); border: 1px solid var(--c-primary); }
+    .btn-ghost:hover:not(:disabled) { background: #eff6ff; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Badge / status ───────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    /* ── Table ────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--c-border);
+      font-weight: 600;
+      color: var(--c-text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--c-border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    tbody tr:hover { background: #f8fafc; }
+    tbody td {
+      padding: 12px 12px;
+      vertical-align: middle;
+    }
+    .td-id { font-family: monospace; font-size: 13px; color: var(--c-text-secondary); }
+    .td-name { font-weight: 500; }
+    .td-date { color: var(--c-text-secondary); white-space: nowrap; }
+
+    /* ── Filter bar ───────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-bar select, .filter-bar input {
+      padding: 8px 12px;
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+      color: var(--c-text);
+    }
+    .filter-bar label {
+      font-size: 13px;
+      color: var(--c-text-secondary);
+    }
+
+    /* ── Stats row ────────────────────────────────── */
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--c-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--c-primary);
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: var(--c-text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── Back link ────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--c-primary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    /* ── Detail grid ──────────────────────────────── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+      font-size: 14px;
+    }
+    .detail-grid dt {
+      color: var(--c-text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding-top: 4px;
+    }
+    .detail-grid dd {
+      color: var(--c-text);
+      font-weight: 500;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    /* ── Progress bar ─────────────────────────────── */
+    .progress-steps {
+      display: flex;
+      gap: 0;
+      margin-top: 12px;
+      overflow-x: auto;
+    }
+    .step {
+      flex: 1;
+      min-width: 70px;
+      text-align: center;
+      position: relative;
+      padding: 0 4px;
+    }
+    .step::before {
+      content: '';
+      display: block;
+      height: 4px;
+      background: var(--c-border);
+      margin: 0 0 8px;
+      border-radius: 2px;
+    }
+    .step.done::before { background: var(--c-primary); }
+    .step.active::before { background: #93c5fd; }
+    .step.error-step::before { background: var(--c-error); }
+    .step-label {
+      font-size: 10px;
+      color: var(--c-text-secondary);
+      line-height: 1.3;
+    }
+    .step.active .step-label { color: var(--c-primary); font-weight: 600; }
+    .step.done .step-label { color: var(--c-success); }
+
+    /* ── File list ────────────────────────────────── */
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--c-border);
+      font-size: 14px;
+    }
+    .file-item:last-child { border-bottom: none; }
+    .file-icon { color: var(--c-text-secondary); flex-shrink: 0; }
+    .file-name { flex: 1; font-weight: 500; word-break: break-all; }
+    .file-meta { color: var(--c-text-secondary); font-size: 12px; white-space: nowrap; }
+
+    /* ── Parsed params ────────────────────────────── */
+    .params-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+    .param-item {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .param-key {
+      font-size: 11px;
+      color: var(--c-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .param-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--c-text);
+      margin-top: 2px;
+    }
+
+    /* ── Actions section ──────────────────────────── */
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Upload section ───────────────────────────── */
+    .upload-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .upload-row label { font-size: 13px; color: var(--c-text-secondary); display: block; margin-bottom: 4px; }
+    .upload-row select, .upload-row input[type="file"] {
+      padding: 8px 10px;
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+    }
+
+    /* ── Email log table ──────────────────────────── */
+    .email-log-table {
+      font-size: 13px;
+    }
+    .email-log-table thead th { font-size: 11px; }
+
+    /* ── Alerts ───────────────────────────────────── */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert.visible { display: block; }
+    .alert.success { background: var(--c-success-bg); color: #166534; border: 1px solid #bbf7d0; }
+    .alert.error { background: var(--c-error-bg); color: #991b1b; border: 1px solid #fecaca; }
+    .alert.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+    /* ── Spinner ──────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+    }
+    .spinner-dark {
+      border-color: rgba(0,0,0,0.1);
+      border-top-color: var(--c-primary);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-center {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .spinner-lg {
+      width: 36px; height: 36px;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    /* ── Login screen ─────────────────────────────── */
+    #loginScreen {
+      max-width: 420px;
+      margin: 80px auto;
+      padding: 0 20px;
+    }
+    #loginScreen .card { padding: 36px; }
+    #loginScreen h2 { font-size: 22px; font-weight: 700; color: var(--c-primary); margin-bottom: 6px; }
+    #loginScreen p { color: var(--c-text-secondary); font-size: 14px; margin-bottom: 24px; }
+    #loginScreen input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      margin-bottom: 14px;
+    }
+    #loginScreen input:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    /* ── Empty state ──────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--c-text-secondary);
+    }
+
+    /* ── Warning text ─────────────────────────────── */
+    .warnings-list { margin-top: 8px; }
+    .warning-item {
+      padding: 8px 12px;
+      background: var(--c-warn-bg);
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #92400e;
+      margin-bottom: 6px;
+    }
+
+    /* ── Auto-refresh ─────────────────────────────── */
+    .refresh-note {
+      font-size: 12px;
+      color: var(--c-text-secondary);
+    }
+
+    @media (max-width: 640px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .stats-row .stat-card { min-width: 100px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Login screen ──────────────────────────────────────────────────── -->
+  <div id="loginScreen" style="display:none;">
+    <div class="card">
+      <h2>УУТЭ Проектировщик</h2>
+      <p>Введите административный ключ для входа в панель управления</p>
+      <div id="loginAlert" class="alert error"></div>
+      <input type="password" id="apiKeyInput" placeholder="API-ключ" autocomplete="current-password">
+      <button class="btn btn-primary" style="width:100%;" onclick="doLogin()">Войти</button>
+    </div>
+  </div>
+
+  <!-- ── List screen ───────────────────────────────────────────────────── -->
+  <div id="listScreen" style="display:none;">
+    <div class="page">
+      <div class="header">
+        <div>
+          <h1>Панель управления</h1>
+          <div class="subtitle">Заявки на проектирование УУТЭ</div>
+        </div>
+        <div class="header-actions">
+          <span class="refresh-note" id="lastRefresh"></span>
+          <button class="btn btn-ghost btn-sm" onclick="refreshList()">↻ Обновить</button>
+          <button class="btn btn-ghost btn-sm" onclick="doLogout()">Выйти</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="card">
+        <div class="filter-bar">
+          <label>Статус:</label>
+          <select id="statusFilter" onchange="refreshList()">
+            <option value="">Все заявки</option>
+            <option value="new">Новые</option>
+            <option value="tu_parsing">Парсинг ТУ</option>
+            <option value="tu_parsed">ТУ распарсены</option>
+            <option value="waiting_client_info">Ожидание клиента</option>
+            <option value="client_info_received">Ответ получен</option>
+            <option value="data_complete">Данные собраны</option>
+            <option value="generating_project">Генерация проекта</option>
+            <option value="review">На проверке</option>
+            <option value="completed">Завершены</option>
+            <option value="error">Ошибки</option>
+          </select>
+        </div>
+
+        <div id="listAlert" class="alert error"></div>
+
+        <div id="listLoading" class="loading-center">
+          <div class="spinner-lg"></div>
+          <div style="color: var(--c-text-secondary);">Загрузка заявок…</div>
+        </div>
+
+        <div id="listContent" style="display:none;">
+          <div class="table-wrap">
+            <table id="ordersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Клиент</th>
+                  <th>Email</th>
+                  <th>Объект</th>
+                  <th>Статус</th>
+                  <th>Дата</th>
+                </tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+          <div id="emptyOrders" class="empty-state" style="display:none;">
+            Заявок не найдено
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Order detail screen ───────────────────────────────────────────── -->
+  <div id="orderScreen" style="display:none;">
+    <div class="page">
+      <button class="back-link" onclick="showList()">← Назад к списку</button>
+
+      <div id="orderAlert" class="alert" style="display:none;"></div>
+
+      <div id="orderLoading" class="loading-center">
+        <div class="spinner-lg"></div>
+        <div style="color: var(--c-text-secondary);">Загрузка заявки…</div>
+      </div>
+
+      <div id="orderContent" style="display:none;">
+        <!-- Contacts card -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Контактные данные
+            <span id="orderIdBadge" style="margin-left:auto; font-family:monospace; font-size:12px; color:var(--c-text-secondary);"></span>
+          </div>
+          <dl class="detail-grid" id="contactsGrid"></dl>
+        </div>
+
+        <!-- Status card -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Статус заявки
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+            <span id="statusBadge" class="badge" style="font-size:14px; padding:5px 14px;"></span>
+            <span id="statusDates" style="font-size:13px; color:var(--c-text-secondary);"></span>
+          </div>
+          <div class="progress-steps" id="progressSteps"></div>
+        </div>
+
+        <!-- Files card -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Файлы
+          </div>
+          <div id="filesList">
+            <div class="empty-state" style="padding:20px 0;">Нет загруженных файлов</div>
+          </div>
+          <div style="margin-top:16px; border-top:1px solid var(--c-border); padding-top:16px;">
+            <div class="card-title" style="margin-bottom:12px; font-size:13px; color:var(--c-text-secondary);">Загрузить файл к заявке</div>
+            <div class="upload-row">
+              <div>
+                <label>Категория</label>
+                <select id="uploadCategory">
+                  <option value="generated_project">Готовый проект (PDF)</option>
+                  <option value="generated_excel">Excel с расчётами</option>
+                  <option value="tu">Технические условия</option>
+                  <option value="floor_plan">План помещения</option>
+                  <option value="heat_point_plan">План теплопункта</option>
+                  <option value="heat_scheme">Схема теплоснабжения</option>
+                  <option value="other">Другое</option>
+                </select>
+              </div>
+              <div>
+                <label>Файл</label>
+                <input type="file" id="uploadFileInput" accept=".pdf,.xlsx,.jpg,.png,.dwg">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="uploadAdminFile()">Загрузить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parsed params card (hidden if empty) -->
+        <div class="card" id="parsedCard" style="display:none;">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Результат парсинга ТУ
+          </div>
+          <div id="parsedContent"></div>
+        </div>
+
+        <!-- Actions card -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Действия
+          </div>
+          <div class="actions-row" id="actionsRow"></div>
+          <div id="actionsNote" style="margin-top:10px; font-size:13px; color:var(--c-text-secondary);"></div>
+        </div>
+
+        <!-- Email log card -->
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Лог писем
+          </div>
+          <div id="emailLog">
+            <div class="empty-state" style="padding:16px 0;">Писем не отправлялось</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────────
+    // Config & State
+    // ─────────────────────────────────────────────────────────────────────
+    const API_BASE = window.location.origin + '/api/v1';
+    let currentOrderId = null;
+    let refreshTimer = null;
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Auth
+    // ─────────────────────────────────────────────────────────────────────
+    function getKey() {
+      return sessionStorage.getItem('admin_key') || '';
+    }
+
+    function setKey(k) {
+      sessionStorage.setItem('admin_key', k);
+    }
+
+    function doLogout() {
+      sessionStorage.removeItem('admin_key');
+      showLoginScreen();
+    }
+
+    async function doLogin() {
+      const input = document.getElementById('apiKeyInput');
+      const key = input.value.trim();
+      if (!key) return;
+
+      const alert = document.getElementById('loginAlert');
+      alert.className = 'alert';
+      alert.style.display = 'none';
+
+      try {
+        const resp = await fetch(`${API_BASE}/orders?limit=1`, {
+          headers: { 'X-Admin-Key': key }
+        });
+        if (resp.status === 401) {
+          alert.textContent = 'Неверный API-ключ';
+          alert.className = 'alert error visible';
+          return;
+        }
+        setKey(key);
+        showListScreen();
+      } catch (e) {
+        alert.textContent = 'Ошибка соединения с сервером';
+        alert.className = 'alert error visible';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') doLogin();
+      });
+
+      if (getKey()) {
+        showListScreen();
+      } else {
+        showLoginScreen();
+      }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // API helpers
+    // ─────────────────────────────────────────────────────────────────────
+    async function apiFetch(path, opts = {}) {
+      const resp = await fetch(API_BASE + path, {
+        ...opts,
+        headers: {
+          'X-Admin-Key': getKey(),
+          ...(opts.headers || {}),
+        },
+      });
+      if (resp.status === 401) {
+        sessionStorage.removeItem('admin_key');
+        showLoginScreen();
+        throw new Error('Требуется авторизация');
+      }
+      return resp;
+    }
+
+    async function apiJSON(path, opts = {}) {
+      const resp = await apiFetch(path, opts);
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.detail || `HTTP ${resp.status}`);
+      }
+      return resp.json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Navigation
+    // ─────────────────────────────────────────────────────────────────────
+    function showLoginScreen() {
+      document.getElementById('loginScreen').style.display = 'block';
+      document.getElementById('listScreen').style.display = 'none';
+      document.getElementById('orderScreen').style.display = 'none';
+      clearInterval(refreshTimer);
+    }
+
+    function showListScreen() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('listScreen').style.display = 'block';
+      document.getElementById('orderScreen').style.display = 'none';
+      refreshList();
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshList, 30000);
+    }
+
+    function showList() {
+      showListScreen();
+    }
+
+    function showOrderScreen(orderId) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('listScreen').style.display = 'none';
+      document.getElementById('orderScreen').style.display = 'block';
+      clearInterval(refreshTimer);
+      loadOrder(orderId);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Status helpers
+    // ─────────────────────────────────────────────────────────────────────
+    const STATUS_LABELS = {
+      new: 'Новая',
+      tu_parsing: 'Парсинг ТУ',
+      tu_parsed: 'ТУ распарсены',
+      waiting_client_info: 'Ожидание клиента',
+      client_info_received: 'Ответ получен',
+      data_complete: 'Данные собраны',
+      generating_project: 'Генерация проекта',
+      review: 'На проверке',
+      completed: 'Завершена',
+      error: 'Ошибка',
+    };
+
+    const STATUS_COLORS = {
+      new: '#9e9e9e',
+      tu_parsing: '#2196f3',
+      tu_parsed: '#1976d2',
+      waiting_client_info: '#ff9800',
+      client_info_received: '#f57c00',
+      data_complete: '#66bb6a',
+      generating_project: '#7e57c2',
+      review: '#f9a825',
+      completed: '#4caf50',
+      error: '#f44336',
+    };
+
+    const STATUS_ORDER = [
+      'new','tu_parsing','tu_parsed','waiting_client_info',
+      'client_info_received','data_complete','generating_project','review','completed'
+    ];
+
+    function statusBadge(status) {
+      const color = STATUS_COLORS[status] || '#9e9e9e';
+      const label = STATUS_LABELS[status] || status;
+      return `<span class="badge" style="background:${color};">${label}</span>`;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // List screen
+    // ─────────────────────────────────────────────────────────────────────
+    async function refreshList() {
+      const statusFilter = document.getElementById('statusFilter').value;
+      const loading = document.getElementById('listLoading');
+      const content = document.getElementById('listContent');
+      const alertEl = document.getElementById('listAlert');
+
+      loading.style.display = 'block';
+      content.style.display = 'none';
+      alertEl.style.display = 'none';
+
+      try {
+        const qs = statusFilter ? `?status=${statusFilter}&limit=100` : '?limit=100';
+        const [orders, stats] = await Promise.all([
+          apiJSON(`/orders${qs}`),
+          apiJSON('/admin/stats').catch(() => null),
+        ]);
+
+        renderStats(stats);
+        renderOrdersTable(orders);
+
+        const now = new Date();
+        document.getElementById('lastRefresh').textContent =
+          'Обновлено: ' + now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      } catch (e) {
+        alertEl.textContent = 'Ошибка загрузки: ' + e.message;
+        alertEl.className = 'alert error visible';
+      } finally {
+        loading.style.display = 'none';
+        content.style.display = 'block';
+      }
+    }
+
+    function renderStats(stats) {
+      const row = document.getElementById('statsRow');
+      if (!stats) { row.innerHTML = ''; return; }
+
+      const items = [
+        { label: 'Всего заявок', value: stats.total, color: '#2563eb' },
+        { label: 'Новых', value: stats.by_status?.new || 0, color: '#9e9e9e' },
+        { label: 'На проверке', value: stats.by_status?.review || 0, color: '#f9a825' },
+        { label: 'Ошибки', value: stats.by_status?.error || 0, color: '#f44336' },
+        { label: 'Завершены', value: stats.by_status?.completed || 0, color: '#4caf50' },
+      ];
+
+      row.innerHTML = items.map(it => `
+        <div class="stat-card">
+          <div class="stat-value" style="color:${it.color};">${it.value}</div>
+          <div class="stat-label">${it.label}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderOrdersTable(orders) {
+      const tbody = document.getElementById('ordersBody');
+      const empty = document.getElementById('emptyOrders');
+
+      if (!orders || orders.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      tbody.innerHTML = orders.map(o => `
+        <tr onclick="showOrderScreen('${o.id}')">
+          <td class="td-id">${o.id.slice(0,8)}</td>
+          <td class="td-name">${esc(o.client_name)}</td>
+          <td>${esc(o.client_email)}</td>
+          <td>${esc(o.object_address || '—')}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td class="td-date">${formatDate(o.created_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Order detail screen
+    // ─────────────────────────────────────────────────────────────────────
+    async function loadOrder(orderId) {
+      currentOrderId = orderId;
+
+      const loading = document.getElementById('orderLoading');
+      const content = document.getElementById('orderContent');
+      const alertEl = document.getElementById('orderAlert');
+
+      loading.style.display = 'block';
+      content.style.display = 'none';
+      alertEl.style.display = 'none';
+
+      try {
+        const order = await apiJSON(`/orders/${orderId}`);
+        renderOrder(order);
+        loading.style.display = 'none';
+        content.style.display = 'block';
+      } catch (e) {
+        loading.style.display = 'none';
+        showOrderAlert('error', 'Ошибка загрузки заявки: ' + e.message);
+      }
+    }
+
+    function renderOrder(order) {
+      // ID badge
+      document.getElementById('orderIdBadge').textContent = 'Заявка №' + order.id.slice(0,8);
+
+      // Contacts
+      const grid = document.getElementById('contactsGrid');
+      const fields = [
+        ['Имя клиента', order.client_name],
+        ['Email', order.client_email],
+        ['Телефон', order.client_phone || '—'],
+        ['Организация', order.client_organization || '—'],
+        ['Адрес объекта', order.object_address || '—'],
+        ['Дата создания', formatDateFull(order.created_at)],
+        ['Обновлена', formatDateFull(order.updated_at)],
+        ['Повторных запросов', order.retry_count],
+      ];
+      grid.innerHTML = fields.map(([k,v]) =>
+        `<dt>${k}</dt><dd>${esc(String(v))}</dd>`
+      ).join('');
+
+      // Status badge
+      document.getElementById('statusBadge').innerHTML = statusBadge(order.status).replace('class="badge"', 'class="badge"');
+      document.getElementById('statusBadge').style.background = STATUS_COLORS[order.status] || '#9e9e9e';
+      document.getElementById('statusBadge').textContent = STATUS_LABELS[order.status] || order.status;
+      document.getElementById('statusDates').textContent =
+        order.reviewer_comment ? 'Комментарий: ' + order.reviewer_comment : '';
+
+      // Progress
+      renderProgress(order.status);
+
+      // Files
+      renderFiles(order.files || [], order.id);
+
+      // Parsed params
+      renderParsedParams(order.parsed_params, order.missing_params);
+
+      // Actions
+      renderActions(order);
+
+      // Email log
+      renderEmailLog(order.emails || []);
+    }
+
+    function renderProgress(currentStatus) {
+      const steps = document.getElementById('progressSteps');
+      const isError = currentStatus === 'error';
+
+      steps.innerHTML = STATUS_ORDER.map(s => {
+        const idx = STATUS_ORDER.indexOf(s);
+        const curIdx = STATUS_ORDER.indexOf(currentStatus);
+        let cls = '';
+        if (isError) cls = idx <= curIdx ? 'error-step' : '';
+        else if (idx < curIdx) cls = 'done';
+        else if (idx === curIdx) cls = 'active';
+        return `<div class="step ${cls}"><div class="step-label">${STATUS_LABELS[s]}</div></div>`;
+      }).join('');
+    }
+
+    function renderFiles(files, orderId) {
+      const el = document.getElementById('filesList');
+      if (!files.length) {
+        el.innerHTML = '<div class="empty-state" style="padding:16px 0;">Нет файлов</div>';
+        return;
+      }
+
+      const catLabels = {
+        tu: 'Технические условия',
+        floor_plan: 'План помещения',
+        heat_point_plan: 'План теплопункта',
+        heat_scheme: 'Схема теплоснабжения',
+        generated_excel: 'Excel (расчёты)',
+        generated_project: 'Готовый проект',
+        other: 'Другое',
+      };
+
+      el.innerHTML = files.map(f => `
+        <div class="file-item">
+          <svg class="file-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span class="file-name">${esc(f.original_filename)}</span>
+          <span class="file-meta">${catLabels[f.category] || f.category}</span>
+          <span class="file-meta">${f.file_size ? formatSize(f.file_size) : ''}</span>
+          <a href="${API_BASE}/admin/files/${f.id}/download"
+             class="btn btn-ghost btn-sm"
+             style="font-size:12px; padding:4px 10px;"
+             target="_blank"
+             onclick="this.href = addKeyToUrl(this.href)">
+            ↓ Скачать
+          </a>
+        </div>
+      `).join('');
+    }
+
+    function addKeyToUrl(url) {
+      const u = new URL(url);
+      u.searchParams.set('_k', getKey());
+      return u.toString();
+    }
+
+    function renderParsedParams(params, missing) {
+      const card = document.getElementById('parsedCard');
+      const content = document.getElementById('parsedContent');
+
+      if (!params || Object.keys(params).length === 0) {
+        card.style.display = 'none';
+        return;
+      }
+      card.style.display = 'block';
+
+      const confidence = params.parse_confidence;
+      const warnings = params.warnings || [];
+
+      const displayKeys = {
+        heat_load_gvs: 'Нагрузка ГВС, Гкал/ч',
+        heat_load_ot: 'Нагрузка ОТ, Гкал/ч',
+        heat_load_vent: 'Нагрузка вент., Гкал/ч',
+        t_supply: 'T подача, °C',
+        t_return: 'T обратка, °C',
+        p_supply: 'P подача, МПа',
+        p_return: 'P обратка, МПа',
+        pipe_diameter_supply: 'Диам. подачи, мм',
+        pipe_diameter_return: 'Диам. обратки, мм',
+        connection_scheme: 'Схема присоединения',
+        meter_brand: 'Марка прибора',
+        circuits_count: 'Контуров учёта',
+      };
+
+      let html = '';
+
+      if (confidence !== undefined) {
+        const pct = Math.round(confidence * 100);
+        const color = pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626';
+        html += `
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+            <span style="font-size:13px; color:var(--c-text-secondary);">Уверенность парсинга:</span>
+            <span style="font-size:18px; font-weight:700; color:${color};">${pct}%</span>
+          </div>
+        `;
+      }
+
+      const paramItems = Object.entries(displayKeys)
+        .filter(([k]) => params[k] !== undefined && params[k] !== null)
+        .map(([k, label]) => `
+          <div class="param-item">
+            <div class="param-key">${label}</div>
+            <div class="param-value">${esc(String(params[k]))}</div>
+          </div>
+        `).join('');
+
+      if (paramItems) {
+        html += `<div class="params-grid">${paramItems}</div>`;
+      }
+
+      if (missing && missing.length > 0) {
+        html += `
+          <div style="margin-top:14px;">
+            <div style="font-size:13px; font-weight:600; color:var(--c-warn); margin-bottom:8px;">
+              Недостающие данные (${missing.length}):
+            </div>
+            <div style="font-size:13px; color:var(--c-text-secondary);">${missing.join(', ')}</div>
+          </div>
+        `;
+      }
+
+      if (warnings.length > 0) {
+        html += `
+          <div class="warnings-list" style="margin-top:14px;">
+            <div style="font-size:13px; font-weight:600; color:var(--c-warn); margin-bottom:6px;">Предупреждения:</div>
+            ${warnings.map(w => `<div class="warning-item">${esc(w)}</div>`).join('')}
+          </div>
+        `;
+      }
+
+      content.innerHTML = html;
+    }
+
+    function renderActions(order) {
+      const row = document.getElementById('actionsRow');
+      const note = document.getElementById('actionsNote');
+      const status = order.status;
+
+      let buttons = [];
+      let noteText = '';
+
+      if (status === 'new') {
+        buttons.push({
+          label: '▶ Запустить парсинг ТУ',
+          cls: 'btn-primary',
+          action: () => runAction(`/pipeline/${order.id}/start`, 'POST', 'Парсинг запущен'),
+        });
+        noteText = 'Убедитесь, что файл ТУ загружен перед запуском';
+      }
+
+      if (status === 'tu_parsed' || status === 'waiting_client_info' || status === 'client_info_received') {
+        buttons.push({
+          label: '✉ Отправить запрос клиенту',
+          cls: 'btn-warn',
+          action: () => sendEmail(order.id, 'info_request', 'Запрос отправлен'),
+        });
+      }
+
+      if (status === 'waiting_client_info') {
+        buttons.push({
+          label: '✉ Отправить напоминание',
+          cls: 'btn-warn',
+          action: () => sendEmail(order.id, 'reminder', 'Напоминание отправлено'),
+        });
+      }
+
+      if (status === 'review') {
+        buttons.push({
+          label: '✓ Одобрить и отправить клиенту',
+          cls: 'btn-success',
+          action: () => {
+            if (confirm('Одобрить проект и отправить клиенту?')) {
+              runAction(`/pipeline/${order.id}/approve`, 'POST', 'Проект отправляется клиенту');
+            }
+          },
+        });
+      }
+
+      if (status === 'error') {
+        buttons.push({
+          label: '↻ Перезапустить парсинг',
+          cls: 'btn-danger',
+          action: () => {
+            if (confirm('Сбросить статус и перезапустить парсинг?')) {
+              runAction(`/parsing/${order.id}/retrigger`, 'POST', 'Парсинг перезапущен');
+            }
+          },
+        });
+      }
+
+      if (buttons.length === 0) {
+        row.innerHTML = '<span style="color:var(--c-text-secondary); font-size:14px;">Нет доступных действий для текущего статуса</span>';
+      } else {
+        row.innerHTML = buttons.map((b, i) => `
+          <button class="btn ${b.cls}" id="action_btn_${i}" onclick="actionBtns[${i}]()">${b.label}</button>
+        `).join('');
+        window.actionBtns = buttons.map(b => b.action);
+      }
+
+      note.textContent = noteText;
+    }
+
+    async function runAction(path, method, successMsg) {
+      showOrderAlert('info', 'Выполняется…');
+      try {
+        await apiJSON(path, { method });
+        showOrderAlert('success', successMsg);
+        setTimeout(() => loadOrder(currentOrderId), 1200);
+      } catch (e) {
+        showOrderAlert('error', 'Ошибка: ' + e.message);
+      }
+    }
+
+    async function sendEmail(orderId, emailType, successMsg) {
+      showOrderAlert('info', 'Отправка…');
+      try {
+        await apiJSON(`/emails/${orderId}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email_type: emailType }),
+        });
+        showOrderAlert('success', successMsg);
+        setTimeout(() => loadOrder(currentOrderId), 1200);
+      } catch (e) {
+        showOrderAlert('error', 'Ошибка отправки: ' + e.message);
+      }
+    }
+
+    async function uploadAdminFile() {
+      const category = document.getElementById('uploadCategory').value;
+      const fileInput = document.getElementById('uploadFileInput');
+      const file = fileInput.files[0];
+      if (!file) { showOrderAlert('error', 'Выберите файл'); return; }
+
+      showOrderAlert('info', 'Загрузка файла…');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const resp = await apiFetch(`/orders/${currentOrderId}/files?category=${category}`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!resp.ok) {
+          const d = await resp.json().catch(() => ({}));
+          throw new Error(d.detail || `HTTP ${resp.status}`);
+        }
+        fileInput.value = '';
+        showOrderAlert('success', 'Файл загружен');
+        setTimeout(() => loadOrder(currentOrderId), 800);
+      } catch (e) {
+        showOrderAlert('error', 'Ошибка загрузки: ' + e.message);
+      }
+    }
+
+    function renderEmailLog(emails) {
+      const el = document.getElementById('emailLog');
+      if (!emails.length) {
+        el.innerHTML = '<div class="empty-state" style="padding:16px 0;">Писем не отправлялось</div>';
+        return;
+      }
+
+      const typeLabels = {
+        info_request: 'Запрос документов',
+        reminder: 'Напоминание',
+        project_delivery: 'Проект готов',
+        error_notification: 'Ошибка',
+        sample_delivery: 'Образец проекта',
+        new_order_notification: 'Новая заявка (инженеру)',
+        partnership_request: 'Запрос партнёрства',
+      };
+
+      el.innerHTML = `
+        <table class="email-log-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Получатель</th>
+              <th>Тема</th>
+              <th>Отправлено</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${emails.map(e => `
+              <tr>
+                <td>${typeLabels[e.email_type] || e.email_type}</td>
+                <td style="font-size:13px;">${esc(e.recipient)}</td>
+                <td style="font-size:12px; color:var(--c-text-secondary);">${esc(e.subject)}</td>
+                <td class="td-date">${e.sent_at ? formatDate(e.sent_at) : '—'}</td>
+                <td>${e.sent_at
+                  ? '<span style="color:#16a34a; font-size:13px; font-weight:600;">✓ OK</span>'
+                  : '<span style="color:#dc2626; font-size:13px; font-weight:600;">✗ Ошибка</span>'
+                }</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────
+    function showOrderAlert(type, msg) {
+      const el = document.getElementById('orderAlert');
+      el.textContent = msg;
+      el.className = `alert ${type} visible`;
+      if (type === 'success' || type === 'info') {
+        setTimeout(() => { el.style.display = 'none'; }, 4000);
+      }
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function formatDateFull(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' Б';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' КБ';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
+    }
+  </script>
+</body>
+</html>
