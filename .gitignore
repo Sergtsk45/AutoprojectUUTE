@@ -1,30 +1,37 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-.env
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
 *.egg-info/
 dist/
 build/
-.venv/
-venv/
-env/
+.eggs/
+
+# Environment
+.env
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
 
 # Node
 node_modules/
-dist/
-.pnpm-debug.log
-
-# Alembic
-*.pyc
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-.vscode/
+frontend/dist/
+frontend/dist-ssr/
 
 # Logs
 *.log
+npm-debug.log*
+
+# Database
+*.db
+*.sqlite3
