@@ -1,0 +1,21 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<h2>Новая заявка</h2>
+
+<div class="list-block">
+  <ul>
+    <li><strong>Клиент:</strong> {{ client_name }}</li>
+    <li><strong>Email:</strong> {{ client_email }}</li>
+    {% if client_phone %}<li><strong>Телефон:</strong> {{ client_phone }}</li>{% endif %}
+    {% if client_organization %}<li><strong>Организация:</strong> {{ client_organization }}</li>{% endif %}
+    {% if object_address %}<li><strong>Объект:</strong> {{ object_address }}</li>{% endif %}
+    {% if circuits %}<li><strong>Контуров учёта:</strong> {{ circuits }}</li>{% endif %}
+    {% if price %}<li><strong>Стоимость:</strong> {{ price }} ₽</li>{% endif %}
+  </ul>
+</div>
+
+<div class="btn-center">
+  <a href="{{ admin_url }}" class="btn">Открыть заявку</a>
+</div>
+{% endblock %}

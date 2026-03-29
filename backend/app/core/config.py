@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     smtp_from_name: str = "УУТЭ Проектировщик"
     smtp_use_ssl: bool = True
 
+    # Admin
+    admin_email: str = "admin@yourdomain.ru"
+
     # App
     app_base_url: str = "http://localhost:8000"
     max_retry_count: int = 3

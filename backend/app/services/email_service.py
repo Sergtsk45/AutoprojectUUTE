@@ -367,3 +367,107 @@ def send_error_notification(
         error_msg=None if success else "SMTP delivery failed",
     )
     return success
+
+
+def send_sample_delivery(recipient_email: str) -> bool:
+    """Отправить образец проекта на email."""
+    env = _get_jinja()
+    template = env.get_template("emails/sample_delivery.html")
+
+    ctx = {
+        **_COMMON_CONTEXT,
+        "header_title": "Образец проекта УУТЭ",
+        "order_id": None,
+        "order_url": f"{settings.app_base_url}/#calculator",
+    }
+
+    subject = "Образец проекта узла учёта тепловой энергии"
+    html_body = template.render(ctx)
+
+    sample_path = settings.templates_dir / "samples" / "sample_project.pdf"
+    attachments = [str(sample_path)] if sample_path.exists() else []
+
+    return send_email(
+        recipient=recipient_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachments,
+    )
+
+
+def send_new_order_notification(
+    session: Session,
+    order: Order,
+    circuits: int | None = None,
+    price: int | None = None,
+) -> bool:
+    """Уведомить инженера о новой заявке."""
+    env = _get_jinja()
+    template = env.get_template("emails/new_order_notification.html")
+
+    order_id_str = str(order.id)
+    ctx = {
+        **_COMMON_CONTEXT,
+        "header_title": "Новая заявка",
+        "order_id": order_id_str,
+        "order_id_short": order_id_str[:8],
+        "client_name": order.client_name,
+        "client_email": order.client_email,
+        "client_phone": order.client_phone,
+        "client_organization": order.client_organization,
+        "object_address": order.object_address,
+        "circuits": circuits,
+        "price": f"{price:,}".replace(",", " ") if price else None,
+        "admin_url": f"{settings.app_base_url}/api/v1/orders/{order.id}",
+    }
+
+    subject = f"Новая заявка №{order_id_str[:8]} — {order.client_name}"
+    html_body = template.render(ctx)
+
+    success = send_email(
+        recipient=settings.admin_email,
+        subject=subject,
+        html_body=html_body,
+    )
+    log = EmailLog(
+        order_id=order.id,
+        email_type=EmailType.NEW_ORDER_NOTIFICATION,
+        recipient=settings.admin_email,
+        subject=subject,
+        body_text=html_body[:5000],
+        sent_at=datetime.now(timezone.utc) if success else None,
+        error_message=None if success else "SMTP delivery failed",
+    )
+    session.add(log)
+    session.commit()
+    return success
+
+
+def send_partnership_request(
+    contact_name: str,
+    company: str,
+    contact_email: str,
+    contact_phone: str,
+) -> bool:
+    """Переслать запрос на партнёрство инженеру."""
+    env = _get_jinja()
+    template = env.get_template("emails/partnership_request.html")
+
+    ctx = {
+        **_COMMON_CONTEXT,
+        "header_title": "Запрос на партнёрство",
+        "order_id": None,
+        "contact_name": contact_name,
+        "company": company,
+        "contact_email": contact_email,
+        "contact_phone": contact_phone,
+    }
+
+    subject = f"Запрос на партнёрство от {company}"
+    html_body = template.render(ctx)
+
+    return send_email(
+        recipient=settings.admin_email,
+        subject=subject,
+        html_body=html_body,
+    )

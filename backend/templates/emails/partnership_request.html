@@ -1,0 +1,16 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<h2>Запрос на партнёрство</h2>
+
+<div class="list-block">
+  <ul>
+    <li><strong>Имя:</strong> {{ contact_name }}</li>
+    <li><strong>Компания:</strong> {{ company }}</li>
+    <li><strong>Email:</strong> {{ contact_email }}</li>
+    <li><strong>Телефон:</strong> {{ contact_phone }}</li>
+  </ul>
+</div>
+
+<p>Ответьте клиенту напрямую на {{ contact_email }}.</p>
+{% endblock %}

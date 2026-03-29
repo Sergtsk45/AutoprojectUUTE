@@ -1,0 +1,66 @@
+const API_BASE = '/api/v1';
+
+export interface OrderRequest {
+  client_name: string;
+  client_email: string;
+  client_phone?: string;
+  client_organization?: string;
+  object_address?: string;
+  circuits?: number;
+  price?: number;
+}
+
+export interface OrderCreatedResponse {
+  order_id: string;
+  upload_url: string;
+  message: string;
+}
+
+export interface SimpleResponse {
+  success: boolean;
+  message: string;
+}
+
+export async function requestSample(email: string): Promise<SimpleResponse> {
+  const resp = await fetch(`${API_BASE}/landing/sample-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: 'Ошибка сервера' }));
+    throw new Error(err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function createOrder(data: OrderRequest): Promise<OrderCreatedResponse> {
+  const resp = await fetch(`${API_BASE}/landing/order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: 'Ошибка сервера' }));
+    throw new Error(err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function sendPartnershipRequest(data: {
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+}): Promise<SimpleResponse> {
+  const resp = await fetch(`${API_BASE}/landing/partnership`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: 'Ошибка сервера' }));
+    throw new Error(err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}

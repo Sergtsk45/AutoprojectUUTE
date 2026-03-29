@@ -10,6 +10,7 @@ from app.api.orders import router as orders_router
 from app.api.pipeline import router as pipeline_router
 from app.api.emails import router as emails_router
 from app.api.parsing import router as parsing_router
+from app.api.landing import router as landing_router
 from app.core.config import settings
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -43,6 +44,7 @@ app.include_router(orders_router, prefix="/api/v1")
 app.include_router(pipeline_router, prefix="/api/v1")
 app.include_router(emails_router, prefix="/api/v1")
 app.include_router(parsing_router, prefix="/api/v1")
+app.include_router(landing_router, prefix="/api/v1")
 
 
 @app.get("/health")

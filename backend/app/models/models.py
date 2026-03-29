@@ -94,6 +94,9 @@ class EmailType(str, enum.Enum):
     REMINDER = "reminder"              # Напоминание
     PROJECT_DELIVERY = "project_delivery"  # Отправка готового проекта
     ERROR_NOTIFICATION = "error_notification"  # Уведомление об ошибке
+    SAMPLE_DELIVERY = "sample_delivery"        # Отправка образца проекта
+    NEW_ORDER_NOTIFICATION = "new_order_notification"  # Уведомление инженеру о новой заявке
+    PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
