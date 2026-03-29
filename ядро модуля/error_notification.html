@@ -1,0 +1,27 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>При обработке вашей заявки на проектирование узла учёта
+тепловой энергии по адресу <strong>{{ object_address or "—" }}</strong>
+возникла проблема:</p>
+
+<div class="note">
+  {{ error_description }}
+</div>
+
+{% if action_required %}
+<h2>Что нужно сделать</h2>
+<p>{{ action_required }}</p>
+
+{% if upload_url %}
+<div class="btn-center">
+  <a href="{{ upload_url }}" class="btn">Перейти к заявке</a>
+</div>
+{% endif %}
+{% else %}
+<p>Наши специалисты уже работают над решением. Мы свяжемся с вами,
+когда проблема будет устранена.</p>
+{% endif %}
+{% endblock %}

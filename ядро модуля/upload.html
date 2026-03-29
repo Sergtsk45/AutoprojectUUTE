@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Загрузка документов — УУТЭ Проектировщик</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f3f4f6;
+      --c-card: #ffffff;
+      --c-primary: #2563eb;
+      --c-primary-hover: #1d4ed8;
+      --c-success: #16a34a;
+      --c-success-bg: #f0fdf4;
+      --c-warn: #d97706;
+      --c-warn-bg: #fffbeb;
+      --c-error: #dc2626;
+      --c-error-bg: #fef2f2;
+      --c-text: #1f2937;
+      --c-text-secondary: #6b7280;
+      --c-border: #e5e7eb;
+      --c-drop-bg: #eff6ff;
+      --c-drop-border: #93c5fd;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Golos Text', sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ───────────────────────────────── */
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--c-primary);
+      letter-spacing: -0.3px;
+    }
+    .logo .order-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 12px;
+      background: var(--c-drop-bg);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--c-primary);
+      font-weight: 500;
+    }
+
+    .card {
+      background: var(--c-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2 .icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    /* ── Greeting ─────────────────────────────── */
+    .greeting {
+      font-size: 15px;
+      color: var(--c-text-secondary);
+      margin-bottom: 4px;
+    }
+    .greeting strong {
+      color: var(--c-text);
+    }
+
+    /* ── Checklist ────────────────────────────── */
+    .checklist {
+      list-style: none;
+    }
+    .checklist li {
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 15px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+    .checklist li.pending {
+      background: var(--c-warn-bg);
+      border: 1px solid #fde68a;
+    }
+    .checklist li.done {
+      background: var(--c-success-bg);
+      border: 1px solid #bbf7d0;
+    }
+    .checklist .status-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-top: 1px;
+    }
+    .checklist .label {
+      flex: 1;
+    }
+    .checklist .hint {
+      display: block;
+      font-size: 13px;
+      color: var(--c-text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── Dropzone ─────────────────────────────── */
+    .dropzone {
+      border: 2px dashed var(--c-border);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--c-drop-border);
+      background: var(--c-drop-bg);
+    }
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .dropzone .drop-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 12px;
+      color: var(--c-primary);
+    }
+    .dropzone p {
+      font-size: 15px;
+      color: var(--c-text-secondary);
+    }
+    .dropzone p strong {
+      color: var(--c-primary);
+    }
+    .dropzone .formats {
+      font-size: 13px;
+      color: var(--c-text-secondary);
+      margin-top: 6px;
+    }
+
+    /* ── Category select ─────────────────────── */
+    .category-select {
+      margin-bottom: 16px;
+    }
+    .category-select label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .category-select select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+      color: var(--c-text);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* ── Upload queue ─────────────────────────── */
+    .upload-queue {
+      margin-top: 16px;
+    }
+    .upload-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .upload-item .filename {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .upload-item .size {
+      color: var(--c-text-secondary);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .upload-item .progress-bar {
+      width: 80px;
+      height: 4px;
+      background: var(--c-border);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .upload-item .progress-bar .fill {
+      height: 100%;
+      background: var(--c-primary);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    .upload-item.success .progress-bar .fill { background: var(--c-success); }
+    .upload-item.error .progress-bar .fill { background: var(--c-error); }
+    .upload-item .status-text {
+      font-size: 12px;
+      flex-shrink: 0;
+      width: 80px;
+      text-align: right;
+    }
+    .upload-item .status-text.ok { color: var(--c-success); }
+    .upload-item .status-text.err { color: var(--c-error); }
+
+    /* ── Buttons ──────────────────────────────── */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--c-primary);
+      color: #fff;
+      flex: 1;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--c-primary-hover);
+      box-shadow: var(--shadow-lg);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── Status banner ────────────────────────── */
+    .banner {
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .banner.visible { display: flex; }
+    .banner.success { background: var(--c-success-bg); color: #166534; border: 1px solid #bbf7d0; }
+    .banner.error { background: var(--c-error-bg); color: #991b1b; border: 1px solid #fecaca; }
+    .banner .banner-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Spinner ──────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Loading screen ──────────────────────── */
+    .loading-screen {
+      text-align: center;
+      padding: 80px 20px;
+    }
+    .loading-screen .spinner-lg {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    /* ── Error screen ─────────────────────────── */
+    .error-screen {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--c-error);
+    }
+
+    @media (max-width: 480px) {
+      .page { padding: 20px 16px 48px; }
+      .card { padding: 20px; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="logo">
+      <h1>УУТЭ Проектировщик</h1>
+      <div class="order-badge" id="orderBadge"></div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingScreen" class="loading-screen">
+      <div class="spinner-lg"></div>
+      <p style="color: var(--c-text-secondary);">Загрузка данных заявки…</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorScreen" class="error-screen" style="display:none;">
+      <p id="errorText">Не удалось загрузить данные заявки</p>
+    </div>
+
+    <!-- Main content -->
+    <div id="mainContent" style="display:none;">
+
+      <!-- Banner -->
+      <div id="banner" class="banner">
+        <svg class="banner-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span id="bannerText"></span>
+      </div>
+
+      <!-- Greeting -->
+      <div class="card">
+        <p class="greeting" id="greetingText"></p>
+      </div>
+
+      <!-- Required documents checklist -->
+      <div class="card">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <path d="M9 14l2 2 4-4"/>
+          </svg>
+          Необходимые документы
+        </h2>
+        <ul class="checklist" id="checklist"></ul>
+      </div>
+
+      <!-- Upload area -->
+      <div class="card" id="uploadCard">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Загрузка файлов
+        </h2>
+
+        <div class="category-select">
+          <label for="categorySelect">Тип документа</label>
+          <select id="categorySelect">
+            <option value="">— Выберите тип документа —</option>
+          </select>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 16V4m0 0L8 8m4-4l4 4"/>
+            <path d="M20 16.7V19a2 2 0 01-2 2H6a2 2 0 01-2-2v-2.3"/>
+          </svg>
+          <p><strong>Выберите файл</strong> или перетащите сюда</p>
+          <p class="formats">PDF, JPG, PNG, DWG · до 25 МБ</p>
+          <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.dwg" multiple>
+        </div>
+
+        <div class="upload-queue" id="uploadQueue"></div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="submitBtn" disabled>
+            Всё загружено — отправить
+          </button>
+        </div>
+      </div>
+
+      <!-- Already completed -->
+      <div class="card" id="completedCard" style="display:none;">
+        <h2 style="color: var(--c-success);">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-success)" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Все документы получены
+        </h2>
+        <p style="color: var(--c-text-secondary); font-size: 15px;">
+          Мы начали обработку вашей заявки. Результат будет отправлен
+          на вашу электронную почту.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────────────────────
+    const API_BASE = window.location.origin + '/api/v1';
+
+    // Extract order ID from URL: /upload/<uuid>
+    const pathParts = window.location.pathname.split('/');
+    const ORDER_ID = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
+
+    // Labels for missing params (matches backend param_labels.py)
+    const PARAM_LABELS = {
+      floor_plan:       { label: 'План помещения с расположением узла учёта', hint: 'Поэтажный план с привязкой к осям здания' },
+      heat_point_plan:  { label: 'План теплового пункта', hint: 'С расположением оборудования и точек подключения' },
+      heat_scheme:      { label: 'Схема теплоснабжения объекта', hint: 'Принципиальная схема с обозначением контуров' },
+      pipe_diameters:   { label: 'Диаметры трубопроводов на вводе', hint: '' },
+      heat_load_details:{ label: 'Детализация тепловых нагрузок', hint: '' },
+      coolant_params:   { label: 'Параметры теплоносителя', hint: '' },
+      connection_scheme: { label: 'Схема присоединения', hint: '' },
+      system_type:      { label: 'Тип системы теплоснабжения', hint: '' },
+      meter_location_photo: { label: 'Фото места установки узла учёта', hint: '' },
+    };
+
+    // ── State ───────────────────────────────────────────────────────────
+    let orderData = null;
+    const uploadedCategories = new Set();
+
+    // ── DOM refs ────────────────────────────────────────────────────────
+    const $loading     = document.getElementById('loadingScreen');
+    const $error       = document.getElementById('errorScreen');
+    const $errorText   = document.getElementById('errorText');
+    const $main        = document.getElementById('mainContent');
+    const $badge       = document.getElementById('orderBadge');
+    const $greeting    = document.getElementById('greetingText');
+    const $checklist   = document.getElementById('checklist');
+    const $catSelect   = document.getElementById('categorySelect');
+    const $dropzone    = document.getElementById('dropzone');
+    const $fileInput   = document.getElementById('fileInput');
+    const $queue       = document.getElementById('uploadQueue');
+    const $submitBtn   = document.getElementById('submitBtn');
+    const $uploadCard  = document.getElementById('uploadCard');
+    const $completedCard = document.getElementById('completedCard');
+    const $banner      = document.getElementById('banner');
+    const $bannerText  = document.getElementById('bannerText');
+
+    // ── Init ────────────────────────────────────────────────────────────
+    async function init() {
+      try {
+        const resp = await fetch(`${API_BASE}/orders/${ORDER_ID}/upload-page`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        orderData = await resp.json();
+
+        $badge.textContent = `Заявка №${ORDER_ID.slice(0, 8)}`;
+        $greeting.innerHTML = `<strong>${orderData.client_name}</strong>, здравствуйте! Загрузите документы, необходимые для проектирования узла учёта.`;
+
+        // Track already uploaded
+        (orderData.files_uploaded || []).forEach(f => uploadedCategories.add(f.category));
+
+        renderChecklist();
+        renderCategoryOptions();
+
+        $loading.style.display = 'none';
+        $main.style.display = 'block';
+
+        // If nothing is missing — show completed
+        const still = (orderData.missing_params || []).filter(p => !uploadedCategories.has(p));
+        if (still.length === 0 && orderData.missing_params.length > 0) {
+          showCompleted();
+        }
+      } catch (err) {
+        $loading.style.display = 'none';
+        $error.style.display = 'block';
+        $errorText.textContent = 'Не удалось загрузить данные заявки. Проверьте ссылку или обратитесь в поддержку.';
+        console.error(err);
+      }
+    }
+
+    // ── Render checklist ────────────────────────────────────────────────
+    function renderChecklist() {
+      $checklist.innerHTML = '';
+      (orderData.missing_params || []).forEach(code => {
+        const info = PARAM_LABELS[code] || { label: code, hint: '' };
+        const done = uploadedCategories.has(code);
+        const li = document.createElement('li');
+        li.className = done ? 'done' : 'pending';
+        li.innerHTML = `
+          <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor">
+            ${done
+              ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+              : '<circle cx="10" cy="10" r="7.5" fill="none" stroke="#d97706" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="#d97706"/>'
+            }
+          </svg>
+          <span class="label">
+            ${info.label}
+            ${info.hint ? `<span class="hint">${info.hint}</span>` : ''}
+          </span>
+        `;
+        $checklist.appendChild(li);
+      });
+    }
+
+    // ── Render category dropdown ────────────────────────────────────────
+    function renderCategoryOptions() {
+      // Only show categories from missing_params that haven't been uploaded
+      const missing = (orderData.missing_params || []).filter(p => !uploadedCategories.has(p));
+      missing.forEach(code => {
+        const info = PARAM_LABELS[code] || { label: code };
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = info.label;
+        $catSelect.appendChild(opt);
+      });
+
+      // Also add "other"
+      const optOther = document.createElement('option');
+      optOther.value = 'other';
+      optOther.textContent = 'Другой документ';
+      $catSelect.appendChild(optOther);
+    }
+
+    // ── Drag & drop ─────────────────────────────────────────────────────
+    $dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      $dropzone.classList.add('dragover');
+    });
+    $dropzone.addEventListener('dragleave', () => {
+      $dropzone.classList.remove('dragover');
+    });
+    $dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      $dropzone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    $fileInput.addEventListener('change', () => {
+      handleFiles($fileInput.files);
+      $fileInput.value = '';
+    });
+
+    // ── Handle file selection ───────────────────────────────────────────
+    function handleFiles(fileList) {
+      const category = $catSelect.value;
+      if (!category) {
+        showBanner('error', 'Сначала выберите тип документа');
+        return;
+      }
+
+      for (const file of fileList) {
+        if (file.size > 25 * 1024 * 1024) {
+          showBanner('error', `Файл «${file.name}» превышает 25 МБ`);
+          continue;
+        }
+        uploadFile(file, category);
+      }
+    }
+
+    // ── Upload single file ──────────────────────────────────────────────
+    async function uploadFile(file, category) {
+      const item = document.createElement('div');
+      item.className = 'upload-item';
+      item.innerHTML = `
+        <span class="filename">${file.name}</span>
+        <span class="size">${formatSize(file.size)}</span>
+        <div class="progress-bar"><div class="fill" style="width:0%"></div></div>
+        <span class="status-text">0%</span>
+      `;
+      $queue.appendChild(item);
+
+      const fill = item.querySelector('.fill');
+      const statusText = item.querySelector('.status-text');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Use XMLHttpRequest for progress tracking
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `${API_BASE}/pipeline/${ORDER_ID}/client-upload?category=${category}`);
+
+          xhr.upload.onprogress = e => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              fill.style.width = pct + '%';
+              statusText.textContent = pct + '%';
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject(new Error(`HTTP ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Ошибка сети'));
+          xhr.send(formData);
+        });
+
+        // Success
+        item.classList.add('success');
+        fill.style.width = '100%';
+        statusText.className = 'status-text ok';
+        statusText.textContent = '✓';
+        uploadedCategories.add(category);
+        renderChecklist();
+
+        // Enable submit if at least one file uploaded
+        $submitBtn.disabled = false;
+
+      } catch (err) {
+        item.classList.add('error');
+        fill.style.width = '100%';
+        statusText.className = 'status-text err';
+        statusText.textContent = 'Ошибка';
+        console.error('Upload failed:', err);
+      }
+    }
+
+    // ── Submit (done uploading) ─────────────────────────────────────────
+    $submitBtn.addEventListener('click', async () => {
+      $submitBtn.disabled = true;
+      $submitBtn.innerHTML = '<span class="spinner"></span> Отправка…';
+
+      try {
+        const resp = await fetch(`${API_BASE}/pipeline/${ORDER_ID}/client-upload-done`, {
+          method: 'POST',
+        });
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          throw new Error(data.detail || `HTTP ${resp.status}`);
+        }
+
+        showCompleted();
+        showBanner('success', 'Документы отправлены! Мы начали обработку вашей заявки.');
+
+      } catch (err) {
+        showBanner('error', `Ошибка: ${err.message}`);
+        $submitBtn.disabled = false;
+        $submitBtn.innerHTML = 'Всё загружено — отправить';
+      }
+    });
+
+    // ── Show completed state ────────────────────────────────────────────
+    function showCompleted() {
+      $uploadCard.style.display = 'none';
+      $completedCard.style.display = 'block';
+    }
+
+    // ── Banner ──────────────────────────────────────────────────────────
+    function showBanner(type, text) {
+      $banner.className = `banner visible ${type}`;
+      $bannerText.textContent = text;
+      setTimeout(() => { $banner.classList.remove('visible'); }, 6000);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' Б';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' КБ';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
+    }
+
+    // ── Start ───────────────────────────────────────────────────────────
+    init();
+  </script>
+</body>
+</html>

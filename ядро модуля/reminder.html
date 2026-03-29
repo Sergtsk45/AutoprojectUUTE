@@ -1,0 +1,28 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>Напоминаем, что для продолжения проектирования узла учёта
+тепловой энергии по адресу <strong>{{ object_address or "—" }}</strong>
+нам по-прежнему необходимы следующие документы:</p>
+
+<div class="list-block">
+  <ul>
+  {% for item in missing_items %}
+    <li>{{ item.label }}</li>
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="btn-center">
+  <a href="{{ upload_url }}" class="btn">Загрузить документы</a>
+</div>
+
+{% if retry_count >= 2 %}
+<div class="note">
+  Это повторное напоминание. Если вы не сможете предоставить документы
+  в ближайшее время, пожалуйста, сообщите нам — мы обсудим варианты.
+</div>
+{% endif %}
+{% endblock %}
