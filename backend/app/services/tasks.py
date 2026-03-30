@@ -91,8 +91,8 @@ def start_tu_parsing(self, order_id: str):
     """NEW → TU_PARSING → TU_PARSED: Парсинг технических условий.
 
     Находит PDF с ТУ в файлах заявки, запускает парсер (модуль 1):
-    - Текстовый PDF → pymupdf → Claude API
-    - Скан PDF → pymupdf render → Claude Vision API
+    - Текстовый PDF → pymupdf → LLM API
+    - Скан PDF → pymupdf render → LLM Vision API
     Сохраняет извлечённые параметры в order.parsed_params.
     """
     from app.services.tu_parser import parse_tu_document, determine_missing_params

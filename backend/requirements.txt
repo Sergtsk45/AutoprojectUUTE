@@ -13,5 +13,5 @@ aiofiles==24.1.0
 python-dotenv==1.0.1
 psycopg2-binary==2.9.9
 Jinja2==3.1.4
-anthropic==0.42.0
+openai==1.58.1
 PyMuPDF==1.25.1

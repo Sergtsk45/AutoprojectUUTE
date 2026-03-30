@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     admin_email: str = "admin@yourdomain.ru"
     admin_api_key: str = "change-me-in-production"
 
+    # LLM (OpenRouter)
+    openrouter_api_key: str = "sk-or-v1-change-me"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "google/gemini-2.5-flash"
+
     # App
     app_base_url: str = "http://localhost:8000"
     max_retry_count: int = 3

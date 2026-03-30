@@ -2,14 +2,14 @@
 
 Пайплайн:
 1. Извлечение данных из PDF:
-   - Текстовый PDF → pymupdf → текст → Claude API (текстовый промпт)
-   - Скан PDF → pymupdf → рендер страниц в PNG → Claude Vision API
+   - Текстовый PDF → pymupdf → текст → LLM API (текстовый промпт)
+   - Скан PDF → pymupdf → рендер страниц в PNG → LLM Vision API
 2. Парсинг JSON-ответа в TUParsedData
 3. Валидация: диапазоны, перекрёстные проверки
 4. Возврат структурированных данных + список проблем
 
 Зависимости:
-    pip install pymupdf anthropic
+    pip install pymupdf openai
 """
 
 import base64
@@ -59,7 +59,7 @@ def extract_text_from_pdf(pdf_path: str | Path) -> str:
 def render_pdf_pages_to_base64(pdf_path: str | Path, dpi: int = 200) -> list[str]:
     """Рендерит страницы PDF в PNG и возвращает base64-строки.
 
-    Используется для сканов — отправляем изображения в Claude Vision.
+    Используется для сканов — отправляем изображения в LLM Vision.
     DPI=200 — баланс между качеством и размером (~300-500 КБ на страницу).
     """
     path = Path(pdf_path)
@@ -187,25 +187,28 @@ def extract_params_with_llm(
     text: str | None = None,
     page_images_b64: list[str] | None = None,
 ) -> dict:
-    """Отправляет ТУ в Claude API, получает JSON с параметрами.
+    """Отправляет ТУ в LLM через OpenRouter API, получает JSON с параметрами.
 
     Два режима:
     - text: для текстовых PDF (дешевле, быстрее)
-    - page_images_b64: для сканов (Claude Vision читает изображения)
+    - page_images_b64: для сканов (Vision — LLM читает изображения)
 
     Returns:
         dict — сырой JSON от LLM.
     """
-    import anthropic
+    from openai import OpenAI
 
-    client = anthropic.Anthropic()  # ANTHROPIC_API_KEY из env
+    client = OpenAI(
+        api_key=settings.openrouter_api_key,
+        base_url=settings.openrouter_base_url,
+    )
 
-    # Собираем content-блоки
-    content = []
+    # Собираем messages в формате OpenAI
+    user_content = []
 
     if page_images_b64:
         # Vision-режим: отправляем изображения страниц
-        content.append({
+        user_content.append({
             "type": "text",
             "text": (
                 "Ниже — изображения страниц PDF-документа "
@@ -214,22 +217,20 @@ def extract_params_with_llm(
                 "согласно инструкции."
             ),
         })
-        for i, img_b64 in enumerate(page_images_b64):
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": "image/png",
-                    "data": img_b64,
+        for img_b64 in page_images_b64:
+            user_content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{img_b64}",
                 },
             })
-        content.append({
+        user_content.append({
             "type": "text",
             "text": "Извлеки ВСЕ параметры из этих страниц. Верни только JSON.",
         })
     elif text:
         # Текстовый режим
-        content.append({
+        user_content.append({
             "type": "text",
             "text": (
                 f"Вот текст технических условий, извлечённый из PDF:\n\n"
@@ -240,14 +241,23 @@ def extract_params_with_llm(
     else:
         raise ValueError("Нужен text или page_images_b64")
 
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+    messages = [
+        {"role": "system", "content": EXTRACTION_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+
+    response = client.chat.completions.create(
+        model=settings.openrouter_model,
+        messages=messages,
         max_tokens=4096,
-        messages=[{"role": "user", "content": content}],
-        system=EXTRACTION_PROMPT,
+        temperature=0.1,
+        extra_headers={
+            "HTTP-Referer": settings.app_base_url,
+            "X-Title": "UUTE Project Parser",
+        },
     )
 
-    raw_response = message.content[0].text.strip()
+    raw_response = response.choices[0].message.content.strip()
     logger.debug("LLM raw response (first 500 chars): %s", raw_response[:500])
 
     # Убираем возможные markdown-обрамления
@@ -338,8 +348,8 @@ def parse_tu_document(pdf_path: str | Path) -> TUParsedData:
     """Полный пайплайн парсинга ТУ.
 
     Автоматически определяет тип PDF:
-    - Текстовый → извлекает текст → Claude API (текстовый промпт)
-    - Скан → рендерит страницы → Claude Vision API
+    - Текстовый → извлекает текст → LLM API (текстовый промпт)
+    - Скан → рендерит страницы → LLM Vision API
 
     Args:
         pdf_path: Путь к PDF-файлу с техническими условиями.
@@ -360,7 +370,7 @@ def parse_tu_document(pdf_path: str | Path) -> TUParsedData:
         llm_result = extract_params_with_llm(text=text)
     else:
         # Скан — используем Vision
-        logger.info("Скан PDF — используем Claude Vision")
+        logger.info("Скан PDF — используем LLM Vision")
         page_images = render_pdf_pages_to_base64(pdf_path, dpi=200)
         raw_text = f"[СКАН: {len(page_images)} страниц, распознано через Vision]"
         llm_result = extract_params_with_llm(page_images_b64=page_images)
