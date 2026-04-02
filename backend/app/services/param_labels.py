@@ -7,6 +7,36 @@ hint  — подсказка, как подготовить документ.
 Коды документов совпадают с FileCategory для загружаемых файлов.
 """
 
+# Обязательные документы от клиента после ТУ (фиксированный порядок в UI)
+CLIENT_DOCUMENT_PARAM_CODES: tuple[str, ...] = (
+    "balance_act",
+    "connection_plan",
+    "heat_point_plan",
+    "heat_scheme",
+)
+
+
+def compute_client_document_missing(uploaded_categories: set[str]) -> list[str]:
+    """Какие из четырёх обязательных документов ещё не загружены."""
+    return [c for c in CLIENT_DOCUMENT_PARAM_CODES if c not in uploaded_categories]
+
+
+_LEGACY_DOCUMENT_PARAM_CODES = frozenset(
+    {"floor_plan", "connection_scheme", "system_type"}
+)
+
+
+def client_document_list_needs_migration(missing: list[str] | None) -> bool:
+    """True, если в missing_params устаревшие или посторонние коды (нужна замена на канонические четыре)."""
+    m = missing or []
+    allowed = set(CLIENT_DOCUMENT_PARAM_CODES)
+    if any(x in _LEGACY_DOCUMENT_PARAM_CODES for x in m):
+        return True
+    if any(x not in allowed for x in m):
+        return True
+    return False
+
+
 MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
     "tu": {
         "label": "Технические условия",
@@ -17,16 +47,16 @@ MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
         "hint": "Для действующих объектов",
     },
     "connection_plan": {
-        "label": "План подключения к тепловой сети",
+        "label": "План подключения потребителя к тепловой сети",
         "hint": "С указанием точек подключения",
     },
     "heat_point_plan": {
-        "label": "План теплового пункта",
-        "hint": "С указанием мест установки узла учёта и ШУ",
+        "label": "План теплового пункта с указанием мест установки узла учёта и ШУ",
+        "hint": "",
     },
     "heat_scheme": {
-        "label": "Схема теплового пункта",
-        "hint": "Принципиальная схема с узлом учёта",
+        "label": "Принципиальная схема теплового пункта с узлом учёта",
+        "hint": "",
     },
     "pipe_diameters": {
         "label": "Диаметры трубопроводов на вводе",

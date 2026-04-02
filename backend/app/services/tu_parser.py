@@ -21,6 +21,7 @@ from pathlib import Path
 import fitz  # pymupdf
 
 from app.core.config import settings
+from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services.tu_schema import TUParsedData, get_missing_fields
 
 logger = logging.getLogger(__name__)
@@ -414,12 +415,4 @@ def determine_missing_params(parsed: TUParsedData) -> list[str]:
 
     Коды соответствуют param_labels.py и FileCategory для файлов.
     """
-    missing = []
-
-    # Документы, которые ВСЕГДА нужны от клиента (кроме ТУ, оно уже загружено)
-    missing.append("balance_act")
-    missing.append("connection_plan")
-    missing.append("heat_point_plan")
-    missing.append("heat_scheme")
-
-    return missing
+    return list(CLIENT_DOCUMENT_PARAM_CODES)

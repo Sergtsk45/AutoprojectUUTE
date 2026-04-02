@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models import FileCategory, OrderStatus
+from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.tasks import start_tu_parsing
 from app.schemas import FileResponse, OrderCreate, PipelineResponse, UploadPageInfo
@@ -159,11 +160,21 @@ async def get_upload_page_info(
 
     files = await svc.get_files_by_order(order_id)
 
+    await svc.fix_legacy_client_document_params(order)
+
+    if order.status in (
+        OrderStatus.WAITING_CLIENT_INFO,
+        OrderStatus.CLIENT_INFO_RECEIVED,
+    ):
+        missing = list(CLIENT_DOCUMENT_PARAM_CODES)
+    else:
+        missing = order.missing_params or []
+
     return UploadPageInfo(
         order_id=order.id,
         client_name=order.client_name,
         order_status=order.status.value,
-        missing_params=order.missing_params or [],
+        missing_params=missing,
         files_uploaded=files,
     )
 

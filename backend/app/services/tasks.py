@@ -19,6 +19,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
+from app.services.param_labels import compute_client_document_missing
 from app.models.models import (
     ALLOWED_TRANSITIONS,
     Order,
@@ -231,14 +232,8 @@ def process_client_response(self, order_id: str):
         if order is None:
             return
 
-        # Проверяем, какие файлы уже загружены
         uploaded_categories = {f.category.value for f in order.files}
-        still_missing = [
-            p for p in (order.missing_params or [])
-            if p not in uploaded_categories
-        ]
-
-        order.missing_params = still_missing
+        order.missing_params = compute_client_document_missing(uploaded_categories)
         session.commit()
 
     # Повторная проверка полноты

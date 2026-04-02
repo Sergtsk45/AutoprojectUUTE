@@ -10,6 +10,10 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.models import Order, OrderFile, OrderStatus, FileCategory
 from app.schemas import OrderCreate, OrderStatusUpdate
+from app.services.param_labels import (
+    CLIENT_DOCUMENT_PARAM_CODES,
+    client_document_list_needs_migration,
+)
 
 
 class OrderService:
@@ -59,6 +63,22 @@ class OrderService:
             stmt = stmt.where(Order.status == status)
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def fix_legacy_client_document_params(self, order: Order) -> None:
+        """Убрать из БД устаревшие коды (floor_plan и т.д.): заменить список на канонические четыре.
+
+        Не трогает заявки, где missing_params уже подмножество четырёх кодов после «Готово».
+        """
+        if order.status not in (
+            OrderStatus.WAITING_CLIENT_INFO,
+            OrderStatus.CLIENT_INFO_RECEIVED,
+        ):
+            return
+        if not client_document_list_needs_migration(order.missing_params):
+            return
+        order.missing_params = list(CLIENT_DOCUMENT_PARAM_CODES)
+        await self.db.commit()
+        await self.db.refresh(order)
 
     # ── Смена статуса ────────────────────────────────────────────────────
 

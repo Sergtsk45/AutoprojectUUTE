@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-02] — Ровно 4 документа в missing_params и подписи
+
+### Добавлено
+- `CLIENT_DOCUMENT_PARAM_CODES`, `compute_client_document_missing()`, `client_document_list_needs_migration()` в `param_labels.py`.
+- `OrderService.fix_legacy_client_document_params()`: при открытии upload-page, если в БД устаревшие/чужие коды (`floor_plan`, `connection_scheme`, `system_type` и т.д.), заменяет `missing_params` на полный канонический список из четырёх.
+- Для `waiting_client_info` / `client_info_received` ответ `upload-page` всегда отдаёт в `missing_params` четыре канонических кода (чеклист и подписи), а факт «что ещё не прислали» для пайплайна хранится в БД после «Готово».
+
+### Изменено
+- `process_client_response` (Celery): `missing_params` = `compute_client_document_missing(uploaded)` вместо фильтрации устаревшего списка.
+- Уточнены человекочитаемые названия четырёх документов в `param_labels`, `upload.html`, админке.
+
 ## [2026-04-02] — Категории файлов УУТЭ (FileCategory)
 
 ### Добавлено
