@@ -448,16 +448,16 @@
     const pathParts = window.location.pathname.split('/');
     const ORDER_ID = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
 
-    // Labels for missing params (matches backend param_labels.py)
+    // Подписи для кодов из order.missing_params (дублируют backend param_labels.py)
     const PARAM_LABELS = {
-      floor_plan:       { label: 'План помещения с расположением узла учёта', hint: 'Поэтажный план с привязкой к осям здания' },
-      heat_point_plan:  { label: 'План теплового пункта', hint: 'С расположением оборудования и точек подключения' },
-      heat_scheme:      { label: 'Схема теплоснабжения объекта', hint: 'Принципиальная схема с обозначением контуров' },
-      pipe_diameters:   { label: 'Диаметры трубопроводов на вводе', hint: '' },
-      heat_load_details:{ label: 'Детализация тепловых нагрузок', hint: '' },
-      coolant_params:   { label: 'Параметры теплоносителя', hint: '' },
-      connection_scheme: { label: 'Схема присоединения', hint: '' },
-      system_type:      { label: 'Тип системы теплоснабжения', hint: '' },
+      tu: { label: 'Технические условия', hint: 'Документ от теплоснабжающей организации' },
+      balance_act: { label: 'Акт разграничения балансовой принадлежности', hint: 'Для действующих объектов' },
+      connection_plan: { label: 'План подключения к тепловой сети', hint: 'С указанием точек подключения' },
+      heat_point_plan: { label: 'План теплового пункта', hint: 'С указанием мест установки узла учёта и ШУ' },
+      heat_scheme: { label: 'Схема теплового пункта', hint: 'Принципиальная схема с узлом учёта' },
+      pipe_diameters: { label: 'Диаметры трубопроводов на вводе', hint: '' },
+      heat_load_details: { label: 'Детализация тепловых нагрузок', hint: '' },
+      coolant_params: { label: 'Параметры теплоносителя', hint: '' },
       meter_location_photo: { label: 'Фото места установки узла учёта', hint: '' },
     };
 

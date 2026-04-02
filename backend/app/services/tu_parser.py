@@ -412,24 +412,14 @@ def determine_missing_params(parsed: TUParsedData) -> list[str]:
     На основании parsed данных + обязательных полей из схемы
     формирует список кодов для order.missing_params.
 
-    Коды соответствуют param_labels.py (floor_plan, heat_scheme и т.д.).
+    Коды соответствуют param_labels.py и FileCategory для файлов.
     """
     missing = []
 
-    # Документы, которые ВСЕГДА нужны от клиента (не содержатся в ТУ)
-    missing.append("floor_plan")        # План помещения
-    missing.append("heat_point_plan")   # План теплопункта
-    missing.append("heat_scheme")       # Схема теплоснабжения
-
-    # Параметры, которые могли быть в ТУ, но не извлеклись
-    if parsed.connection.connection_type in (None, "неизвестно"):
-        missing.append("connection_scheme")
-
-    if parsed.connection.system_type in (None, "неизвестно"):
-        missing.append("system_type")
-
-    # Если нет детализации нагрузок
-    if parsed.heat_loads.total_load and not parsed.heat_loads.heating_load:
-        missing.append("heat_load_details")
+    # Документы, которые ВСЕГДА нужны от клиента (кроме ТУ, оно уже загружено)
+    missing.append("balance_act")
+    missing.append("connection_plan")
+    missing.append("heat_point_plan")
+    missing.append("heat_scheme")
 
     return missing

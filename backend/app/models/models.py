@@ -76,14 +76,19 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
 # ─── Типы файлов ─────────────────────────────────────────────────────────────
 
 class FileCategory(str, enum.Enum):
-    """Категории загружаемых файлов."""
+    """Категории загружаемых файлов.
 
-    TU = "tu"                          # Технические условия
-    FLOOR_PLAN = "floor_plan"          # План помещения
-    HEAT_POINT_PLAN = "heat_point_plan"  # План теплопункта
-    HEAT_SCHEME = "heat_scheme"        # Схема теплоснабжения
-    GENERATED_EXCEL = "generated_excel"  # Сгенерированный Excel с расчётами
-    GENERATED_PROJECT = "generated_project"  # Итоговый проект PDF
+    Клиент: ТУ, акт разграничения, план подключения, план ТП, схема ТП.
+    Служебные: сгенерированные артефакты и прочее.
+    """
+
+    TU = "tu"  # Технические условия (ТУ)
+    BALANCE_ACT = "balance_act"  # Акт разграничения балансовой принадлежности
+    CONNECTION_PLAN = "connection_plan"  # План подключения к тепловой сети
+    HEAT_POINT_PLAN = "heat_point_plan"  # План теплового пункта (УУТЭ, ШУ)
+    HEAT_SCHEME = "heat_scheme"  # Принципиальная схема теплового пункта с УУТЭ
+    GENERATED_EXCEL = "generated_excel"
+    GENERATED_PROJECT = "generated_project"
     OTHER = "other"
 
 
@@ -131,7 +136,7 @@ class Order(Base):
     parsed_params = Column(JSONB, nullable=True, default=dict)
 
     # Список параметров, которых не хватает (JSON-массив строк)
-    # Пример: ["floor_plan", "heat_scheme"]
+    # Пример: ["balance_act", "heat_scheme"] — коды как в param_labels / FileCategory
     missing_params = Column(JSONB, nullable=True, default=list)
 
     # Счётчик повторных запросов клиенту
