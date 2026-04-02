@@ -111,5 +111,14 @@ class UploadPageInfo(BaseModel):
 
     order_id: UUID
     client_name: str
+    order_status: str
     missing_params: list[str]
     files_uploaded: list[FileResponse]
+
+
+class PipelineResponse(BaseModel):
+    """Ответ эндпоинтов пайплайна и публичного submit на лендинге."""
+
+    message: str
+    order_id: UUID
+    task_id: str | None = None

@@ -3,13 +3,12 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models import OrderStatus, FileCategory
-from app.schemas import FileResponse
+from app.schemas import FileResponse, PipelineResponse
 from app.services import OrderService
 from app.services.tasks import (
     start_tu_parsing,
@@ -22,12 +21,6 @@ router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
 def get_service(db: AsyncSession = Depends(get_db)) -> OrderService:
     return OrderService(db)
-
-
-class PipelineResponse(BaseModel):
-    message: str
-    order_id: uuid.UUID
-    task_id: str | None = None
 
 
 # ── Запуск обработки заявки ──────────────────────────────────────────────────

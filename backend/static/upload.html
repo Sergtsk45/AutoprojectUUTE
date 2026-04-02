@@ -463,6 +463,7 @@
 
     // ── State ───────────────────────────────────────────────────────────
     let orderData = null;
+    let isNewOrder = false;
     const uploadedCategories = new Set();
 
     // ── DOM refs ────────────────────────────────────────────────────────
@@ -489,6 +490,7 @@
         const resp = await fetch(`${API_BASE}/landing/orders/${ORDER_ID}/upload-page`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         orderData = await resp.json();
+        isNewOrder = !orderData.order_status || orderData.order_status === 'new';
 
         $badge.textContent = `Заявка №${ORDER_ID.slice(0, 8)}`;
         $greeting.innerHTML = `<strong>${orderData.client_name}</strong>, здравствуйте! Загрузите документы, необходимые для проектирования узла учёта.`;
@@ -541,21 +543,41 @@
 
     // ── Render category dropdown ────────────────────────────────────────
     function renderCategoryOptions() {
-      // Only show categories from missing_params that haven't been uploaded
-      const missing = (orderData.missing_params || []).filter(p => !uploadedCategories.has(p));
-      missing.forEach(code => {
-        const info = PARAM_LABELS[code] || { label: code };
+      $catSelect.innerHTML = '';
+      const optPlaceholder = document.createElement('option');
+      optPlaceholder.value = '';
+      optPlaceholder.textContent = '— Выберите тип документа —';
+      $catSelect.appendChild(optPlaceholder);
+
+      const codes = [];
+      if (isNewOrder && !uploadedCategories.has('tu')) {
+        codes.push('tu');
+      }
+      (orderData.missing_params || []).forEach(code => {
+        if (uploadedCategories.has(code)) return;
+        if (code === 'tu' && codes.includes('tu')) return;
+        codes.push(code);
+      });
+
+      codes.forEach(code => {
+        const info =
+          code === 'tu'
+            ? { label: 'Технические условия' }
+            : PARAM_LABELS[code] || { label: code };
         const opt = document.createElement('option');
         opt.value = code;
         opt.textContent = info.label;
         $catSelect.appendChild(opt);
       });
 
-      // Also add "other"
       const optOther = document.createElement('option');
       optOther.value = 'other';
       optOther.textContent = 'Другой документ';
       $catSelect.appendChild(optOther);
+
+      if (isNewOrder && codes.includes('tu')) {
+        $catSelect.value = 'tu';
+      }
     }
 
     // ── Drag & drop ─────────────────────────────────────────────────────
@@ -581,6 +603,10 @@
       const category = $catSelect.value;
       if (!category) {
         showBanner('error', 'Сначала выберите тип документа');
+        return;
+      }
+      if (isNewOrder && category !== 'tu') {
+        showBanner('error', 'На этом этапе можно загрузить только технические условия');
         return;
       }
 
@@ -615,7 +641,10 @@
         // Use XMLHttpRequest for progress tracking
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `${API_BASE}/pipeline/${ORDER_ID}/client-upload?category=${category}`);
+          const uploadUrl = isNewOrder
+            ? `${API_BASE}/landing/orders/${ORDER_ID}/upload-tu`
+            : `${API_BASE}/pipeline/${ORDER_ID}/client-upload?category=${encodeURIComponent(category)}`;
+          xhr.open('POST', uploadUrl);
 
           xhr.upload.onprogress = e => {
             if (e.lengthComputable) {
@@ -644,6 +673,7 @@
         statusText.textContent = '✓';
         uploadedCategories.add(category);
         renderChecklist();
+        renderCategoryOptions();
 
         // Enable submit if at least one file uploaded
         $submitBtn.disabled = false;
@@ -663,9 +693,10 @@
       $submitBtn.innerHTML = '<span class="spinner"></span> Отправка…';
 
       try {
-        const resp = await fetch(`${API_BASE}/pipeline/${ORDER_ID}/client-upload-done`, {
-          method: 'POST',
-        });
+        const doneUrl = isNewOrder
+          ? `${API_BASE}/landing/orders/${ORDER_ID}/submit`
+          : `${API_BASE}/pipeline/${ORDER_ID}/client-upload-done`;
+        const resp = await fetch(doneUrl, { method: 'POST' });
         if (!resp.ok) {
           const data = await resp.json().catch(() => ({}));
           throw new Error(data.detail || `HTTP ${resp.status}`);
