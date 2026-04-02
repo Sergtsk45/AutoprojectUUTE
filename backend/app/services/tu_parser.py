@@ -22,7 +22,7 @@ import fitz  # pymupdf
 
 from app.core.config import settings
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
-from app.services.tu_schema import TUParsedData, get_missing_fields
+from app.services.tu_schema import SYSTEM_TYPE_ALLOWED, TUParsedData, get_missing_fields
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,55 @@ def is_scanned_pdf(pdf_path: str | Path) -> bool:
     """Определяет, является ли PDF сканом (без текстового слоя)."""
     text = extract_text_from_pdf(pdf_path)
     return len(text.strip()) < _MIN_TEXT_LENGTH
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Нормализация system_type до Pydantic (LLM даёт разговорные формулировки)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+SYSTEM_TYPE_MAP: dict[str, str] = {
+    "двухтрубная": "закрытая_двухтрубная",
+    "2-трубная": "закрытая_двухтрубная",
+    "2_трубная": "закрытая_двухтрубная",
+    "четырёхтрубная": "закрытая_четырёхтрубная",
+    "четырехтрубная": "закрытая_четырёхтрубная",
+    "4-трубная": "закрытая_четырёхтрубная",
+    "4_трубная": "закрытая_четырёхтрубная",
+    "закрытая": "закрытая",
+    "открытая": "открытая",
+    "закрытая_двухтрубная": "закрытая_двухтрубная",
+    "закрытая_четырёхтрубная": "закрытая_четырёхтрубная",
+    "открытая_двухтрубная": "открытая_двухтрубная",
+    "открытая_четырёхтрубная": "открытая_четырёхтрубная",
+    "неизвестно": "неизвестно",
+}
+
+
+def _normalize_system_type_raw(raw: str | None) -> str | None:
+    """Привести ответ LLM к значению из Literal в ConnectionScheme."""
+    if raw is None:
+        return None
+    if not isinstance(raw, str):
+        return "неизвестно"
+    t = raw.strip()
+    if not t:
+        return None
+    s = t.lower().replace(" ", "_").replace("-", "_")
+    while "__" in s:
+        s = s.replace("__", "_")
+    s = s.strip("_")
+    if s in SYSTEM_TYPE_MAP:
+        return SYSTEM_TYPE_MAP[s]
+    if s in SYSTEM_TYPE_ALLOWED:
+        return s
+    return "неизвестно"
+
+
+def _apply_system_type_normalization(llm_result: dict) -> None:
+    conn = llm_result.get("connection")
+    if not isinstance(conn, dict):
+        return
+    conn["system_type"] = _normalize_system_type_raw(conn.get("system_type"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -160,7 +209,7 @@ EXTRACTION_PROMPT = """Ты — инженер-проектировщик узл
   },
   "connection": {
     "connection_type": "зависимая" или "независимая" или "неизвестно",
-    "system_type": "закрытая" или "открытая" или "неизвестно",
+    "system_type": "тип системы теплоснабжения. Возможные значения: закрытая, открытая, закрытая_двухтрубная, закрытая_четырёхтрубная, открытая_двухтрубная, открытая_четырёхтрубная, двухтрубная, четырёхтрубная, неизвестно. Если в ТУ написано просто «двухтрубная» без уточнения — ставь закрытая_двухтрубная (большинство систем в РФ закрытые).",
     "heating_system": "перечень систем: отопление, ГВС, вентиляция"
   },
   "additional": {
@@ -376,7 +425,11 @@ def parse_tu_document(pdf_path: str | Path) -> TUParsedData:
         raw_text = f"[СКАН: {len(page_images)} страниц, распознано через Vision]"
         llm_result = extract_params_with_llm(page_images_b64=page_images)
 
-    # Шаг 2: Pydantic-валидация
+    # Шаг 2: нормализация полей до Pydantic
+    if isinstance(llm_result, dict):
+        _apply_system_type_normalization(llm_result)
+
+    # Шаг 3: Pydantic-валидация
     try:
         parsed = TUParsedData.model_validate(llm_result)
     except Exception as e:
@@ -388,7 +441,7 @@ def parse_tu_document(pdf_path: str | Path) -> TUParsedData:
 
     parsed.raw_text = raw_text[:10000]
 
-    # Шаг 3: перекрёстные проверки
+    # Шаг 4: перекрёстные проверки
     cross_warnings = validate_parsed_data(parsed)
     parsed.warnings.extend(cross_warnings)
 

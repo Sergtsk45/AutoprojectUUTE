@@ -7,8 +7,21 @@
 - Какие параметры обязательны, какие опциональны
 """
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from typing import Literal
+
+# Допустимые значения connection.system_type (синхронно с парсером и LLM)
+SYSTEM_TYPE_ALLOWED: frozenset[str] = frozenset({
+    "закрытая",
+    "открытая",
+    "закрытая_двухтрубная",
+    "закрытая_четырёхтрубная",
+    "открытая_двухтрубная",
+    "открытая_четырёхтрубная",
+    "двухтрубная",
+    "четырёхтрубная",
+    "неизвестно",
+})
 
 
 class RSOInfo(BaseModel):
@@ -148,7 +161,15 @@ class ConnectionScheme(BaseModel):
         "зависимая", "независимая", "неизвестно"
     ] | None = Field(None, description="Тип присоединения")
     system_type: Literal[
-        "закрытая", "открытая", "неизвестно"
+        "закрытая",
+        "открытая",
+        "закрытая_двухтрубная",
+        "закрытая_четырёхтрубная",
+        "открытая_двухтрубная",
+        "открытая_четырёхтрубная",
+        "двухтрубная",
+        "четырёхтрубная",
+        "неизвестно",
     ] | None = Field(None, description="Тип системы теплоснабжения")
     heating_system: str | None = Field(
         None, description="Система отопления: отопление, ГВС, вентиляция и т.д."

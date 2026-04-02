@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-02] — Парсер ТУ: system_type для ответов LLM
+
+### Добавлено
+- `SYSTEM_TYPE_ALLOWED` в `tu_schema.py`; расширен `Literal` для `connection.system_type` (двух-/четырёхтрубные варианты).
+- `SYSTEM_TYPE_MAP`, `_normalize_system_type_raw`, `_apply_system_type_normalization` в `tu_parser.py` — нормализация до `model_validate`.
+
+### Изменено
+- `EXTRACTION_PROMPT`: явный перечень допустимых `system_type` и правило для «двухтрубная» → `закрытая_двухтрубная`.
+
 ## [2026-04-02] — Ровно 4 документа в missing_params и подписи
 
 ### Добавлено
