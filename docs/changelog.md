@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-04-03] — Enum `file_category`: BALANCE_ACT и CONNECTION_PLAN
+
+### Изменено
+- PostgreSQL: `ALTER TYPE file_category RENAME VALUE` для `balance_act` → `BALANCE_ACT`, `connection_plan` → `CONNECTION_PLAN` (миграция Alembic `20260403_fc_upper`, `down_revision`: `20260402_uute_fc`).
+- `FileCategory`, `CLIENT_DOCUMENT_PARAM_CODES`, `param_labels`, `admin.html`, `upload.html`: те же строковые значения, что и метки enum в БД.
+- `orders.missing_params`: пересборка массива с заменой старых кодов на новые.
+
 ## [2026-04-03] — Главная: React SPA из `frontend-dist`
 
 ### Добавлено
