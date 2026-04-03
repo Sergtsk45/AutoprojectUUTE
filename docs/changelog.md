@@ -1,5 +1,10 @@
 # Changelog
 
+## [2026-04-03] — Админ API: ключ в query `_k`
+
+### Добавлено
+- В [`backend/app/core/auth.py`](../backend/app/core/auth.py): `verify_admin_key` принимает query-параметр `_k` как запасной способ передачи ключа (если нет заголовка `X-Admin-Key`).
+
 ## [2026-04-03] — Enum `file_category`: BALANCE_ACT и CONNECTION_PLAN
 
 ### Изменено
