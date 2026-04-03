@@ -117,16 +117,16 @@ CONSTRAINTS:
 ---
 
 ## Задача 3: Две кнопки в калькуляторе (фронтенд)
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: Заменить одну кнопку «Заказать проект за X ₽» на две карточки: экспресс (50% скидка, Эско 3Э) и индивидуальный (полная цена, выбор оборудования). Модалка EmailModal получает новый параметр `orderType`.
 - **Шаги выполнения**:
-  - [ ] Перевёрстать нижнюю часть `CalculatorSection.tsx` — две карточки вместо одной кнопки
-  - [ ] Добавить state `orderType: 'express' | 'custom'`
-  - [ ] Вычислять `discountPrice = Math.round(price * 0.5)`
-  - [ ] При клике на карточку — `setOrderType(...)` + `setShowModal(true)`
-  - [ ] В `EmailModal` передавать `orderType` через props
-  - [ ] В `EmailModal` при `purpose === 'order'` отправлять `order_type` в API
-  - [ ] В `api.ts` добавить `order_type` в `OrderRequest` и `createOrder`
+  - [x] Перевёрстать нижнюю часть `CalculatorSection.tsx` — две карточки вместо одной кнопки
+  - [x] Добавить state `orderType: 'express' | 'custom'`
+  - [x] Вычислять `discountPrice = Math.round(price * 0.5)`
+  - [x] При клике на карточку — `setOrderType(...)` + `setShowModal(true)`
+  - [x] В `EmailModal` передавать `orderType` через props
+  - [x] В `EmailModal` при `purpose === 'order'` отправлять `order_type` в API
+  - [x] В `api.ts` добавить `order_type` в `OrderRequest` и `createOrder`
 - **Зависимости**: Задача 2
 
 ### Промпт для Cursor (фронтенд)
