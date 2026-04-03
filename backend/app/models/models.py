@@ -152,10 +152,11 @@ class Order(Base):
         Enum(OrderType, name="order_type"),
         nullable=False,
         default=OrderType.EXPRESS,
+        server_default="express",
     )
 
     # Данные опросного листа (только для CUSTOM)
-    survey_data = Column(JSONB, nullable=True, default=None)
+    survey_data = Column(JSONB, nullable=True)
 
     # Счётчик повторных запросов клиенту
     retry_count = Column(Integer, nullable=False, default=0)
