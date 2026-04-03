@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-04-03] — Главная: React SPA из `frontend-dist`
+
+### Добавлено
+- В [`backend/app/main.py`](../backend/app/main.py): `FRONTEND_DIR = /app/frontend-dist`, монтирование `/assets` из Vite-сборки (если каталог есть), catch-all `GET /{full_path:path}` в конце приложения — отдаёт `index.html` для клиентского роутинга.
+
+### Исправлено
+- Корень сайта и прочие не-API пути больше не отвечают `{"detail":"Not Found"}` при смонтированном в Docker `./frontend/dist` (см. `docker-compose.prod.yml`).
+
 ## [2026-04-03] — Админка: таблица извлечённых параметров ТУ
 
 ### Добавлено
