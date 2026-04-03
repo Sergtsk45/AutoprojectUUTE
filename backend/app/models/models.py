@@ -73,6 +73,13 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
 }
 
 
+# ─── Тип заявки ──────────────────────────────────────────────────────────────
+
+class OrderType(str, enum.Enum):
+    EXPRESS = "express"  # Экспресс-проект (по ТУ)
+    CUSTOM = "custom"    # Индивидуальный проект (опросный лист)
+
+
 # ─── Типы файлов ─────────────────────────────────────────────────────────────
 
 class FileCategory(str, enum.Enum):
@@ -138,6 +145,16 @@ class Order(Base):
     # Список параметров, которых не хватает (JSON-массив строк)
     # Пример: ["BALANCE_ACT", "heat_scheme"] — коды как в param_labels / FileCategory
     missing_params = Column(JSONB, nullable=True, default=list)
+
+    # Тип заявки
+    order_type = Column(
+        Enum(OrderType, name="order_type"),
+        nullable=False,
+        default=OrderType.EXPRESS,
+    )
+
+    # Данные опросного листа (только для CUSTOM)
+    survey_data = Column(JSONB, nullable=True, default=None)
 
     # Счётчик повторных запросов клиенту
     retry_count = Column(Integer, nullable=False, default=0)

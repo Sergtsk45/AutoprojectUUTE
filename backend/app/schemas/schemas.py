@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.models import EmailType, FileCategory, OrderStatus
+from app.models.models import EmailType, FileCategory, OrderStatus, OrderType
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -19,6 +19,7 @@ class OrderCreate(BaseModel):
     client_phone: str | None = Field(None, max_length=50, examples=["+7 999 123-45-67"])
     client_organization: str | None = Field(None, max_length=255, examples=["ООО Теплосеть"])
     object_address: str | None = Field(None, examples=["г. Москва, ул. Строителей, д. 5"])
+    order_type: str | None = Field(None)
 
 
 class OrderStatusUpdate(BaseModel):
@@ -33,6 +34,7 @@ class OrderResponse(BaseModel):
 
     id: UUID
     status: OrderStatus
+    order_type: OrderType
     client_name: str
     client_email: str
     client_phone: str | None
@@ -40,6 +42,7 @@ class OrderResponse(BaseModel):
     object_address: str | None
     parsed_params: dict | None
     missing_params: list | None
+    survey_data: dict | None
     retry_count: int
     reviewer_comment: str | None
     created_at: datetime
@@ -55,6 +58,7 @@ class OrderListItem(BaseModel):
 
     id: UUID
     status: OrderStatus
+    order_type: OrderType
     client_name: str
     client_email: str
     object_address: str | None
