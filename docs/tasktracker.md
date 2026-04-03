@@ -1,5 +1,13 @@
 # Task tracker
 
+## Задача: Отображение результатов парсинга в админке
+- **Статус**: Завершена
+- **Описание**: Развёрнутый UI для `parsed_params` в карточке заявки (`admin.html`): `<details>` с таблицами по секциям, пустое состояние, legacy-плоские ключи.
+- **Шаги выполнения**:
+  - [x] CSS и JS в `backend/static/admin.html`
+  - [x] `docs/changelog.md`, `docs/project.md`, [`docs/tasktrecker-otchet-parsing.md`](tasktrecker-otchet-parsing.md)
+- **Зависимости**: нет
+
 ## Задача: Категории файлов УУТЭ (FileCategory + missing_params)
 - **Статус**: Завершена
 - **Описание**: Актуальные категории документов для проектирования УУТЭ; миграция БД для старых `floor_plan` и устаревших кодов в `missing_params`; синхронизация `param_labels`, парсера ТУ, `upload.html`, админки. Дополнительно: пересчёт `missing_params` по четырём документам при upload-page и в Celery, чтобы старые заявки не показывали `floor_plan` / `connection_scheme` / `system_type`.
