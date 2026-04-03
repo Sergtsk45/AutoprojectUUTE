@@ -10,9 +10,10 @@ interface EmailModalProps {
     circuits?: number;
     price?: number;
   };
+  orderType?: 'express' | 'custom';
 }
 
-const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, orderDefaults }) => {
+const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, orderDefaults, orderType }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
@@ -41,6 +42,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
           object_address: address || undefined,
           circuits: orderDefaults?.circuits,
           price: orderDefaults?.price,
+          order_type: orderType ?? 'express',
         });
         setRedirectUrl(`/upload/${result.order_id}`);
       } else if (purpose === 'partnership') {
@@ -208,7 +210,8 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
             <h3 className="text-xl font-bold mb-2 text-[#263238]">Спасибо!</h3>
             <p className="text-gray-600 mb-6">
               {purpose === 'sample' && 'Мы отправили образец проекта на ваш email.'}
-              {purpose === 'order' && 'Заявка создана. Сейчас вы будете перенаправлены на страницу загрузки технических условий.'}
+              {purpose === 'order' && orderType === 'custom' && 'Заявка создана. Загрузите технические условия и заполните опросный лист для подбора оборудования.'}
+              {purpose === 'order' && orderType !== 'custom' && 'Заявка создана. Сейчас вы будете перенаправлены на страницу загрузки технических условий.'}
               {purpose === 'partnership' && 'Ваша заявка принята. Мы свяжемся с вами в ближайшее время.'}
             </p>
 

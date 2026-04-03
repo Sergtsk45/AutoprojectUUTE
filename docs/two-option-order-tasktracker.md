@@ -5,16 +5,16 @@
 ---
 
 ## Задача 1: Поле `order_type` в модели Order (бэкенд)
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: Добавить поле `order_type` (express / custom) в модель Order, миграцию Alembic, обновить схемы Pydantic. Express = Эско 3Э, скидка 50%. Custom = полная цена, опросный лист.
 - **Шаги выполнения**:
-  - [ ] Добавить `OrderType` enum в `models.py` (`EXPRESS = "express"`, `CUSTOM = "custom"`)
-  - [ ] Добавить колонку `order_type` в модель `Order` (default=`EXPRESS`)
-  - [ ] Добавить колонку `survey_data` (JSONB, nullable) в модель `Order` — для данных опросного листа
+  - [x] Добавить `OrderType` enum в `models.py` (`EXPRESS = "express"`, `CUSTOM = "custom"`)
+  - [x] Добавить колонку `order_type` в модель `Order` (default=`EXPRESS`)
+  - [x] Добавить колонку `survey_data` (JSONB, nullable) в модель `Order` — для данных опросного листа
   - [ ] Создать миграцию Alembic: `alembic revision --autogenerate -m "add_order_type_and_survey_data"`
-  - [ ] Обновить `OrderCreate` — добавить `order_type: str | None`
-  - [ ] Обновить `OrderResponse` — добавить `order_type`, `survey_data`
-  - [ ] Обновить `OrderListItem` — добавить `order_type`
+  - [x] Обновить `OrderCreate` — добавить `order_type: str | None`
+  - [x] Обновить `OrderResponse` — добавить `order_type`, `survey_data`
+  - [x] Обновить `OrderListItem` — добавить `order_type`
 - **Зависимости**: нет — это фундамент для всех остальных задач
 
 ### Промпт для Cursor (бэкенд)
@@ -78,13 +78,13 @@ docker exec -it postgres psql -U uute_user -d uute_db -c "SELECT column_name, da
 ---
 
 ## Задача 2: Обновить эндпоинт создания заказа (бэкенд)
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: `POST /api/v1/landing/order` должен принимать `order_type` и сохранять в заявке. Для custom-заказа цена = полная, для express = 50%.
 - **Шаги выполнения**:
-  - [ ] В `landing.py` → `OrderRequest` добавить `order_type: str | None = "express"`
-  - [ ] В `create_order_from_landing` передавать `order_type` при создании Order
-  - [ ] В `OrderService.create_order` сохранять `order_type` в модель
-  - [ ] В уведомлении инженеру (`send_new_order_notification`) передавать `order_type`
+  - [x] В `landing.py` → `OrderRequest` добавить `order_type: str | None = "express"`
+  - [x] В `create_order_from_landing` передавать `order_type` при создании Order
+  - [x] В `OrderService.create_order` сохранять `order_type` в модель
+  - [x] В уведомлении инженеру (`send_new_order_notification`) передавать `order_type`
 - **Зависимости**: Задача 1
 
 ### Промпт для Cursor (бэкенд)
