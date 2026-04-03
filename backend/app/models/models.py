@@ -109,6 +109,7 @@ class EmailType(str, enum.Enum):
     SAMPLE_DELIVERY = "sample_delivery"        # Отправка образца проекта
     NEW_ORDER_NOTIFICATION = "new_order_notification"  # Уведомление инженеру о новой заявке
     PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
+    SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

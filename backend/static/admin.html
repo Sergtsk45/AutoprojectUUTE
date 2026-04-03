@@ -569,6 +569,7 @@
                   <th>Email</th>
                   <th>?????????</th>
                   <th>?????????</th>
+                  <th>???</th>
                   <th>??????</th>
                 </tr>
               </thead>
@@ -612,8 +613,9 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             ????????? ??????
           </div>
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
             <span id="statusBadge" class="badge" style="font-size:14px; padding:5px 14px;"></span>
+            <span id="orderTypeBadgeEl" class="badge" style="font-size:13px; padding:4px 12px;"></span>
             <span id="statusDates" style="font-size:13px; color:var(--c-text-secondary);"></span>
           </div>
           <div class="progress-steps" id="progressSteps"></div>
@@ -660,6 +662,15 @@
             ????????????? ????????? ??
           </div>
           <div id="parsedContent"></div>
+        </div>
+
+        <!-- Survey data card -->
+        <div class="card" id="surveyCard" style="display:none;">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Опросный лист
+          </div>
+          <div id="surveyContent"></div>
         </div>
 
         <!-- Actions card -->
@@ -847,6 +858,56 @@
       return `<span class="badge" style="background:${color};">${label}</span>`;
     }
 
+    function orderTypeBadge(type) {
+      if (type === 'custom') return '<span class="badge" style="background:#7c3aed;">Индивидуальный</span>';
+      return '<span class="badge" style="background:#16a34a;">Экспресс</span>';
+    }
+
+    const SURVEY_LABELS = {
+      building_type: 'Тип здания',
+      floors: 'Этажность',
+      construction_year: 'Год постройки',
+      connection_type: 'Схема подключения',
+      system_type: 'Тип системы',
+      temp_schedule: 'Температурный график',
+      pressure_supply: 'Давление подачи, кгс/см²',
+      pressure_return: 'Давление обратки, кгс/см²',
+      heat_load_heating: 'Нагрузка отопления, Гкал/ч',
+      heat_load_hw: 'Нагрузка ГВС, Гкал/ч',
+      heat_load_vent: 'Нагрузка вентиляции, Гкал/ч',
+      heat_load_tech: 'Нагрузка технология, Гкал/ч',
+      pipe_dn_supply: 'Ду подачи, мм',
+      pipe_dn_return: 'Ду обратки, мм',
+      pipe_material: 'Материал трубопровода',
+      connection_method: 'Способ соединения',
+      manufacturer: 'Производитель',
+      manufacturer_other: 'Производитель (другой)',
+      flow_meter_type: 'Тип расходомера',
+      temp_sensor_type: 'Тип датчика температуры',
+      calculator_model: 'Модель вычислителя',
+      accuracy_class: 'Класс точности',
+      has_pressure_regulator: 'Регулятор давления',
+      has_filters: 'Фильтры',
+      rso_requirements: 'Требования РСО',
+      comments: 'Комментарии',
+    };
+
+    function renderSurveyData(survey) {
+      const card = document.getElementById('surveyCard');
+      const content = document.getElementById('surveyContent');
+      if (!survey || typeof survey !== 'object' || Object.keys(survey).length === 0) {
+        card.style.display = 'none';
+        return;
+      }
+      card.style.display = 'block';
+      const rows = Object.entries(survey).map(([k, v]) => {
+        const label = SURVEY_LABELS[k] || k;
+        const val = typeof v === 'boolean' ? (v ? 'Да' : 'Нет') : esc(String(v ?? '—'));
+        return `<tr><td class="parsed-label-cell">${esc(label)}</td><td class="parsed-value-cell"><span class="parsed-value">${val}</span></td></tr>`;
+      }).join('');
+      content.innerHTML = `<table class="parsed-params-table"><thead><tr><th>Параметр</th><th>Значение</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
     // ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
     // List screen
     // ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
@@ -921,6 +982,7 @@
           <td>${esc(o.client_email)}</td>
           <td>${esc(o.object_address || '???')}</td>
           <td>${statusBadge(o.status)}</td>
+          <td>${orderTypeBadge(o.order_type)}</td>
           <td class="td-date">${formatDate(o.created_at)}</td>
         </tr>
       `).join('');
@@ -975,6 +1037,7 @@
       document.getElementById('statusBadge').innerHTML = statusBadge(order.status).replace('class="badge"', 'class="badge"');
       document.getElementById('statusBadge').style.background = STATUS_COLORS[order.status] || '#9e9e9e';
       document.getElementById('statusBadge').textContent = STATUS_LABELS[order.status] || order.status;
+      document.getElementById('orderTypeBadgeEl').outerHTML = orderTypeBadge(order.order_type).replace('class="badge"', 'id="orderTypeBadgeEl" class="badge"');
       document.getElementById('statusDates').textContent =
         order.reviewer_comment ? '??????????????: ' + order.reviewer_comment : '';
 
@@ -986,6 +1049,9 @@
 
       // Parsed params
       renderParsedParams(order.parsed_params, order.missing_params);
+
+      // Survey data
+      renderSurveyData(order.survey_data);
 
       // Actions
       renderActions(order);

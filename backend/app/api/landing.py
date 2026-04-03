@@ -85,7 +85,7 @@ async def create_order_from_landing(
     Создаёт заявку в БД, уведомляет инженера, возвращает ссылку на upload-страницу.
     """
     from app.core.config import settings
-    from app.services.email_service import send_new_order_notification
+    from app.services.email_service import send_new_order_notification, send_survey_reminder
     from app.services.tasks import SyncSession, _get_order
 
     svc = OrderService(db)
@@ -99,7 +99,7 @@ async def create_order_from_landing(
     )
     order = await svc.create_order(order_data)
 
-    # Уведомление инженеру (синхронно через отдельную сессию)
+    # Уведомление инженеру + письмо клиенту для custom (синхронно через отдельную сессию)
     try:
         with SyncSession() as sync_session:
             sync_order = _get_order(sync_session, order.id)
@@ -110,6 +110,8 @@ async def create_order_from_landing(
                     price=data.price,
                     order_type=data.order_type,
                 )
+                if data.order_type == "custom":
+                    send_survey_reminder(sync_session, sync_order)
     except Exception:
         pass  # Не ломаем создание заявки из-за проблем с email
 
