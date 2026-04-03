@@ -11,7 +11,7 @@
   - [x] Добавить `OrderType` enum в `models.py` (`EXPRESS = "express"`, `CUSTOM = "custom"`)
   - [x] Добавить колонку `order_type` в модель `Order` (default=`EXPRESS`)
   - [x] Добавить колонку `survey_data` (JSONB, nullable) в модель `Order` — для данных опросного листа
-  - [ ] Создать миграцию Alembic: `alembic revision --autogenerate -m "add_order_type_and_survey_data"`
+  - [x] Создать миграцию Alembic и применить на сервере
   - [x] Обновить `OrderCreate` — добавить `order_type: str | None`
   - [x] Обновить `OrderResponse` — добавить `order_type`, `survey_data`
   - [x] Обновить `OrderListItem` — добавить `order_type`
