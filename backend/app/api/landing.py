@@ -10,7 +10,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models import FileCategory, OrderStatus
+from app.models import FileCategory, OrderStatus, OrderType
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.tasks import start_tu_parsing
@@ -34,6 +34,7 @@ class OrderRequest(BaseModel):
     object_address: str | None = None
     circuits: int | None = Field(None, ge=1, le=10)
     price: int | None = None
+    order_type: str = Field("express", pattern="^(express|custom)$")
 
 
 class OrderCreatedResponse(BaseModel):
@@ -94,6 +95,7 @@ async def create_order_from_landing(
         client_phone=data.client_phone,
         client_organization=data.client_organization,
         object_address=data.object_address,
+        order_type=data.order_type,
     )
     order = await svc.create_order(order_data)
 
@@ -106,6 +108,7 @@ async def create_order_from_landing(
                     sync_session, sync_order,
                     circuits=data.circuits,
                     price=data.price,
+                    order_type=data.order_type,
                 )
     except Exception:
         pass  # Не ломаем создание заявки из-за проблем с email

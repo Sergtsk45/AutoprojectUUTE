@@ -400,6 +400,7 @@ def send_new_order_notification(
     order: Order,
     circuits: int | None = None,
     price: int | None = None,
+    order_type: str | None = None,
 ) -> bool:
     """Уведомить инженера о новой заявке."""
     env = _get_jinja()
@@ -418,6 +419,7 @@ def send_new_order_notification(
         "object_address": order.object_address,
         "circuits": circuits,
         "price": f"{price:,}".replace(",", " ") if price else None,
+        "order_type_label": "Индивидуальный" if order_type == "custom" else "Экспресс",
         "admin_url": f"{settings.app_base_url}/api/v1/orders/{order.id}",
     }
 
