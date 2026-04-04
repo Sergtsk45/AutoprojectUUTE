@@ -5,7 +5,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -179,6 +179,7 @@ async def get_upload_page_info(
         order_id=order.id,
         client_name=order.client_name,
         order_status=order.status.value,
+        order_type=order.order_type.value if order.order_type else None,
         missing_params=missing,
         files_uploaded=files,
     )
@@ -251,3 +252,27 @@ async def client_submit_new_order(
         order_id=order_id,
         task_id=task.id,
     )
+
+
+@router.post("/orders/{order_id}/survey", response_model=SimpleResponse)
+async def save_survey(
+    order_id: uuid.UUID,
+    body: dict = Body(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Публичное сохранение данных опросного листа (только для custom-заказов)."""
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.order_type != OrderType.CUSTOM:
+        raise HTTPException(
+            status_code=400,
+            detail="Опросный лист не требуется для экспресс-заказа",
+        )
+
+    order.survey_data = body
+    await db.commit()
+
+    return SimpleResponse(success=True, message="Опросный лист сохранён")

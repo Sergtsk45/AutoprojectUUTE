@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-04-04] — Опросный лист для custom-заказов (Задача 4)
+
+### Добавлено
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): поле `order_type: str | None = None` в `UploadPageInfo`.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): `order_type` передаётся в ответе `get_upload_page_info`; новый публичный эндпоинт `POST /landing/orders/{order_id}/survey` — принимает произвольный JSON, проверяет `order_type == CUSTOM`, сохраняет в `order.survey_data`, возвращает `SimpleResponse`.
+- В [`backend/static/upload.html`](../backend/static/upload.html): блок `#surveyCard` с интерактивной формой опросного листа (6 групп полей: объект, теплоснабжение, нагрузки, трубопроводы, приборы учёта, дополнительно); показывается только при `order_type === 'custom'`; при сабмите отправляет JSON на `POST /api/v1/landing/orders/{id}/survey`; после успеха показывает зелёный бейдж.
+
 ## [2026-04-03] — Сегментация клиентов: экспресс / индивидуальный проект
 
 ### Добавлено

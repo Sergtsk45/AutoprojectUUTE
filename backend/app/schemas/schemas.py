@@ -116,6 +116,7 @@ class UploadPageInfo(BaseModel):
     order_id: UUID
     client_name: str
     order_status: str
+    order_type: str | None = None
     missing_params: list[str]
     files_uploaded: list[FileResponse]
 

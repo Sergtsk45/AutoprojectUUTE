@@ -11,7 +11,7 @@
   - [x] Добавить `OrderType` enum в `models.py` (`EXPRESS = "express"`, `CUSTOM = "custom"`)
   - [x] Добавить колонку `order_type` в модель `Order` (default=`EXPRESS`)
   - [x] Добавить колонку `survey_data` (JSONB, nullable) в модель `Order` — для данных опросного листа
-  - [x] Создать миграцию Alembic и применить на сервере
+  - [ ] Создать миграцию Alembic: `alembic revision --autogenerate -m "add_order_type_and_survey_data"`
   - [x] Обновить `OrderCreate` — добавить `order_type: str | None`
   - [x] Обновить `OrderResponse` — добавить `order_type`, `survey_data`
   - [x] Обновить `OrderListItem` — добавить `order_type`
@@ -174,16 +174,16 @@ CONSTRAINTS:
 ---
 
 ## Задача 4: Веб-форма опросного листа на upload-странице (фронтенд + бэкенд)
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: Для custom-заказов на странице `/upload/{order_id}` после загрузки ТУ показать интерактивную форму опросного листа. Данные сохраняются в поле `survey_data` модели Order как JSON.
 - **Шаги выполнения**:
-  - [ ] Бэкенд: добавить `order_type` в ответ `GET /landing/orders/{id}/upload-page` (UploadPageInfo)
-  - [ ] Бэкенд: новый эндпоинт `POST /landing/orders/{id}/survey` — приём данных опросного листа
-  - [ ] Фронтенд: в `upload.html` добавить секцию формы опросного листа (скрыта для express)
-  - [ ] Форма: 6 групп полей (объект, теплоснабжение, нагрузки, трубопроводы, приборы, доп.)
-  - [ ] Валидация обязательных полей на клиенте
-  - [ ] При сабмите — POST survey_data JSON на сервер
-  - [ ] Показывать форму только если order_type === 'custom'
+  - [x] Бэкенд: добавить `order_type` в ответ `GET /landing/orders/{id}/upload-page` (UploadPageInfo)
+  - [x] Бэкенд: новый эндпоинт `POST /landing/orders/{id}/survey` — приём данных опросного листа
+  - [x] Фронтенд: в `upload.html` добавить секцию формы опросного листа (скрыта для express)
+  - [x] Форма: 6 групп полей (объект, теплоснабжение, нагрузки, трубопроводы, приборы, доп.)
+  - [x] Валидация обязательных полей на клиенте (manufacturer обязателен)
+  - [x] При сабмите — POST survey_data JSON на сервер
+  - [x] Показывать форму только если order_type === 'custom'
 - **Зависимости**: Задача 1, Задача 2
 
 ### Промпт для Cursor (бэкенд — эндпоинт survey)
@@ -239,6 +239,7 @@ TASK:
 - building_type: select (Жилое / Общественное / Промышленное)
 - floors: number input
 - construction_year: number input
+- heat_supply_source: text input — источник теплоснабжения (котельная, ТЭЦ, ИТП и т.п.)
 
 Группа 2 — Теплоснабжение:
 - connection_type: select (Зависимая / Независимая)
@@ -256,21 +257,20 @@ TASK:
 Группа 4 — Трубопроводы:
 - pipe_dn_supply: number input (Ду подачи, мм)
 - pipe_dn_return: number input (Ду обратки, мм)
-- pipe_material: select (Сталь / Полимер)
-- connection_method: select (Фланцевое / Резьбовое / Приварное)
+- has_mud_separators: select (Да / Нет) — наличие грязевиков
+- has_filters: select (Да / Нет) — наличие фильтров
 
 Группа 5 — Приборы учёта (ключевая секция):
 - manufacturer: select с options:
-  Эско 3Э, Danfoss, Теплоком, Взлёт, Логика (СПТ), Kamstrup, Другой
+  Эско 3Э, Теплоком, Логика (СПТ), Пульсар, Другой
 - manufacturer_other: text input (показывать если manufacturer === 'other')
 - flow_meter_type: select (Ультразвуковой / Электромагнитный)
-- temp_sensor_type: select (Pt100 / Pt500 / Pt1000)
 - calculator_model: text input (необязательно)
 - accuracy_class: select (1 / 2)
 
 Группа 6 — Дополнительно:
 - has_pressure_regulator: checkbox
-- has_filters: checkbox
+- distance_to_vru: number input (м) — расстояние до ВРУ
 - rso_requirements: textarea (необязательно)
 - comments: textarea (необязательно)
 
@@ -293,13 +293,13 @@ CONSTRAINTS:
 ---
 
 ## Задача 5: Отображение survey_data в админке
-- **Статус**: Завершена
+- **Статус**: Не начата
 - **Описание**: В карточке заявки в админке показывать данные опросного листа (если есть) — аналогично блоку parsed_params.
 - **Шаги выполнения**:
-  - [x] В ответ API `/orders/{id}` уже добавлены `order_type` и `survey_data` (Задача 1)
-  - [x] В `admin.html` добавить блок отображения survey_data
-  - [x] Показывать бейдж order_type в карточке заявки (Экспресс / Индивидуальный)
-  - [x] В таблице списка заявок добавить колонку «Тип»
+  - [ ] В ответ API `/orders/{id}` уже добавлены `order_type` и `survey_data` (Задача 1)
+  - [ ] В `admin.html` добавить блок отображения survey_data
+  - [ ] Показывать бейдж order_type в карточке заявки (Экспресс / Индивидуальный)
+  - [ ] В таблице списка заявок добавить колонку «Тип»
 - **Зависимости**: Задача 1, Задача 4
 
 ### Промпт для Cursor (фронтенд — админка)
@@ -336,13 +336,13 @@ CONSTRAINTS:
 ---
 
 ## Задача 6: Email-уведомление с ссылкой на опросный лист (бэкенд)
-- **Статус**: Завершена
+- **Статус**: Не начата
 - **Описание**: Для custom-заказов после создания заявки клиент получает email с напоминанием заполнить опросный лист (ссылка на upload-страницу). Новый тип письма `SURVEY_REMINDER`.
 - **Шаги выполнения**:
-  - [x] Добавить `SURVEY_REMINDER = "survey_reminder"` в EmailType
-  - [x] Создать шаблон `templates/emails/survey_reminder.html`
-  - [x] В `create_order_from_landing` для custom-заказов отправлять письмо с ссылкой
-  - [x] Текст: «Заполните опросный лист для подбора оборудования» + кнопка на /upload/{id}
+  - [ ] Добавить `SURVEY_REMINDER = "survey_reminder"` в EmailType
+  - [ ] Создать шаблон `templates/emails/survey_reminder.html`
+  - [ ] В `create_order_from_landing` для custom-заказов отправлять письмо с ссылкой
+  - [ ] Текст: «Заполните опросный лист для подбора оборудования» + кнопка на /upload/{id}
 - **Зависимости**: Задача 1, Задача 2
 
 ### Промпт для Cursor (бэкенд)
@@ -382,12 +382,12 @@ CONSTRAINTS:
 ---
 
 ## Задача 7: Обновить changelog и документацию
-- **Статус**: Завершена
+- **Статус**: Не начата
 - **Описание**: Зафиксировать изменения в docs/changelog.md и docs/tasktracker.md.
 - **Шаги выполнения**:
-  - [x] Добавить запись в changelog.md
-  - [x] Обновить tasktracker.md — добавить все задачи этой фичи
-  - [ ] Обновить docs/project.md если нужно (не требуется)
+  - [ ] Добавить запись в changelog.md
+  - [ ] Обновить tasktracker.md — добавить все задачи этой фичи
+  - [ ] Обновить docs/project.md если нужно
 - **Зависимости**: Задачи 1-6
 
 ---
