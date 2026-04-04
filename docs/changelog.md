@@ -1,5 +1,30 @@
 # Changelog
 
+## [2026-04-04] — Опросный лист для custom-заказов (Задача 4)
+
+### Добавлено
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): поле `order_type: str | None = None` в `UploadPageInfo`.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): `order_type` передаётся в ответе `get_upload_page_info`; новый публичный эндпоинт `POST /landing/orders/{order_id}/survey` — принимает произвольный JSON, проверяет `order_type == CUSTOM`, сохраняет в `order.survey_data`, возвращает `SimpleResponse`.
+- В [`backend/static/upload.html`](../backend/static/upload.html): блок `#surveyCard` с интерактивной формой опросного листа (6 групп полей: объект, теплоснабжение, нагрузки, трубопроводы, приборы учёта, дополнительно); показывается только при `order_type === 'custom'`; при сабмите отправляет JSON на `POST /api/v1/landing/orders/{id}/survey`; после успеха показывает зелёный бейдж.
+
+## [2026-04-03] — Сегментация клиентов: экспресс / индивидуальный проект
+
+### Добавлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): enum `OrderType` (`express`, `custom`); поля `order_type` (default=`EXPRESS`) и `survey_data` (JSONB) в модели `Order`.
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): `order_type` в `OrderCreate`, `OrderResponse`, `OrderListItem`; `survey_data` в `OrderResponse`.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): `OrderRequest` принимает `order_type` (default `"express"`, паттерн `^(express|custom)$`); при custom-заказе отправляется `survey_reminder`.
+- В [`backend/app/services/order_service.py`](../backend/app/services/order_service.py): `create_order` сохраняет `order_type` в модель.
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): `send_new_order_notification` принимает `order_type_label`; новая функция `send_survey_reminder`.
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): `EmailType.SURVEY_REMINDER`.
+- Шаблон [`backend/templates/emails/survey_reminder.html`](../backend/templates/emails/survey_reminder.html): письмо клиенту с кнопкой на upload-страницу.
+- В [`backend/static/admin.html`](../backend/static/admin.html): колонка «Тип» в таблице заявок; бейджи `orderTypeBadge`; блок «Опросный лист» (`renderSurveyData`) с 25 русскими подписями ключей.
+- В [`frontend/src/components/CalculatorSection.tsx`](../frontend/src/components/CalculatorSection.tsx): две карточки вместо одной кнопки — «Экспресс» (−50%, зелёная) и «Индивидуальный» (полная цена).
+- В [`frontend/src/components/EmailModal.tsx`](../frontend/src/components/EmailModal.tsx): prop `orderType`, передаётся в API; разный success-текст для custom.
+- В [`frontend/src/api.ts`](../frontend/src/api.ts): поле `order_type?` в `OrderRequest`.
+
+### Примечание
+Миграция Alembic (колонки `order_type`, `survey_data` в таблице `orders`) создаётся на сервере отдельно перед деплоем.
+
 ## [2026-04-03] — Админ API: ключ в query `_k`
 
 ### Добавлено

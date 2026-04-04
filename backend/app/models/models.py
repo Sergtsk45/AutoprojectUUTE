@@ -73,6 +73,13 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
 }
 
 
+# ─── Тип заявки ──────────────────────────────────────────────────────────────
+
+class OrderType(str, enum.Enum):
+    EXPRESS = "express"  # Экспресс-проект (по ТУ)
+    CUSTOM = "custom"    # Индивидуальный проект (опросный лист)
+
+
 # ─── Типы файлов ─────────────────────────────────────────────────────────────
 
 class FileCategory(str, enum.Enum):
@@ -102,6 +109,7 @@ class EmailType(str, enum.Enum):
     SAMPLE_DELIVERY = "sample_delivery"        # Отправка образца проекта
     NEW_ORDER_NOTIFICATION = "new_order_notification"  # Уведомление инженеру о новой заявке
     PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
+    SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -138,6 +146,17 @@ class Order(Base):
     # Список параметров, которых не хватает (JSON-массив строк)
     # Пример: ["BALANCE_ACT", "heat_scheme"] — коды как в param_labels / FileCategory
     missing_params = Column(JSONB, nullable=True, default=list)
+
+    # Тип заявки
+    order_type = Column(
+        Enum(OrderType, name="order_type"),
+        nullable=False,
+        default=OrderType.EXPRESS,
+        server_default="express",
+    )
+
+    # Данные опросного листа (только для CUSTOM)
+    survey_data = Column(JSONB, nullable=True)
 
     # Счётчик повторных запросов клиенту
     retry_count = Column(Integer, nullable=False, default=0)

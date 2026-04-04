@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
-from app.models import Order, OrderFile, OrderStatus, FileCategory
+from app.models import Order, OrderFile, OrderStatus, OrderType, FileCategory
 from app.schemas import OrderCreate, OrderStatusUpdate
 from app.services.param_labels import (
     CLIENT_DOCUMENT_PARAM_CODES,
@@ -33,6 +33,7 @@ class OrderService:
             client_organization=data.client_organization,
             object_address=data.object_address,
             status=OrderStatus.NEW,
+            order_type=OrderType(data.order_type) if data.order_type else OrderType.EXPRESS,
         )
         self.db.add(order)
         await self.db.commit()

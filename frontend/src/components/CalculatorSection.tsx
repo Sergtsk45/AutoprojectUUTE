@@ -5,6 +5,7 @@ const CalculatorSection: React.FC = () => {
   const [circuits, setCircuits] = useState(1);
   const [price, setPrice] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  const [orderType, setOrderType] = useState<'express' | 'custom'>('express');
 
   useEffect(() => {
     const prices: Record<number, number> = {
@@ -15,8 +16,13 @@ const CalculatorSection: React.FC = () => {
     setPrice(prices[circuits] || 22500);
   }, [circuits]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price);
+  const formatPrice = (p: number) => new Intl.NumberFormat('ru-RU').format(p);
+
+  const discountPrice = Math.round(price * 0.5);
+
+  const handleOrder = (type: 'express' | 'custom') => {
+    setOrderType(type);
+    setShowModal(true);
   };
 
   return (
@@ -56,11 +62,6 @@ const CalculatorSection: React.FC = () => {
           </div>
 
           <div className="border-t border-gray-200 pt-6 mt-6">
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-lg text-[#263238]">Стоимость проекта:</span>
-              <span className="text-2xl font-bold text-[#E53935]">{formatPrice(price)} ₽</span>
-            </div>
-
             <div className="bg-gray-50 p-4 rounded-md mb-6">
               <h4 className="font-medium text-[#263238] mb-2">В стоимость входит:</h4>
               <ul className="text-gray-600 space-y-1">
@@ -70,12 +71,43 @@ const CalculatorSection: React.FC = () => {
               </ul>
             </div>
 
-            <button
-              onClick={() => setShowModal(true)}
-              className="w-full bg-[#E53935] hover:bg-red-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
-            >
-              Заказать проект за {formatPrice(price)} ₽
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Экспресс */}
+              <div className="border-2 border-green-500 rounded-lg p-4 flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base font-bold text-[#263238]">Экспресс</span>
+                  <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Популярный выбор</span>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">На базе Эско 3Э · 3 рабочих дня</p>
+                <div className="mb-1">
+                  <span className="text-xl font-bold text-green-600">{formatPrice(discountPrice)} ₽</span>
+                </div>
+                <p className="text-xs text-gray-400 line-through mb-4">{formatPrice(price)} ₽</p>
+                <button
+                  onClick={() => handleOrder('express')}
+                  className="mt-auto w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Выбрать
+                </button>
+              </div>
+
+              {/* Индивидуальный */}
+              <div className="border-2 border-gray-200 rounded-lg p-4 flex flex-col">
+                <div className="mb-1">
+                  <span className="text-base font-bold text-[#263238]">Индивидуальный</span>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">Выбор оборудования · опросный лист</p>
+                <div className="mb-5">
+                  <span className="text-xl font-bold text-[#263238]">{formatPrice(price)} ₽</span>
+                </div>
+                <button
+                  onClick={() => handleOrder('custom')}
+                  className="mt-auto w-full bg-[#263238] hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Выбрать
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -84,7 +116,8 @@ const CalculatorSection: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         purpose="order"
-        orderDefaults={{ circuits, price }}
+        orderDefaults={{ circuits, price: orderType === 'express' ? discountPrice : price }}
+        orderType={orderType}
       />
     </section>
   );

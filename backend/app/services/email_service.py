@@ -400,6 +400,7 @@ def send_new_order_notification(
     order: Order,
     circuits: int | None = None,
     price: int | None = None,
+    order_type: str | None = None,
 ) -> bool:
     """Уведомить инженера о новой заявке."""
     env = _get_jinja()
@@ -418,6 +419,7 @@ def send_new_order_notification(
         "object_address": order.object_address,
         "circuits": circuits,
         "price": f"{price:,}".replace(",", " ") if price else None,
+        "order_type_label": "Индивидуальный" if order_type == "custom" else "Экспресс",
         "admin_url": f"{settings.app_base_url}/api/v1/orders/{order.id}",
     }
 
@@ -471,3 +473,42 @@ def send_partnership_request(
         subject=subject,
         html_body=html_body,
     )
+
+
+def send_survey_reminder(session: Session, order: Order) -> bool:
+    """Отправить клиенту письмо с напоминанием заполнить опросный лист (только для custom-заказов)."""
+    env = _get_jinja()
+    template = env.get_template("emails/survey_reminder.html")
+
+    order_id_str = str(order.id)
+    upload_url = f"{settings.app_base_url}/upload/{order_id_str}"
+    ctx = {
+        **_COMMON_CONTEXT,
+        "header_title": "Заполните опросный лист",
+        "order_id": order_id_str,
+        "order_id_short": order_id_str[:8],
+        "client_name": order.client_name,
+        "object_address": order.object_address,
+        "upload_url": upload_url,
+    }
+
+    subject = f"Опросный лист для проекта №{order_id_str[:8]}"
+    html_body = template.render(ctx)
+
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+    )
+    log = EmailLog(
+        order_id=order.id,
+        email_type=EmailType.SURVEY_REMINDER,
+        recipient=order.client_email,
+        subject=subject,
+        body_text=html_body[:5000],
+        sent_at=datetime.now(timezone.utc) if success else None,
+        error_message=None if success else "SMTP delivery failed",
+    )
+    session.add(log)
+    session.commit()
+    return success

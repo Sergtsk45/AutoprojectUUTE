@@ -5,12 +5,12 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models import FileCategory, OrderStatus
+from app.models import FileCategory, OrderStatus, OrderType
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.tasks import start_tu_parsing
@@ -34,6 +34,7 @@ class OrderRequest(BaseModel):
     object_address: str | None = None
     circuits: int | None = Field(None, ge=1, le=10)
     price: int | None = None
+    order_type: str = Field("express", pattern="^(express|custom)$")
 
 
 class OrderCreatedResponse(BaseModel):
@@ -84,7 +85,7 @@ async def create_order_from_landing(
     Создаёт заявку в БД, уведомляет инженера, возвращает ссылку на upload-страницу.
     """
     from app.core.config import settings
-    from app.services.email_service import send_new_order_notification
+    from app.services.email_service import send_new_order_notification, send_survey_reminder
     from app.services.tasks import SyncSession, _get_order
 
     svc = OrderService(db)
@@ -94,10 +95,11 @@ async def create_order_from_landing(
         client_phone=data.client_phone,
         client_organization=data.client_organization,
         object_address=data.object_address,
+        order_type=data.order_type,
     )
     order = await svc.create_order(order_data)
 
-    # Уведомление инженеру (синхронно через отдельную сессию)
+    # Уведомление инженеру + письмо клиенту для custom (синхронно через отдельную сессию)
     try:
         with SyncSession() as sync_session:
             sync_order = _get_order(sync_session, order.id)
@@ -106,7 +108,10 @@ async def create_order_from_landing(
                     sync_session, sync_order,
                     circuits=data.circuits,
                     price=data.price,
+                    order_type=data.order_type,
                 )
+                if data.order_type == "custom":
+                    send_survey_reminder(sync_session, sync_order)
     except Exception:
         pass  # Не ломаем создание заявки из-за проблем с email
 
@@ -174,6 +179,7 @@ async def get_upload_page_info(
         order_id=order.id,
         client_name=order.client_name,
         order_status=order.status.value,
+        order_type=order.order_type.value if order.order_type else None,
         missing_params=missing,
         files_uploaded=files,
     )
@@ -246,3 +252,28 @@ async def client_submit_new_order(
         order_id=order_id,
         task_id=task.id,
     )
+
+
+@router.post("/orders/{order_id}/survey", response_model=SimpleResponse)
+async def save_survey(
+    order_id: uuid.UUID,
+    body: dict = Body(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Публичное сохранение данных опросного листа (только для custom-заказов)."""
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.order_type != OrderType.CUSTOM:
+        raise HTTPException(
+            status_code=400,
+            detail="Опросный лист не требуется для экспресс-заказа",
+        )
+
+    order.survey_data = body
+    db.add(order)
+    await db.commit()
+
+    return SimpleResponse(success=True, message="Опросный лист сохранён")

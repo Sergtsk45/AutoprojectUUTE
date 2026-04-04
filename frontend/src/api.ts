@@ -8,6 +8,7 @@ export interface OrderRequest {
   object_address?: string;
   circuits?: number;
   price?: number;
+  order_type?: string;
 }
 
 export interface OrderCreatedResponse {

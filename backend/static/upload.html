@@ -332,10 +332,106 @@
       color: var(--c-error);
     }
 
+    /* ── Survey form ──────────────────────────────── */
+    .survey-group {
+      margin-bottom: 24px;
+    }
+    .survey-group-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--c-text-secondary);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .form-row {
+      margin-bottom: 14px;
+    }
+    .form-row label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+    .form-row label .optional {
+      font-weight: 400;
+      color: var(--c-text-secondary);
+      font-size: 12px;
+      margin-left: 4px;
+    }
+    .form-row input[type="text"],
+    .form-row input[type="number"],
+    .form-row select,
+    .form-row textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+      color: var(--c-text);
+      transition: border-color 0.15s;
+    }
+    .form-row input:focus,
+    .form-row select:focus,
+    .form-row textarea:focus {
+      outline: none;
+      border-color: var(--c-primary);
+    }
+    .form-row select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .form-row textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+    .form-row-inline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .form-row-inline .form-row {
+      margin-bottom: 0;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--c-primary);
+    }
+    .survey-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--c-success-bg);
+      border: 1px solid #bbf7d0;
+      color: var(--c-success);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 500;
+      margin-top: 16px;
+    }
+
     @media (max-width: 480px) {
       .page { padding: 20px 16px 48px; }
       .card { padding: 20px; }
       .actions { flex-direction: column; }
+      .form-row-inline { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -423,6 +519,219 @@
         </div>
       </div>
 
+      <!-- Survey form (custom orders only) -->
+      <div class="card" id="surveyCard" style="display:none;">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <path d="M9 12h6M9 16h4"/>
+          </svg>
+          Опросный лист
+        </h2>
+
+        <!-- Группа 1 — Объект -->
+        <div class="survey-group">
+          <div class="survey-group-title">1. Объект</div>
+          <div class="form-row">
+            <label for="s_building_type">Тип здания</label>
+            <select id="s_building_type">
+              <option value="">— Выберите —</option>
+              <option value="residential">Жилое</option>
+              <option value="public">Общественное</option>
+              <option value="industrial">Промышленное</option>
+            </select>
+          </div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_floors">Этажность</label>
+              <input type="number" id="s_floors" min="1" max="200" placeholder="кол-во этажей">
+            </div>
+            <div class="form-row">
+              <label for="s_construction_year">Год постройки</label>
+              <input type="number" id="s_construction_year" min="1900" max="2030" placeholder="год">
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="s_heat_supply_source">Источник теплоснабжения</label>
+            <input type="text" id="s_heat_supply_source" placeholder="котельная, ТЭЦ, ИТП и т.п.">
+          </div>
+        </div>
+
+        <!-- Группа 2 — Теплоснабжение -->
+        <div class="survey-group">
+          <div class="survey-group-title">2. Теплоснабжение</div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_connection_type">Схема подключения</label>
+              <select id="s_connection_type">
+                <option value="">— Выберите —</option>
+                <option value="dependent">Зависимая</option>
+                <option value="independent">Независимая</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="s_system_type">Тип системы</label>
+              <select id="s_system_type">
+                <option value="">— Выберите —</option>
+                <option value="open">Открытая</option>
+                <option value="closed">Закрытая</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="s_temp_schedule">Температурный график</label>
+            <select id="s_temp_schedule">
+              <option value="">— Выберите —</option>
+              <option value="150/70">150/70</option>
+              <option value="130/70">130/70</option>
+              <option value="95/70">95/70</option>
+            </select>
+          </div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_pressure_supply">Давление подача, кгс/см²</label>
+              <input type="number" id="s_pressure_supply" step="0.1" min="0" placeholder="0.0">
+            </div>
+            <div class="form-row">
+              <label for="s_pressure_return">Давление обратка, кгс/см²</label>
+              <input type="number" id="s_pressure_return" step="0.1" min="0" placeholder="0.0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Группа 3 — Тепловые нагрузки -->
+        <div class="survey-group">
+          <div class="survey-group-title">3. Тепловые нагрузки, Гкал/ч</div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_heat_load_heating">Отопление</label>
+              <input type="number" id="s_heat_load_heating" step="0.001" min="0" placeholder="0.000">
+            </div>
+            <div class="form-row">
+              <label for="s_heat_load_hw">ГВС</label>
+              <input type="number" id="s_heat_load_hw" step="0.001" min="0" placeholder="0.000">
+            </div>
+          </div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_heat_load_vent">Вентиляция</label>
+              <input type="number" id="s_heat_load_vent" step="0.001" min="0" placeholder="0.000">
+            </div>
+            <div class="form-row">
+              <label for="s_heat_load_tech">Технология <span class="optional">(необяз.)</span></label>
+              <input type="number" id="s_heat_load_tech" step="0.001" min="0" placeholder="0.000">
+            </div>
+          </div>
+        </div>
+
+        <!-- Группа 4 — Трубопроводы -->
+        <div class="survey-group">
+          <div class="survey-group-title">4. Трубопроводы</div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_pipe_dn_supply">Ду подачи, мм</label>
+              <input type="number" id="s_pipe_dn_supply" min="15" max="1000" placeholder="мм">
+            </div>
+            <div class="form-row">
+              <label for="s_pipe_dn_return">Ду обратки, мм</label>
+              <input type="number" id="s_pipe_dn_return" min="15" max="1000" placeholder="мм">
+            </div>
+          </div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_has_mud_separators">Грязевики</label>
+              <select id="s_has_mud_separators">
+                <option value="">— Выберите —</option>
+                <option value="yes">Да</option>
+                <option value="no">Нет</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="s_has_filters">Фильтры</label>
+              <select id="s_has_filters">
+                <option value="">— Выберите —</option>
+                <option value="yes">Да</option>
+                <option value="no">Нет</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Группа 5 — Приборы учёта -->
+        <div class="survey-group">
+          <div class="survey-group-title">5. Приборы учёта</div>
+          <div class="form-row">
+            <label for="s_manufacturer">Производитель</label>
+            <select id="s_manufacturer" required>
+              <option value="">— Выберите —</option>
+              <option value="esko">Эско 3Э</option>
+              <option value="teplokom">Теплоком</option>
+              <option value="logika">Логика (СПТ)</option>
+              <option value="pulsar">Пульсар</option>
+              <option value="other">Другой</option>
+            </select>
+          </div>
+          <div class="form-row" id="s_manufacturer_other_row" style="display:none;">
+            <label for="s_manufacturer_other">Укажите производителя</label>
+            <input type="text" id="s_manufacturer_other" placeholder="название производителя">
+          </div>
+          <div class="form-row">
+            <label for="s_flow_meter_type">Тип расходомера</label>
+            <select id="s_flow_meter_type">
+              <option value="">— Выберите —</option>
+              <option value="ultrasonic">Ультразвуковой</option>
+              <option value="electromagnetic">Электромагнитный</option>
+            </select>
+          </div>
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label for="s_calculator_model">Модель вычислителя <span class="optional">(необяз.)</span></label>
+              <input type="text" id="s_calculator_model" placeholder="например, СПТ961">
+            </div>
+            <div class="form-row">
+              <label for="s_accuracy_class">Класс точности</label>
+              <select id="s_accuracy_class">
+                <option value="">— Выберите —</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Группа 6 — Дополнительно -->
+        <div class="survey-group">
+          <div class="survey-group-title">6. Дополнительно</div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="s_has_pressure_regulator">
+            <label for="s_has_pressure_regulator" style="margin-bottom:0; font-weight:400;">Наличие регулятора давления</label>
+          </div>
+          <div class="form-row">
+            <label for="s_distance_to_vru">Расстояние до ВРУ, м <span class="optional">(необяз.)</span></label>
+            <input type="number" id="s_distance_to_vru" min="0" placeholder="метры">
+          </div>
+          <div class="form-row">
+            <label for="s_rso_requirements">Требования РСО <span class="optional">(необяз.)</span></label>
+            <textarea id="s_rso_requirements" placeholder="особые требования теплоснабжающей организации…"></textarea>
+          </div>
+          <div class="form-row">
+            <label for="s_comments">Комментарии <span class="optional">(необяз.)</span></label>
+            <textarea id="s_comments" placeholder="любые дополнительные сведения…"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="surveySubmitBtn">Сохранить опросный лист</button>
+        </div>
+        <div id="surveyDoneBadge" class="survey-badge" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          Опросный лист заполнен
+        </div>
+      </div>
+
       <!-- Already completed -->
       <div class="card" id="completedCard" style="display:none;">
         <h2 style="color: var(--c-success);">
@@ -480,6 +789,7 @@
     const $queue       = document.getElementById('uploadQueue');
     const $submitBtn   = document.getElementById('submitBtn');
     const $uploadCard  = document.getElementById('uploadCard');
+    const $surveyCard  = document.getElementById('surveyCard');
     const $completedCard = document.getElementById('completedCard');
     const $banner      = document.getElementById('banner');
     const $bannerText  = document.getElementById('bannerText');
@@ -500,6 +810,10 @@
 
         renderChecklist();
         renderCategoryOptions();
+
+        if (orderData.order_type === 'custom') {
+          $surveyCard.style.display = 'block';
+        }
 
         $loading.style.display = 'none';
         $main.style.display = 'block';
@@ -731,6 +1045,88 @@
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' КБ';
       return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
     }
+
+    // ── Survey form ─────────────────────────────────────────────────────
+    const $manufacturerSelect   = document.getElementById('s_manufacturer');
+    const $manufacturerOtherRow = document.getElementById('s_manufacturer_other_row');
+    const $surveySubmitBtn      = document.getElementById('surveySubmitBtn');
+    const $surveyDoneBadge      = document.getElementById('surveyDoneBadge');
+
+    $manufacturerSelect.addEventListener('change', () => {
+      $manufacturerOtherRow.style.display =
+        $manufacturerSelect.value === 'other' ? 'block' : 'none';
+    });
+
+    function strVal(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+    function numVal(id) {
+      const v = strVal(id);
+      return v === '' ? null : parseFloat(v);
+    }
+
+    function collectSurveyData() {
+      const manufacturer = strVal('s_manufacturer');
+      return {
+        building_type: strVal('s_building_type') || null,
+        floors: numVal('s_floors'),
+        construction_year: numVal('s_construction_year'),
+        heat_supply_source: strVal('s_heat_supply_source') || null,
+        connection_type: strVal('s_connection_type') || null,
+        system_type: strVal('s_system_type') || null,
+        temp_schedule: strVal('s_temp_schedule') || null,
+        pressure_supply: numVal('s_pressure_supply'),
+        pressure_return: numVal('s_pressure_return'),
+        heat_load_heating: numVal('s_heat_load_heating'),
+        heat_load_hw: numVal('s_heat_load_hw'),
+        heat_load_vent: numVal('s_heat_load_vent'),
+        heat_load_tech: numVal('s_heat_load_tech'),
+        pipe_dn_supply: numVal('s_pipe_dn_supply'),
+        pipe_dn_return: numVal('s_pipe_dn_return'),
+        has_mud_separators: strVal('s_has_mud_separators') || null,
+        has_filters: strVal('s_has_filters') || null,
+        manufacturer: manufacturer || null,
+        manufacturer_other: manufacturer === 'other' ? strVal('s_manufacturer_other') : null,
+        flow_meter_type: strVal('s_flow_meter_type') || null,
+        calculator_model: strVal('s_calculator_model') || null,
+        accuracy_class: strVal('s_accuracy_class') || null,
+        has_pressure_regulator: document.getElementById('s_has_pressure_regulator').checked,
+        distance_to_vru: numVal('s_distance_to_vru'),
+        rso_requirements: strVal('s_rso_requirements') || null,
+        comments: strVal('s_comments') || null,
+      };
+    }
+
+    $surveySubmitBtn.addEventListener('click', async () => {
+      const manufacturer = strVal('s_manufacturer');
+      if (!manufacturer) {
+        showBanner('error', 'Укажите производителя прибора учёта');
+        return;
+      }
+
+      $surveySubmitBtn.disabled = true;
+      $surveySubmitBtn.innerHTML = '<span class="spinner"></span> Сохранение…';
+
+      try {
+        const resp = await fetch(`${API_BASE}/landing/orders/${ORDER_ID}/survey`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(collectSurveyData()),
+        });
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          throw new Error(data.detail || `HTTP ${resp.status}`);
+        }
+        $surveySubmitBtn.style.display = 'none';
+        $surveyDoneBadge.style.display = 'inline-flex';
+        showBanner('success', 'Опросный лист сохранён');
+      } catch (err) {
+        showBanner('error', `Ошибка: ${err.message}`);
+        $surveySubmitBtn.disabled = false;
+        $surveySubmitBtn.innerHTML = 'Сохранить опросный лист';
+      }
+    });
 
     // ── Start ───────────────────────────────────────────────────────────
     init();
