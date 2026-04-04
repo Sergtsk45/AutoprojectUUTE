@@ -117,6 +117,8 @@ class UploadPageInfo(BaseModel):
     client_name: str
     order_status: str
     order_type: str | None = None
+    parsed_params: dict | None = None
+    survey_data: dict | None = None
     missing_params: list[str]
     files_uploaded: list[FileResponse]
 

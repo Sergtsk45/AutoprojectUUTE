@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-05] — Upload-page: parsed_params и survey_data для custom
+
+### Добавлено
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): поля `parsed_params: dict | None = None` и `survey_data: dict | None = None` в `UploadPageInfo`.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): в `get_upload_page_info` всегда передаётся `order_type`; для заявок `custom` в ответ включаются непустой `parsed_params` и `survey_data` (если в БД не `null`); для `express` оба поля `null`.
+
 ## [2026-04-04] — Опросный лист для custom-заказов (Задача 4)
 
 ### Добавлено
