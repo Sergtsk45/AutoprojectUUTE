@@ -441,6 +441,56 @@
       margin-top: 16px;
     }
 
+    .prefilled {
+      border-left: 3px solid #16a34a !important;
+      padding-left: 10px !important;
+    }
+    .prefilled-badge {
+      font-size: 11px;
+      color: #16a34a;
+      background: #f0fdf4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      font-weight: 500;
+      vertical-align: middle;
+    }
+    .needs-input {
+      border-left: 3px solid #d97706 !important;
+      padding-left: 10px !important;
+    }
+    .needs-badge {
+      font-size: 11px;
+      color: #d97706;
+      background: #fffbeb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      font-weight: 500;
+      vertical-align: middle;
+    }
+    .survey-meta {
+      font-size: 14px;
+      color: var(--c-text-secondary);
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid var(--c-border);
+    }
+    .survey-meta .survey-confidence {
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--c-text);
+    }
+    .survey-meta .survey-warnings ul {
+      margin: 6px 0 0 1.2em;
+      padding: 0;
+    }
+    .survey-meta .survey-warnings li {
+      margin-bottom: 4px;
+    }
+
     @media (max-width: 480px) {
       .page { padding: 20px 16px 48px; }
       .card { padding: 20px; }
@@ -553,6 +603,11 @@
           </svg>
           Опросный лист
         </h2>
+
+        <div id="surveyMetaBlock" class="survey-meta" style="display:none;">
+          <div id="surveyConfidence" class="survey-confidence" style="display:none;"></div>
+          <div id="surveyWarnings" class="survey-warnings" style="display:none;"></div>
+        </div>
 
         <!-- Группа 1 — Объект -->
         <div class="survey-group">
@@ -854,8 +909,7 @@
             }
           } else {
             $surveyCard.style.display = 'block';
-            prefillSurvey(orderData.parsed_params);
-            applySurveyData(orderData.survey_data);
+            hydrateSurveyFromOrder(orderData);
           }
         }
 
@@ -1087,87 +1141,295 @@
       $completedCard.style.display = 'block';
     }
 
-    function setSurveyField(id, val) {
-      if (val == null || val === '') return;
-      const el = document.getElementById(id);
+    /** Путь в parsed_params → ключ поля опроса (без префикса s_). */
+    const PARAM_TO_SURVEY = {
+      'heat_loads.heating_load': 'heat_load_heating',
+      'heat_loads.hot_water_load': 'heat_load_hw',
+      'heat_loads.ventilation_load': 'heat_load_vent',
+      'coolant.supply_pressure_kgcm2': 'pressure_supply',
+      'coolant.return_pressure_kgcm2': 'pressure_return',
+      'coolant.temp_schedule': 'temp_schedule',
+      'connection.connection_type': 'connection_type',
+      'connection.system_type': 'system_type',
+      'pipeline.pipe_outer_diameter_mm': 'pipe_dn_supply',
+      'metering.heat_meter_class': 'accuracy_class',
+      'object.object_type': 'building_type',
+      'rso.rso_name': 'heat_supply_source',
+      'metering.heat_calculator_model': 'calculator_model',
+    };
+
+    function getNestedValue(obj, path) {
+      if (obj == null || typeof obj !== 'object' || !path) return null;
+      const parts = path.split('.');
+      let cur = obj;
+      for (const p of parts) {
+        if (cur == null || typeof cur !== 'object' || !Object.prototype.hasOwnProperty.call(cur, p)) {
+          return null;
+        }
+        cur = cur[p];
+      }
+      return cur === undefined ? null : cur;
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function normalizeConnectionType(raw) {
+      const s = String(raw || '').toLowerCase();
+      if (s.includes('зависим')) return 'dependent';
+      if (s.includes('независим')) return 'independent';
+      return null;
+    }
+
+    function normalizeSystemType(raw) {
+      const s = String(raw || '').toLowerCase();
+      if (s.includes('открыт')) return 'open';
+      if (s.includes('закрыт')) return 'closed';
+      return null;
+    }
+
+    function normalizeBuildingType(raw) {
+      const s = String(raw || '').toLowerCase();
+      if (s.includes('мкд') || s.includes('жил')) return 'residential';
+      if (s.includes('нежил') || s.includes('обществен')) return 'public';
+      if (s.includes('промыш')) return 'industrial';
+      return null;
+    }
+
+    function normalizeTempScheduleValue(raw) {
+      const tss = String(raw || '').replace(/\s/g, '');
+      if (!tss) return null;
+      const sel = document.getElementById('s_temp_schedule');
+      if (!sel) return null;
+      let match = [...sel.options].map(o => o.value).find(v => v && tss.includes(v.replace(/\s/g, '')));
+      if (!match) {
+        if (tss.includes('150') && tss.includes('70')) match = '150/70';
+        else if (tss.includes('130') && tss.includes('70')) match = '130/70';
+        else if (tss.includes('95') && tss.includes('70')) match = '95/70';
+      }
+      return match || null;
+    }
+
+    function surveyFieldId(surveyKey) {
+      return 's_' + surveyKey;
+    }
+
+    function clearSurveyDecorations() {
+      const card = document.getElementById('surveyCard');
+      if (!card) return;
+      card.querySelectorAll('[data-survey-badge]').forEach(el => el.remove());
+      card.querySelectorAll('.prefilled, .needs-input').forEach(el => {
+        el.classList.remove('prefilled', 'needs-input');
+      });
+      const block = document.getElementById('surveyMetaBlock');
+      const conf = document.getElementById('surveyConfidence');
+      const warn = document.getElementById('surveyWarnings');
+      if (block) block.style.display = 'none';
+      if (conf) { conf.style.display = 'none'; conf.textContent = ''; }
+      if (warn) { warn.style.display = 'none'; warn.innerHTML = ''; }
+    }
+
+    function enableSurveyFields() {
+      document.querySelectorAll('#surveyCard input, #surveyCard select, #surveyCard textarea').forEach(el => {
+        el.removeAttribute('disabled');
+      });
+    }
+
+    function appendSurveyBadge(fieldId, badgeClass, text) {
+      const el = document.getElementById(fieldId);
       if (!el) return;
-      el.value = String(val);
+      const row = el.closest('.form-row');
+      if (!row) return;
+      const label = row.querySelector('label[for="' + fieldId + '"]');
+      if (!label) return;
+      label.querySelectorAll('[data-survey-badge]').forEach(n => n.remove());
+      const span = document.createElement('span');
+      span.className = badgeClass;
+      span.setAttribute('data-survey-badge', '1');
+      span.textContent = text;
+      label.appendChild(document.createTextNode('\u00a0'));
+      label.appendChild(span);
+    }
+
+    function markFieldPrefilled(fieldId, badgeText) {
+      const el = document.getElementById(fieldId);
+      if (!el) return;
+      el.classList.remove('needs-input');
+      el.classList.add('prefilled');
+      appendSurveyBadge(fieldId, 'prefilled-badge', badgeText || 'из ТУ');
+    }
+
+    function markFieldNeedsInput(fieldId, badgeText) {
+      const el = document.getElementById(fieldId);
+      if (!el) return;
+      el.classList.remove('prefilled');
+      el.classList.add('needs-input');
+      appendSurveyBadge(fieldId, 'needs-badge', badgeText || 'заполните');
+    }
+
+    function setSurveyControlValue(fieldId, value) {
+      if (value == null || value === '') return false;
+      const el = document.getElementById(fieldId);
+      if (!el) return false;
+      const str = typeof value === 'number' ? String(value) : String(value);
+      if (el.tagName === 'SELECT') {
+        const ok = [...el.options].some(o => o.value === str);
+        if (!ok) return false;
+      }
+      el.value = str;
+      return true;
+    }
+
+    function showSurveyMeta(parsed) {
+      const block = document.getElementById('surveyMetaBlock');
+      const confEl = document.getElementById('surveyConfidence');
+      const warnEl = document.getElementById('surveyWarnings');
+      if (!block || !confEl || !warnEl || !parsed || typeof parsed !== 'object') return;
+
+      let show = false;
+      if (typeof parsed.parse_confidence === 'number' && !Number.isNaN(parsed.parse_confidence)) {
+        const pct = Math.round(Math.min(1, Math.max(0, parsed.parse_confidence)) * 100);
+        confEl.textContent = 'Уверенность анализа: ' + pct + '%';
+        confEl.style.display = 'block';
+        show = true;
+      } else {
+        confEl.style.display = 'none';
+        confEl.textContent = '';
+      }
+
+      if (Array.isArray(parsed.warnings) && parsed.warnings.length) {
+        const items = parsed.warnings.filter(Boolean).map(w => '<li>' + escapeHtml(String(w)) + '</li>').join('');
+        warnEl.innerHTML = '<strong>Замечания по ТУ:</strong><ul>' + items + '</ul>';
+        warnEl.style.display = 'block';
+        show = true;
+      } else {
+        warnEl.style.display = 'none';
+        warnEl.innerHTML = '';
+      }
+
+      block.style.display = show ? 'block' : 'none';
+    }
+
+    function hasMeaningfulSurveyData(sd) {
+      if (sd == null || typeof sd !== 'object') return false;
+      return Object.values(sd).some(v => {
+        if (v === null || v === undefined) return false;
+        if (typeof v === 'boolean') return true;
+        if (typeof v === 'number') return !Number.isNaN(v);
+        if (typeof v === 'string') return v.trim() !== '';
+        if (Array.isArray(v)) return v.length > 0;
+        if (typeof v === 'object') return false;
+        return false;
+      });
     }
 
     /**
-     * Заполняет поля опросника из parsed_params (структура парсера ТУ, см. tu_schema).
-     * @param {object|null|undefined} parsed
+     * Приоритет: сохранённый survey_data; иначе автозаполнение из parsed_params.
+     * @param {object} data — ответ upload-page
      */
-    function prefillSurvey(parsed) {
-      if (!parsed || typeof parsed !== 'object') return;
+    function hydrateSurveyFromOrder(data) {
+      if (!data || data.order_type !== 'custom') return;
+      enableSurveyFields();
+      clearSurveyDecorations();
 
-      const obj = parsed.object || {};
-      const conn = parsed.connection || {};
-      const coolant = parsed.coolant || {};
-      const heat = parsed.heat_loads || {};
-      const pipe = parsed.pipeline || {};
-      const metering = parsed.metering || {};
-      const add = parsed.additional || {};
-      const rso = parsed.rso || {};
+      const parsed = data.parsed_params;
+      const sd = data.survey_data;
 
-      const ot = String(obj.object_type || '').toLowerCase();
-      if (ot.includes('мкд') || ot.includes('жил')) setSurveyField('s_building_type', 'residential');
-      else if (ot.includes('нежил') || ot.includes('обществен')) setSurveyField('s_building_type', 'public');
-      else if (ot.includes('промыш')) setSurveyField('s_building_type', 'industrial');
+      if (hasMeaningfulSurveyData(sd)) {
+        applySurveyData(sd);
+        showSurveyMeta(parsed);
+        return;
+      }
 
-      if (rso.rso_name) setSurveyField('s_heat_supply_source', rso.rso_name);
+      prefillSurvey(parsed);
+      showSurveyMeta(parsed);
+    }
 
-      const ctv = String(conn.connection_type || '').toLowerCase();
-      if (ctv.includes('зависим')) setSurveyField('s_connection_type', 'dependent');
-      else if (ctv.includes('независим')) setSurveyField('s_connection_type', 'independent');
+    /**
+     * Заполняет опросник из parsed_params (структура парсера ТУ).
+     * @param {object|null|undefined} parsedParams
+     */
+    function prefillSurvey(parsedParams) {
+      if (!parsedParams || typeof parsedParams !== 'object') return;
 
-      const sys = String(conn.system_type || '').toLowerCase();
-      if (sys.includes('открыт')) setSurveyField('s_system_type', 'open');
-      else if (sys.includes('закрыт')) setSurveyField('s_system_type', 'closed');
+      for (const [jsonPath, surveyKey] of Object.entries(PARAM_TO_SURVEY)) {
+        const raw = getNestedValue(parsedParams, jsonPath);
+        const fieldId = surveyFieldId(surveyKey);
+        let normalized = raw;
 
-      const ts = coolant.temp_schedule;
-      if (ts != null && String(ts).trim() !== '') {
-        const tss = String(ts).replace(/\s/g, '');
-        const sel = document.getElementById('s_temp_schedule');
-        if (sel) {
-          let match = [...sel.options].map(o => o.value).find(v => v && tss.includes(v.replace(/\s/g, '')));
-          if (!match) {
-            if (tss.includes('150') && tss.includes('70')) match = '150/70';
-            else if (tss.includes('130') && tss.includes('70')) match = '130/70';
-            else if (tss.includes('95') && tss.includes('70')) match = '95/70';
+        if (surveyKey === 'connection_type') normalized = normalizeConnectionType(raw);
+        else if (surveyKey === 'system_type') normalized = normalizeSystemType(raw);
+        else if (surveyKey === 'building_type') normalized = normalizeBuildingType(raw);
+        else if (surveyKey === 'temp_schedule') normalized = normalizeTempScheduleValue(raw);
+        else if (surveyKey === 'accuracy_class' && raw != null) normalized = String(raw);
+
+        if (normalized != null && normalized !== '') {
+          if (setSurveyControlValue(fieldId, normalized)) {
+            markFieldPrefilled(fieldId, 'из ТУ');
           }
-          if (match) sel.value = match;
         }
       }
 
-      if (coolant.supply_pressure_kgcm2 != null) setSurveyField('s_pressure_supply', coolant.supply_pressure_kgcm2);
-      if (coolant.return_pressure_kgcm2 != null) setSurveyField('s_pressure_return', coolant.return_pressure_kgcm2);
-
-      if (heat.heating_load != null) setSurveyField('s_heat_load_heating', heat.heating_load);
-      if (heat.hot_water_load != null) setSurveyField('s_heat_load_hw', heat.hot_water_load);
-      if (heat.ventilation_load != null) setSurveyField('s_heat_load_vent', heat.ventilation_load);
-      if (heat.total_load != null && heat.heating_load == null) {
-        setSurveyField('s_heat_load_heating', heat.total_load);
+      const heat = parsedParams.heat_loads || {};
+      const supplyId = surveyFieldId('heat_load_heating');
+      const supplyEl = document.getElementById(supplyId);
+      if (supplyEl && !String(supplyEl.value).trim() && heat.total_load != null) {
+        if (setSurveyControlValue(supplyId, heat.total_load)) {
+          markFieldPrefilled(supplyId, 'из ТУ');
+        }
       }
 
-      const dn = pipe.pipe_outer_diameter_mm ?? pipe.pipe_inner_diameter_mm;
-      if (dn != null) {
-        setSurveyField('s_pipe_dn_supply', dn);
-        setSurveyField('s_pipe_dn_return', dn);
+      const pipe = parsedParams.pipeline || {};
+      const dnAny = pipe.pipe_outer_diameter_mm ?? pipe.pipe_inner_diameter_mm;
+      const supId = surveyFieldId('pipe_dn_supply');
+      const supEl = document.getElementById(supId);
+      if (dnAny != null && supEl && !String(supEl.value).trim()) {
+        if (setSurveyControlValue(supId, dnAny)) {
+          markFieldPrefilled(supId, 'из ТУ');
+        }
+      }
+      const retId = surveyFieldId('pipe_dn_return');
+      const retEl = document.getElementById(retId);
+      if (dnAny != null && retEl && supEl && !String(retEl.value).trim() && String(supEl.value).trim()) {
+        if (setSurveyControlValue(retId, dnAny)) {
+          markFieldPrefilled(retId, 'из ТУ');
+        }
       }
 
-      if (metering.heat_calculator_model) setSurveyField('s_calculator_model', metering.heat_calculator_model);
-      if (metering.heat_meter_class != null) setSurveyField('s_accuracy_class', String(metering.heat_meter_class));
+      const metering = parsedParams.metering || {};
+      const fmRaw = String(metering.flowmeter_model || '').toLowerCase();
+      const flowId = surveyFieldId('flow_meter_type');
+      if (fmRaw.includes('ультразвук')) {
+        if (setSurveyControlValue(flowId, 'ultrasonic')) {
+          markFieldPrefilled(flowId, 'из ТУ');
+        }
+      } else if (fmRaw.includes('электро')) {
+        if (setSurveyControlValue(flowId, 'electromagnetic')) {
+          markFieldPrefilled(flowId, 'из ТУ');
+        }
+      }
 
-      const fm = String(metering.flowmeter_model || '').toLowerCase();
-      if (fm.includes('ультразвук')) setSurveyField('s_flow_meter_type', 'ultrasonic');
-      else if (fm.includes('электро')) setSurveyField('s_flow_meter_type', 'electromagnetic');
-
+      const add = parsedParams.additional || {};
       if (Array.isArray(add.notes) && add.notes.length) {
         const cur = document.getElementById('s_comments');
         if (cur && !String(cur.value).trim()) {
           cur.value = add.notes.filter(Boolean).join('\n');
+          markFieldPrefilled('s_comments', 'из ТУ');
         }
+      }
+
+      const manuId = surveyFieldId('manufacturer');
+      const manuEl = document.getElementById(manuId);
+      if (manuEl && !String(manuEl.value).trim()) {
+        markFieldNeedsInput(manuId, 'выберите производителя');
+      }
+
+      const flowEl = document.getElementById(flowId);
+      if (flowEl && !String(flowEl.value).trim()) {
+        markFieldNeedsInput(flowId, 'заполните');
       }
     }
 
@@ -1184,8 +1446,11 @@
         if (!el) continue;
         if (el.type === 'checkbox') {
           el.checked = !!val;
+        } else if (el.tagName === 'SELECT') {
+          const str = String(val);
+          if ([...el.options].some(o => o.value === str)) el.value = str;
         } else {
-          el.value = val === null ? '' : String(val);
+          el.value = String(val);
         }
       }
       const otherRow = document.getElementById('s_manufacturer_other_row');
@@ -1254,8 +1519,7 @@
             (data.files_uploaded || []).forEach(f => uploadedCategories.add(f.category));
             renderChecklist();
             renderCategoryOptions();
-            prefillSurvey(data.parsed_params);
-            applySurveyData(data.survey_data);
+            hydrateSurveyFromOrder(data);
             $parsingCard.style.display = 'none';
             $surveyCard.style.display = 'block';
             $uploadCard.style.display = 'block';
