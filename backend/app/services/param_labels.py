@@ -9,8 +9,8 @@ hint  — подсказка, как подготовить документ.
 
 # Обязательные документы от клиента после ТУ (фиксированный порядок в UI)
 CLIENT_DOCUMENT_PARAM_CODES: tuple[str, ...] = (
-    "balance_act",
-    "connection_plan",
+    "BALANCE_ACT",
+    "CONNECTION_PLAN",
     "heat_point_plan",
     "heat_scheme",
 )
@@ -42,11 +42,11 @@ MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
         "label": "Технические условия",
         "hint": "Документ от теплоснабжающей организации",
     },
-    "balance_act": {
+    "BALANCE_ACT": {
         "label": "Акт разграничения балансовой принадлежности",
         "hint": "Для действующих объектов",
     },
-    "connection_plan": {
+    "CONNECTION_PLAN": {
         "label": "План подключения потребителя к тепловой сети",
         "hint": "С указанием точек подключения",
     },
@@ -79,8 +79,8 @@ MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
 
 # Документы, которые прикладываются как образцы
 SAMPLE_DOCUMENTS: dict[str, str] = {
-    "balance_act": "samples/sample_balance_act.pdf",
-    "connection_plan": "samples/sample_connection_plan.pdf",
+    "BALANCE_ACT": "samples/sample_balance_act.pdf",
+    "CONNECTION_PLAN": "samples/sample_connection_plan.pdf",
     "heat_point_plan": "samples/sample_heat_point_plan.pdf",
     "heat_scheme": "samples/sample_heat_scheme.pdf",
 }

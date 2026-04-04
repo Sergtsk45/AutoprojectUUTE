@@ -83,8 +83,8 @@ class FileCategory(str, enum.Enum):
     """
 
     TU = "tu"  # Технические условия (ТУ)
-    BALANCE_ACT = "balance_act"  # Акт разграничения балансовой принадлежности
-    CONNECTION_PLAN = "connection_plan"  # План подключения к тепловой сети
+    BALANCE_ACT = "BALANCE_ACT"  # Акт разграничения балансовой принадлежности
+    CONNECTION_PLAN = "CONNECTION_PLAN"  # План подключения к тепловой сети
     HEAT_POINT_PLAN = "heat_point_plan"  # План теплового пункта (УУТЭ, ШУ)
     HEAT_SCHEME = "heat_scheme"  # Принципиальная схема теплового пункта с УУТЭ
     GENERATED_EXCEL = "generated_excel"
@@ -136,7 +136,7 @@ class Order(Base):
     parsed_params = Column(JSONB, nullable=True, default=dict)
 
     # Список параметров, которых не хватает (JSON-массив строк)
-    # Пример: ["balance_act", "heat_scheme"] — коды как в param_labels / FileCategory
+    # Пример: ["BALANCE_ACT", "heat_scheme"] — коды как в param_labels / FileCategory
     missing_params = Column(JSONB, nullable=True, default=list)
 
     # Счётчик повторных запросов клиенту

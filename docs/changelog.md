@@ -1,5 +1,35 @@
 # Changelog
 
+## [2026-04-03] — Админ API: ключ в query `_k`
+
+### Добавлено
+- В [`backend/app/core/auth.py`](../backend/app/core/auth.py): `verify_admin_key` принимает query-параметр `_k` как запасной способ передачи ключа (если нет заголовка `X-Admin-Key`).
+
+## [2026-04-03] — Enum `file_category`: BALANCE_ACT и CONNECTION_PLAN
+
+### Изменено
+- PostgreSQL: `ALTER TYPE file_category RENAME VALUE` для `balance_act` → `BALANCE_ACT`, `connection_plan` → `CONNECTION_PLAN` (миграция Alembic `20260403_fc_upper`, `down_revision`: `20260402_uute_fc`).
+- `FileCategory`, `CLIENT_DOCUMENT_PARAM_CODES`, `param_labels`, `admin.html`, `upload.html`: те же строковые значения, что и метки enum в БД.
+- `orders.missing_params`: пересборка массива с заменой старых кодов на новые.
+
+## [2026-04-03] — Главная: React SPA из `frontend-dist`
+
+### Добавлено
+- В [`backend/app/main.py`](../backend/app/main.py): `FRONTEND_DIR = /app/frontend-dist`, монтирование `/assets` из Vite-сборки (если каталог есть), catch-all `GET /{full_path:path}` в конце приложения — отдаёт `index.html` для клиентского роутинга.
+
+### Исправлено
+- Корень сайта и прочие не-API пути больше не отвечают `{"detail":"Not Found"}` при смонтированном в Docker `./frontend/dist` (см. `docker-compose.prod.yml`).
+
+## [2026-04-03] — Админка: таблица извлечённых параметров ТУ
+
+### Добавлено
+- В [`backend/static/admin.html`](../backend/static/admin.html) свёрнутый блок «Извлечённые параметры» (`<details>`) с таблицами по разделам (документ, нагрузки, теплоноситель, трубопровод, подключение, учёт); стили `.parsed-params-details`, `.parsed-params-table`, плейсхолдер «—» для пустых значений.
+- Fallback отображения для устаревшего плоского формата `parsed_params`, если нет вложенной структуры `TUParsedData`.
+
+### Изменено
+- Карточка «Результат парсинга ТУ» всегда показывается при просмотре заявки; при пустом `parsed_params` — сообщение «Парсинг не выполнен» вместо скрытия карточки.
+- Список недостающих данных экранируется при выводе (`esc`).
+
 ## [2026-04-02] — Парсер ТУ: system_type для ответов LLM
 
 ### Добавлено

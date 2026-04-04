@@ -15,6 +15,7 @@ from app.api.landing import router as landing_router
 from app.core.config import settings
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
+FRONTEND_DIR = Path("/app/frontend-dist")
 
 
 @asynccontextmanager
@@ -72,3 +73,19 @@ async def admin_page():
 
 # Статика (JS, CSS если понадобятся)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Собранный React (Vite): ./frontend/dist → /app/frontend-dist в prod
+if FRONTEND_DIR.exists():
+    _frontend_assets = FRONTEND_DIR / "assets"
+    if _frontend_assets.is_dir():
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(_frontend_assets)),
+            name="frontend-assets",
+        )
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Отдаём React SPA для всех остальных маршрутов (после API и прочих GET)."""
+    return FileResponse(FRONTEND_DIR / "index.html", media_type="text/html")
