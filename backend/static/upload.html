@@ -491,6 +491,31 @@
       margin-bottom: 4px;
     }
 
+    .survey-lock-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 28px 20px;
+      background: rgba(255, 255, 255, 0.93);
+      border-radius: var(--radius);
+      gap: 8px;
+    }
+    .survey-lock-overlay p {
+      font-size: 15px;
+      color: var(--c-text-secondary);
+      max-width: 280px;
+      line-height: 1.5;
+    }
+    .survey-lock-overlay strong {
+      color: var(--c-text);
+      font-size: 16px;
+    }
+
     @media (max-width: 480px) {
       .page { padding: 20px 16px 48px; }
       .card { padding: 20px; }
@@ -594,7 +619,11 @@
       </div>
 
       <!-- Survey form (custom orders only) -->
-      <div class="card" id="surveyCard" style="display:none;">
+      <div class="card" id="surveyCard" style="display:none; position:relative;">
+        <div id="surveyLockedOverlay" class="survey-lock-overlay" aria-hidden="true">
+          <strong>Сначала загрузите ТУ</strong>
+          <p>После отправки технических условий на анализ поля опросного листа откроются автоматически.</p>
+        </div>
         <h2>
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2">
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
@@ -860,6 +889,12 @@
       'data_complete', 'generating_project', 'review', 'completed',
     ]);
 
+    /** Custom: опросник редактируемый, возможна догрузка документов. */
+    const CUSTOM_EDITABLE_STATUSES = [
+      'tu_parsed', 'waiting_client_info', 'client_info_received',
+      'data_complete', 'generating_project',
+    ];
+
     let parsingPollTimer = null;
     let parsingPollCount = 0;
 
@@ -883,6 +918,122 @@
     const $banner      = document.getElementById('banner');
     const $bannerText  = document.getElementById('bannerText');
 
+    function lockSurveyCard(locked) {
+      const ov = document.getElementById('surveyLockedOverlay');
+      document.querySelectorAll('#surveyCard input, #surveyCard select, #surveyCard textarea, #surveyCard button').forEach(el => {
+        if (locked) el.setAttribute('disabled', 'disabled');
+        else el.removeAttribute('disabled');
+      });
+      if (ov) {
+        ov.style.display = locked ? 'flex' : 'none';
+        ov.setAttribute('aria-hidden', locked ? 'false' : 'true');
+      }
+    }
+
+    function unlockSurveyCard() {
+      lockSurveyCard(false);
+    }
+
+    function hideSurveyMeta() {
+      const block = document.getElementById('surveyMetaBlock');
+      const conf = document.getElementById('surveyConfidence');
+      const warn = document.getElementById('surveyWarnings');
+      if (block) block.style.display = 'none';
+      if (conf) { conf.style.display = 'none'; conf.textContent = ''; }
+      if (warn) { warn.style.display = 'none'; warn.innerHTML = ''; }
+    }
+
+    function showUploadWithLockedSurvey() {
+      $parsingCard.style.display = 'none';
+      $completedCard.style.display = 'none';
+      $uploadCard.style.display = 'block';
+      $surveyCard.style.display = 'block';
+      lockSurveyCard(true);
+    }
+
+    function showSurveyCard() {
+      $surveyCard.style.display = 'block';
+      $parsingCard.style.display = 'none';
+      $uploadCard.style.display = 'none';
+      $completedCard.style.display = 'none';
+    }
+
+    function showUploadCardForDocs() {
+      $uploadCard.style.display = 'block';
+    }
+
+    /**
+     * Показать блок загрузки вместе с опросником (доп. документы после ТУ).
+     * @param {object} data — orderData с order_status и missing_params
+     */
+    function showUploadAlongsideSurveyIfNeeded(data) {
+      const st = data.order_status;
+      if (st === 'waiting_client_info' || st === 'client_info_received') {
+        showUploadCardForDocs();
+        return;
+      }
+      const missing = data.missing_params || [];
+      if (missing.length > 0 && ['tu_parsed', 'data_complete', 'generating_project'].includes(st)) {
+        showUploadCardForDocs();
+      }
+    }
+
+    /**
+     * Плоский JSON survey_data (ключи как в collectSurveyData) → поля s_*.
+     * @param {object} surveyData
+     */
+    function prefillSurveyFromSaved(surveyData) {
+      unlockSurveyCard();
+      clearSurveyDecorations();
+      applySurveyData(surveyData);
+      hideSurveyMeta();
+    }
+
+    /** Инициализация UI для custom-заказа по статусу. @returns {boolean} true если ветка обработана */
+    function initCustomOrderUi() {
+      const status = orderData.order_status || 'new';
+
+      if (status === 'new') {
+        showUploadWithLockedSurvey();
+        return true;
+      }
+      if (status === 'tu_parsing') {
+        showParsingState();
+        startParsingPoll();
+        return true;
+      }
+      if (CUSTOM_EDITABLE_STATUSES.includes(status)) {
+        showSurveyCard();
+        if (hasMeaningfulSurveyData(orderData.survey_data)) {
+          prefillSurveyFromSaved(orderData.survey_data);
+        } else if (orderData.parsed_params && Object.keys(orderData.parsed_params).length > 0) {
+          unlockSurveyCard();
+          clearSurveyDecorations();
+          prefillSurvey(orderData.parsed_params);
+          showSurveyMeta(orderData.parsed_params);
+        } else {
+          unlockSurveyCard();
+          clearSurveyDecorations();
+        }
+        showUploadAlongsideSurveyIfNeeded(orderData);
+        return true;
+      }
+      if (status === 'review' || status === 'completed') {
+        showCompleted();
+        return true;
+      }
+      if (status === 'error') {
+        showBanner('error', 'Произошла ошибка. Свяжитесь с нами.');
+        $surveyCard.style.display = 'none';
+        $parsingCard.style.display = 'none';
+        $completedCard.style.display = 'none';
+        $uploadCard.style.display = 'block';
+        unlockSurveyCard();
+        return true;
+      }
+      return false;
+    }
+
     // ── Init ────────────────────────────────────────────────────────────
     async function init() {
       try {
@@ -901,25 +1052,26 @@
         renderCategoryOptions();
 
         if (orderData.order_type === 'custom') {
-          if (isNewOrder) {
+          if (!initCustomOrderUi()) {
             $surveyCard.style.display = 'none';
-            if (orderData.order_status === 'tu_parsing') {
-              showParsingState();
-              startParsingPoll();
-            }
-          } else {
-            $surveyCard.style.display = 'block';
-            hydrateSurveyFromOrder(orderData);
           }
+        } else {
+          $surveyCard.style.display = 'none';
         }
 
         $loading.style.display = 'none';
         $main.style.display = 'block';
 
-        // If nothing is missing — show completed (не для custom-new: нужна кнопка «Отправить»)
-        const still = (orderData.missing_params || []).filter(p => !uploadedCategories.has(p));
-        if (still.length === 0 && orderData.missing_params.length > 0) {
-          if (!(orderData.order_type === 'custom' && isNewOrder)) {
+        const mp = orderData.missing_params || [];
+        const still = mp.filter(p => !uploadedCategories.has(p));
+        if (still.length === 0 && mp.length > 0) {
+          const st = orderData.order_status;
+          const customKeepUploadPage =
+            orderData.order_type === 'custom' &&
+            (st === 'new' ||
+              st === 'tu_parsing' ||
+              CUSTOM_EDITABLE_STATUSES.includes(st));
+          if (!customKeepUploadPage) {
             showCompleted();
           }
         }
@@ -1138,6 +1290,9 @@
     // ── Show completed state ────────────────────────────────────────────
     function showCompleted() {
       $uploadCard.style.display = 'none';
+      $surveyCard.style.display = 'none';
+      $parsingCard.style.display = 'none';
+      unlockSurveyCard();
       $completedCard.style.display = 'block';
     }
 
@@ -1230,12 +1385,6 @@
       if (block) block.style.display = 'none';
       if (conf) { conf.style.display = 'none'; conf.textContent = ''; }
       if (warn) { warn.style.display = 'none'; warn.innerHTML = ''; }
-    }
-
-    function enableSurveyFields() {
-      document.querySelectorAll('#surveyCard input, #surveyCard select, #surveyCard textarea').forEach(el => {
-        el.removeAttribute('disabled');
-      });
     }
 
     function appendSurveyBadge(fieldId, badgeClass, text) {
@@ -1332,7 +1481,7 @@
      */
     function hydrateSurveyFromOrder(data) {
       if (!data || data.order_type !== 'custom') return;
-      enableSurveyFields();
+      unlockSurveyCard();
       clearSurveyDecorations();
 
       const parsed = data.parsed_params;
@@ -1340,7 +1489,7 @@
 
       if (hasMeaningfulSurveyData(sd)) {
         applySurveyData(sd);
-        showSurveyMeta(parsed);
+        hideSurveyMeta();
         return;
       }
 
@@ -1519,10 +1668,17 @@
             (data.files_uploaded || []).forEach(f => uploadedCategories.add(f.category));
             renderChecklist();
             renderCategoryOptions();
-            hydrateSurveyFromOrder(data);
             $parsingCard.style.display = 'none';
-            $surveyCard.style.display = 'block';
-            $uploadCard.style.display = 'block';
+
+            if (st === 'review' || st === 'completed') {
+              showCompleted();
+              showBanner('success', 'Заявка обновлена.');
+              return;
+            }
+
+            hydrateSurveyFromOrder(data);
+            showSurveyCard();
+            showUploadAlongsideSurveyIfNeeded(data);
             $submitBtn.disabled = true;
             $submitBtn.innerHTML = 'Всё загружено — отправить';
             showBanner('success', 'Анализ завершён! Проверьте и дополните данные.');

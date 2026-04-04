@@ -252,16 +252,13 @@ CONSTRAINTS:
 ---
 
 ## Задача 4: Инициализация формы при повторном входе (фронтенд)
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: Если клиент закрыл страницу и вернулся позже (статус tu_parsed или далее) — форма должна отобразиться сразу с данными. Не нужно заново загружать ТУ.
 - **Шаги выполнения**:
-  - [ ] В функции `init()`: проверить order_type и order_status
-  - [ ] Если custom + статус tu_parsed / waiting_client_info / client_info_received:
-    - Показать #surveyCard сразу (не #uploadCard)
-    - Если есть survey_data — заполнить из него
-    - Иначе — заполнить из parsed_params
-  - [ ] Если custom + статус new — показать #uploadCard + заблокированный #surveyCard
-  - [ ] Если custom + статус tu_parsing — показать #parsingCard + запустить polling
+  - [x] `initCustomOrderUi()`: ветки `new`, `tu_parsing` (исправлен баг: polling не срабатывал, т.к. `isNewOrder` был false), `CUSTOM_EDITABLE_STATUSES` (+ `generating_project`), `review`/`completed`, `error`
+  - [x] `showUploadWithLockedSurvey`, overlay «Сначала загрузите ТУ», `lockSurveyCard` / `unlockSurveyCard`
+  - [x] `showSurveyCard`, `showUploadCardForDocs`, `showUploadAlongsideSurveyIfNeeded` (в т.ч. при непустом `missing_params` на `tu_parsed`)
+  - [x] `prefillSurveyFromSaved` + приоритет `hasMeaningfulSurveyData(survey_data)`; express — опросник скрыт
 - **Зависимости**: Задачи 1, 2, 3
 
 ### Промпт для Cursor
@@ -350,7 +347,7 @@ CONSTRAINTS:
 Задача 1 (бэкенд: upload-page)    ████████████  готово
 Задача 2 (фронт: polling)          ████████████  готово
 Задача 3 (фронт: маппинг)          ████████████  готово
-Задача 4 (фронт: init)             ░░░░░░░░░░██  ~1 час
+Задача 4 (фронт: init)             ████████████  готово
 Задача 5 (docs)                     ░░░░░░░░░░░█  ~15 мин
                                     ────────────────
                                     Итого: ~1 день
