@@ -18,6 +18,17 @@ from app.schemas import FileResponse, OrderCreate, PipelineResponse, UploadPageI
 
 router = APIRouter(prefix="/landing", tags=["landing"])
 
+# Статусы, в которых клиент может сохранить опрос по публичной ссылке (UUID).
+_SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
+    {
+        OrderStatus.TU_PARSED,
+        OrderStatus.WAITING_CLIENT_INFO,
+        OrderStatus.CLIENT_INFO_RECEIVED,
+        OrderStatus.DATA_COMPLETE,
+        OrderStatus.GENERATING_PROJECT,
+    }
+)
+
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -280,6 +291,12 @@ async def save_survey(
         raise HTTPException(
             status_code=400,
             detail="Опросный лист не требуется для экспресс-заказа",
+        )
+
+    if order.status not in _SURVEY_SAVE_ALLOWED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Сохранение опроса недоступно в статусе «{order.status.value}»",
         )
 
     order.survey_data = body

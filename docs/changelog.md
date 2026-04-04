@@ -9,6 +9,10 @@
 - В [`backend/static/upload.html`](../backend/static/upload.html): задача «умный опрос» — `PARAM_TO_SURVEY`, `getNestedValue`, `hydrateSurveyFromOrder` (приоритет сохранённого `survey_data`), классы `.prefilled` / `.needs-input`, бейджи «из ТУ», блок «Уверенность анализа» и список `warnings`.
 - В [`backend/static/upload.html`](../backend/static/upload.html): инициализация custom по `order_status` — `initCustomOrderUi`, overlay заблокированного опроса при `new`, polling при `tu_parsing`, `prefillSurveyFromSaved` / ТУ при редактируемых статусах, догрузка файлов через `showUploadAlongsideSurveyIfNeeded`; `showCompleted` скрывает опрос и парсинг; `error` — баннер и загрузка.
 
+### Изменено (ревью умного опроса, задача 5)
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): `POST /landing/orders/{id}/survey` принимает сохранение только в статусах `tu_parsed`, `waiting_client_info`, `client_info_received`, `data_complete`, `generating_project` (не в `new`, `review`, `completed` и т.д.).
+- В [`backend/static/upload.html`](../backend/static/upload.html): `clearSurveyDecorations` вызывает `hideSurveyMeta`; вынесено `applyParsedParamsToSurvey` (prefill + мета парсера).
+
 ## [2026-04-04] — Опросный лист для custom-заказов (Задача 4)
 
 ### Добавлено

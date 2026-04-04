@@ -1009,8 +1009,7 @@
         } else if (orderData.parsed_params && Object.keys(orderData.parsed_params).length > 0) {
           unlockSurveyCard();
           clearSurveyDecorations();
-          prefillSurvey(orderData.parsed_params);
-          showSurveyMeta(orderData.parsed_params);
+          applyParsedParamsToSurvey(orderData.parsed_params);
         } else {
           unlockSurveyCard();
           clearSurveyDecorations();
@@ -1379,12 +1378,7 @@
       card.querySelectorAll('.prefilled, .needs-input').forEach(el => {
         el.classList.remove('prefilled', 'needs-input');
       });
-      const block = document.getElementById('surveyMetaBlock');
-      const conf = document.getElementById('surveyConfidence');
-      const warn = document.getElementById('surveyWarnings');
-      if (block) block.style.display = 'none';
-      if (conf) { conf.style.display = 'none'; conf.textContent = ''; }
-      if (warn) { warn.style.display = 'none'; warn.innerHTML = ''; }
+      hideSurveyMeta();
     }
 
     function appendSurveyBadge(fieldId, badgeClass, text) {
@@ -1493,8 +1487,7 @@
         return;
       }
 
-      prefillSurvey(parsed);
-      showSurveyMeta(parsed);
+      applyParsedParamsToSurvey(parsed);
     }
 
     /**
@@ -1580,6 +1573,15 @@
       if (flowEl && !String(flowEl.value).trim()) {
         markFieldNeedsInput(flowId, 'заполните');
       }
+    }
+
+    /**
+     * Данные парсера ТУ → поля формы + блок уверенности/предупреждений.
+     * @param {object|null|undefined} parsed
+     */
+    function applyParsedParamsToSurvey(parsed) {
+      prefillSurvey(parsed);
+      showSurveyMeta(parsed);
     }
 
     /**
