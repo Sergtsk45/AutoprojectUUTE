@@ -78,7 +78,7 @@ const CalculatorSection: React.FC = () => {
                   <span className="text-base font-bold text-[#263238]">Экспресс</span>
                   <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Популярный выбор</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-3">На базе Эско 3Э · 3 рабочих дня</p>
+                <p className="text-xs text-gray-500 mb-3">На базе электромагнитных расходомеров Эско 3Э · 3 рабочих дня</p>
                 <div className="mb-1">
                   <span className="text-xl font-bold text-green-600">{formatPrice(discountPrice)} ₽</span>
                 </div>
