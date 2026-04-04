@@ -310,6 +310,20 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .spinner-dark {
+      display: block;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes parseProgress {
+      0% { width: 10%; margin-left: 0; }
+      50% { width: 40%; margin-left: 30%; }
+      100% { width: 10%; margin-left: 90%; }
+    }
+
     /* ── Loading screen ──────────────────────── */
     .loading-screen {
       text-align: center;
@@ -516,6 +530,16 @@
           <button class="btn btn-primary" id="submitBtn" disabled>
             Всё загружено — отправить
           </button>
+        </div>
+      </div>
+
+      <!-- Parsing TU (custom, после отправки ТУ) -->
+      <div id="parsingCard" class="card" style="display:none; text-align:center; padding:40px 20px;">
+        <div class="spinner-dark" style="width:40px; height:40px; margin:0 auto 20px;"></div>
+        <h3 style="margin:0 0 8px; font-size:18px;">Анализируем технические условия</h3>
+        <p style="color:#64748b; margin:0 0 20px;">Обычно это занимает 30–60 секунд</p>
+        <div style="height:4px; background:#e2e8f0; border-radius:2px; overflow:hidden;">
+          <div style="width:30%; height:100%; background:#3b82f6; border-radius:2px; animation: parseProgress 2s ease-in-out infinite;"></div>
         </div>
       </div>
 
@@ -775,6 +799,15 @@
     let isNewOrder = false;
     const uploadedCategories = new Set();
 
+    /** Статусы после успешного парсинга ТУ (ожидание можно завершить). */
+    const POST_PARSE_STATUSES = new Set([
+      'tu_parsed', 'waiting_client_info', 'client_info_received',
+      'data_complete', 'generating_project', 'review', 'completed',
+    ]);
+
+    let parsingPollTimer = null;
+    let parsingPollCount = 0;
+
     // ── DOM refs ────────────────────────────────────────────────────────
     const $loading     = document.getElementById('loadingScreen');
     const $error       = document.getElementById('errorScreen');
@@ -789,6 +822,7 @@
     const $queue       = document.getElementById('uploadQueue');
     const $submitBtn   = document.getElementById('submitBtn');
     const $uploadCard  = document.getElementById('uploadCard');
+    const $parsingCard = document.getElementById('parsingCard');
     const $surveyCard  = document.getElementById('surveyCard');
     const $completedCard = document.getElementById('completedCard');
     const $banner      = document.getElementById('banner');
@@ -812,16 +846,28 @@
         renderCategoryOptions();
 
         if (orderData.order_type === 'custom') {
-          $surveyCard.style.display = 'block';
+          if (isNewOrder) {
+            $surveyCard.style.display = 'none';
+            if (orderData.order_status === 'tu_parsing') {
+              showParsingState();
+              startParsingPoll();
+            }
+          } else {
+            $surveyCard.style.display = 'block';
+            prefillSurvey(orderData.parsed_params);
+            applySurveyData(orderData.survey_data);
+          }
         }
 
         $loading.style.display = 'none';
         $main.style.display = 'block';
 
-        // If nothing is missing — show completed
+        // If nothing is missing — show completed (не для custom-new: нужна кнопка «Отправить»)
         const still = (orderData.missing_params || []).filter(p => !uploadedCategories.has(p));
         if (still.length === 0 && orderData.missing_params.length > 0) {
-          showCompleted();
+          if (!(orderData.order_type === 'custom' && isNewOrder)) {
+            showCompleted();
+          }
         }
       } catch (err) {
         $loading.style.display = 'none';
@@ -1016,8 +1062,17 @@
           throw new Error(data.detail || `HTTP ${resp.status}`);
         }
 
-        showCompleted();
-        showBanner('success', 'Документы отправлены! Мы начали обработку вашей заявки.');
+        const customNewParsing =
+          orderData.order_type === 'custom' && isNewOrder;
+
+        if (customNewParsing) {
+          showParsingState();
+          startParsingPoll();
+          showBanner('success', 'Документы отправлены! Мы начали обработку вашей заявки.');
+        } else {
+          showCompleted();
+          showBanner('success', 'Документы отправлены! Мы начали обработку вашей заявки.');
+        }
 
       } catch (err) {
         showBanner('error', `Ошибка: ${err.message}`);
@@ -1030,6 +1085,193 @@
     function showCompleted() {
       $uploadCard.style.display = 'none';
       $completedCard.style.display = 'block';
+    }
+
+    function setSurveyField(id, val) {
+      if (val == null || val === '') return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = String(val);
+    }
+
+    /**
+     * Заполняет поля опросника из parsed_params (структура парсера ТУ, см. tu_schema).
+     * @param {object|null|undefined} parsed
+     */
+    function prefillSurvey(parsed) {
+      if (!parsed || typeof parsed !== 'object') return;
+
+      const obj = parsed.object || {};
+      const conn = parsed.connection || {};
+      const coolant = parsed.coolant || {};
+      const heat = parsed.heat_loads || {};
+      const pipe = parsed.pipeline || {};
+      const metering = parsed.metering || {};
+      const add = parsed.additional || {};
+      const rso = parsed.rso || {};
+
+      const ot = String(obj.object_type || '').toLowerCase();
+      if (ot.includes('мкд') || ot.includes('жил')) setSurveyField('s_building_type', 'residential');
+      else if (ot.includes('нежил') || ot.includes('обществен')) setSurveyField('s_building_type', 'public');
+      else if (ot.includes('промыш')) setSurveyField('s_building_type', 'industrial');
+
+      if (rso.rso_name) setSurveyField('s_heat_supply_source', rso.rso_name);
+
+      const ctv = String(conn.connection_type || '').toLowerCase();
+      if (ctv.includes('зависим')) setSurveyField('s_connection_type', 'dependent');
+      else if (ctv.includes('независим')) setSurveyField('s_connection_type', 'independent');
+
+      const sys = String(conn.system_type || '').toLowerCase();
+      if (sys.includes('открыт')) setSurveyField('s_system_type', 'open');
+      else if (sys.includes('закрыт')) setSurveyField('s_system_type', 'closed');
+
+      const ts = coolant.temp_schedule;
+      if (ts != null && String(ts).trim() !== '') {
+        const tss = String(ts).replace(/\s/g, '');
+        const sel = document.getElementById('s_temp_schedule');
+        if (sel) {
+          let match = [...sel.options].map(o => o.value).find(v => v && tss.includes(v.replace(/\s/g, '')));
+          if (!match) {
+            if (tss.includes('150') && tss.includes('70')) match = '150/70';
+            else if (tss.includes('130') && tss.includes('70')) match = '130/70';
+            else if (tss.includes('95') && tss.includes('70')) match = '95/70';
+          }
+          if (match) sel.value = match;
+        }
+      }
+
+      if (coolant.supply_pressure_kgcm2 != null) setSurveyField('s_pressure_supply', coolant.supply_pressure_kgcm2);
+      if (coolant.return_pressure_kgcm2 != null) setSurveyField('s_pressure_return', coolant.return_pressure_kgcm2);
+
+      if (heat.heating_load != null) setSurveyField('s_heat_load_heating', heat.heating_load);
+      if (heat.hot_water_load != null) setSurveyField('s_heat_load_hw', heat.hot_water_load);
+      if (heat.ventilation_load != null) setSurveyField('s_heat_load_vent', heat.ventilation_load);
+      if (heat.total_load != null && heat.heating_load == null) {
+        setSurveyField('s_heat_load_heating', heat.total_load);
+      }
+
+      const dn = pipe.pipe_outer_diameter_mm ?? pipe.pipe_inner_diameter_mm;
+      if (dn != null) {
+        setSurveyField('s_pipe_dn_supply', dn);
+        setSurveyField('s_pipe_dn_return', dn);
+      }
+
+      if (metering.heat_calculator_model) setSurveyField('s_calculator_model', metering.heat_calculator_model);
+      if (metering.heat_meter_class != null) setSurveyField('s_accuracy_class', String(metering.heat_meter_class));
+
+      const fm = String(metering.flowmeter_model || '').toLowerCase();
+      if (fm.includes('ультразвук')) setSurveyField('s_flow_meter_type', 'ultrasonic');
+      else if (fm.includes('электро')) setSurveyField('s_flow_meter_type', 'electromagnetic');
+
+      if (Array.isArray(add.notes) && add.notes.length) {
+        const cur = document.getElementById('s_comments');
+        if (cur && !String(cur.value).trim()) {
+          cur.value = add.notes.filter(Boolean).join('\n');
+        }
+      }
+    }
+
+    /**
+     * Подставляет сохранённые ранее ответы опроса (ключи как в collectSurveyData).
+     * @param {object|null|undefined} data
+     */
+    function applySurveyData(data) {
+      if (!data || typeof data !== 'object') return;
+      for (const [key, val] of Object.entries(data)) {
+        if (val === null || val === undefined) continue;
+        const id = 's_' + key;
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.type === 'checkbox') {
+          el.checked = !!val;
+        } else {
+          el.value = val === null ? '' : String(val);
+        }
+      }
+      const otherRow = document.getElementById('s_manufacturer_other_row');
+      const manu = document.getElementById('s_manufacturer');
+      if (otherRow && manu && manu.value === 'other') {
+        otherRow.style.display = 'block';
+      }
+    }
+
+    function showParsingState() {
+      $uploadCard.style.display = 'none';
+      $parsingCard.style.display = 'block';
+      $surveyCard.style.display = 'none';
+    }
+
+    function stopParsingPoll() {
+      if (parsingPollTimer !== null) {
+        clearInterval(parsingPollTimer);
+        parsingPollTimer = null;
+      }
+      parsingPollCount = 0;
+    }
+
+    function showParsingTimeout() {
+      $parsingCard.style.display = 'none';
+      $uploadCard.style.display = 'block';
+      showBanner('error', 'Анализ занимает больше времени, чем обычно. Обновите страницу через несколько минут или обратитесь в поддержку.');
+    }
+
+    let parsingPollBusy = false;
+
+    function startParsingPoll() {
+      stopParsingPoll();
+      parsingPollBusy = false;
+
+      const tick = async () => {
+        if (parsingPollBusy) return;
+        parsingPollBusy = true;
+        try {
+          parsingPollCount += 1;
+          if (parsingPollCount > 60) {
+            stopParsingPoll();
+            showParsingTimeout();
+            return;
+          }
+
+          const resp = await fetch(`${API_BASE}/landing/orders/${ORDER_ID}/upload-page`);
+          if (!resp.ok) return;
+
+          const data = await resp.json();
+          const st = data.order_status;
+
+          if (st === 'error') {
+            stopParsingPoll();
+            $parsingCard.style.display = 'none';
+            $uploadCard.style.display = 'block';
+            showBanner('error', 'Ошибка анализа ТУ. Попробуйте загрузить файл снова.');
+            return;
+          }
+
+          if (POST_PARSE_STATUSES.has(st)) {
+            stopParsingPoll();
+            orderData = data;
+            isNewOrder = false;
+            uploadedCategories.clear();
+            (data.files_uploaded || []).forEach(f => uploadedCategories.add(f.category));
+            renderChecklist();
+            renderCategoryOptions();
+            prefillSurvey(data.parsed_params);
+            applySurveyData(data.survey_data);
+            $parsingCard.style.display = 'none';
+            $surveyCard.style.display = 'block';
+            $uploadCard.style.display = 'block';
+            $submitBtn.disabled = true;
+            $submitBtn.innerHTML = 'Всё загружено — отправить';
+            showBanner('success', 'Анализ завершён! Проверьте и дополните данные.');
+          }
+        } catch (e) {
+          console.error('parsing poll:', e);
+        } finally {
+          parsingPollBusy = false;
+        }
+      };
+
+      tick();
+      parsingPollTimer = setInterval(tick, 5000);
     }
 
     // ── Banner ──────────────────────────────────────────────────────────

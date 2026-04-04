@@ -5,6 +5,7 @@
 ### Добавлено
 - В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): поля `parsed_params: dict | None = None` и `survey_data: dict | None = None` в `UploadPageInfo`.
 - В [`backend/app/api/landing.py`](../backend/app/api/landing.py): в `get_upload_page_info` всегда передаётся `order_type`; для заявок `custom` в ответ включаются непустой `parsed_params` и `survey_data` (если в БД не `null`); для `express` оба поля `null`.
+- В [`backend/static/upload.html`](../backend/static/upload.html): для custom + новая заявка после `/submit` — карточка ожидания парсинга `#parsingCard`, опрос `GET .../upload-page` каждые 5 с (до 5 мин), затем `prefillSurvey` + показ `#surveyCard`; при `order_status === tu_parsing` при открытии страницы — тот же polling; express и сценарий `waiting_client_info` без изменений; `prefillSurvey` маппит вложенную структуру парсера ТУ в поля опросника.
 
 ## [2026-04-04] — Опросный лист для custom-заказов (Задача 4)
 
