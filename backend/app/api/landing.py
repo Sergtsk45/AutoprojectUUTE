@@ -273,6 +273,7 @@ async def save_survey(
         )
 
     order.survey_data = body
+    db.add(order)
     await db.commit()
 
     return SimpleResponse(success=True, message="Опросный лист сохранён")

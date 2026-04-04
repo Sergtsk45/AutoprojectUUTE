@@ -116,7 +116,7 @@ const CalculatorSection: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         purpose="order"
-        orderDefaults={{ circuits, price }}
+        orderDefaults={{ circuits, price: orderType === 'express' ? discountPrice : price }}
         orderType={orderType}
       />
     </section>
