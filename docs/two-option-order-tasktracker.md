@@ -11,7 +11,7 @@
   - [x] Добавить `OrderType` enum в `models.py` (`EXPRESS = "express"`, `CUSTOM = "custom"`)
   - [x] Добавить колонку `order_type` в модель `Order` (default=`EXPRESS`)
   - [x] Добавить колонку `survey_data` (JSONB, nullable) в модель `Order` — для данных опросного листа
-  - [ ] Создать миграцию Alembic: `alembic revision --autogenerate -m "add_order_type_and_survey_data"`
+  - [x] Создать миграцию Alembic: `alembic revision --autogenerate -m "add_order_type_and_survey_data"`
   - [x] Обновить `OrderCreate` — добавить `order_type: str | None`
   - [x] Обновить `OrderResponse` — добавить `order_type`, `survey_data`
   - [x] Обновить `OrderListItem` — добавить `order_type`
@@ -293,13 +293,13 @@ CONSTRAINTS:
 ---
 
 ## Задача 5: Отображение survey_data в админке
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: В карточке заявки в админке показывать данные опросного листа (если есть) — аналогично блоку parsed_params.
 - **Шаги выполнения**:
-  - [ ] В ответ API `/orders/{id}` уже добавлены `order_type` и `survey_data` (Задача 1)
-  - [ ] В `admin.html` добавить блок отображения survey_data
-  - [ ] Показывать бейдж order_type в карточке заявки (Экспресс / Индивидуальный)
-  - [ ] В таблице списка заявок добавить колонку «Тип»
+  - [x] В ответ API `/orders/{id}` уже добавлены `order_type` и `survey_data` (Задача 1)
+  - [x] В `admin.html` добавить блок отображения survey_data
+  - [x] Показывать бейдж order_type в карточке заявки (Экспресс / Индивидуальный)
+  - [x] В таблице списка заявок добавить колонку «Тип»
 - **Зависимости**: Задача 1, Задача 4
 
 ### Промпт для Cursor (фронтенд — админка)
@@ -336,13 +336,13 @@ CONSTRAINTS:
 ---
 
 ## Задача 6: Email-уведомление с ссылкой на опросный лист (бэкенд)
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: Для custom-заказов после создания заявки клиент получает email с напоминанием заполнить опросный лист (ссылка на upload-страницу). Новый тип письма `SURVEY_REMINDER`.
 - **Шаги выполнения**:
-  - [ ] Добавить `SURVEY_REMINDER = "survey_reminder"` в EmailType
-  - [ ] Создать шаблон `templates/emails/survey_reminder.html`
-  - [ ] В `create_order_from_landing` для custom-заказов отправлять письмо с ссылкой
-  - [ ] Текст: «Заполните опросный лист для подбора оборудования» + кнопка на /upload/{id}
+  - [x] Добавить `SURVEY_REMINDER = "survey_reminder"` в EmailType
+  - [x] Создать шаблон `templates/emails/survey_reminder.html`
+  - [x] В `create_order_from_landing` для custom-заказов отправлять письмо с ссылкой
+  - [x] Текст: «Заполните опросный лист для подбора оборудования» + кнопка на /upload/{id}
 - **Зависимости**: Задача 1, Задача 2
 
 ### Промпт для Cursor (бэкенд)
@@ -382,12 +382,12 @@ CONSTRAINTS:
 ---
 
 ## Задача 7: Обновить changelog и документацию
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Описание**: Зафиксировать изменения в docs/changelog.md и docs/tasktracker.md.
 - **Шаги выполнения**:
-  - [ ] Добавить запись в changelog.md
-  - [ ] Обновить tasktracker.md — добавить все задачи этой фичи
-  - [ ] Обновить docs/project.md если нужно
+  - [x] Добавить запись в changelog.md
+  - [x] Обновить tasktracker.md — добавить все задачи этой фичи
+  - [x] Обновить docs/project.md если нужно
 - **Зависимости**: Задачи 1-6
 
 ---
