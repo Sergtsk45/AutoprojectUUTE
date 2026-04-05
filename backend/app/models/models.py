@@ -112,6 +112,11 @@ class EmailType(str, enum.Enum):
     SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
 
 
+def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
+    """Строки для PostgreSQL enum: member.value, не member.name (иначе INSERT падает)."""
+    return [m.value for m in enum_cls]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # МОДЕЛИ
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -124,7 +129,7 @@ class Order(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     status = Column(
-        Enum(OrderStatus, name="order_status"),
+        Enum(OrderStatus, name="order_status", values_callable=_enum_db_values),
         nullable=False,
         default=OrderStatus.NEW,
         index=True,
@@ -149,7 +154,7 @@ class Order(Base):
 
     # Тип заявки
     order_type = Column(
-        Enum(OrderType, name="order_type"),
+        Enum(OrderType, name="order_type", values_callable=_enum_db_values),
         nullable=False,
         default=OrderType.EXPRESS,
         server_default="express",
@@ -196,7 +201,10 @@ class OrderFile(Base):
     )
 
     # Категория файла
-    category = Column(Enum(FileCategory, name="file_category"), nullable=False)
+    category = Column(
+        Enum(FileCategory, name="file_category", values_callable=_enum_db_values),
+        nullable=False,
+    )
 
     # Исходное имя файла от клиента
     original_filename = Column(String(500), nullable=False)
@@ -229,7 +237,10 @@ class EmailLog(Base):
         index=True,
     )
 
-    email_type = Column(Enum(EmailType, name="email_type"), nullable=False)
+    email_type = Column(
+        Enum(EmailType, name="email_type", values_callable=_enum_db_values),
+        nullable=False,
+    )
     recipient = Column(String(255), nullable=False)
     subject = Column(String(500), nullable=False)
     body_text = Column(Text, nullable=True)

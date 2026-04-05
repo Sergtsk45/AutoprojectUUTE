@@ -1,5 +1,10 @@
 # Changelog
 
+## [2026-04-05] — SQLAlchemy enum: передача значений в PostgreSQL
+
+### Исправлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): для колонок `order_status`, `order_type`, `file_category`, `email_type` задан общий `values_callable`, чтобы в БД уходили строки `Enum.value` (как в типах PostgreSQL), а не имена членов Python (`EXPRESS`, `NEW` и т.д.). Устраняет ошибку `invalid input value for enum order_type: "EXPRESS"` при создании заявки с сайта.
+
 ## [2026-04-05] — Ссылка из письма «Новая заявка» в админку
 
 ### Исправлено
