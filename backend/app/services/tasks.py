@@ -318,13 +318,9 @@ def send_completed_project(self, order_id: str):
             if (settings.upload_dir / f.storage_path).exists()
         ]
 
-        # Ссылка на скачивание (если файлы большие — клиент скачает по ссылке)
-        download_url = f"{settings.app_base_url}/api/v1/orders/{order.id}/files"
-
         success = send_project(
             session, order,
             attachment_paths=attachment_paths,
-            download_url=download_url,
         )
 
         if success:

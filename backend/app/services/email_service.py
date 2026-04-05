@@ -197,7 +197,9 @@ def _build_message(
 
         with open(path, "rb") as f:
             part = MIMEApplication(f.read(), Name=path.name)
-        part["Content-Disposition"] = f'attachment; filename="{path.name}"'
+        part.add_header(
+            "Content-Disposition", "attachment", filename=path.name
+        )
         msg.attach(part)
 
     return msg

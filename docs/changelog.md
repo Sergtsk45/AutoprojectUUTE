@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-05] — Письмо «Проект готов»: имя вложения RFC 5987, без ссылки на admin API
+
+### Исправлено
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): для вложений в `_build_message` заголовок `Content-Disposition` задаётся через `add_header(..., filename=...)`, чтобы не-ASCII имена файлов кодировались по RFC 2231/5987 (`filename*=utf-8''...`), а не «голой» строкой в кавычках.
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): в `send_completed_project` убрана ссылка «Скачать проект» на `GET /api/v1/orders/{id}/files` (требует `X-Admin-Key`); клиенту остаётся только вложение в письме.
+
 ## [2026-04-05] — Письмо «Проект готов»: одно вложение вместо дубля
 
 ### Исправлено
