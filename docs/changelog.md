@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-05] — Ссылка из письма «Новая заявка» в админку
+
+### Исправлено
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): кнопка «Открыть заявку» ведёт на `/admin?order=<uuid>` вместо JSON API `GET /api/v1/orders/{id}` — браузер при обычном переходе по ссылке не отправляет заголовок `X-Admin-Key`, поэтому раньше отображался JSON с текстом «Неверный API-ключ».
+- В [`backend/static/admin.html`](../backend/static/admin.html): чтение параметра `order` из URL, открытие карточки заявки после входа, если ключ ещё не сохранён в `sessionStorage` (ссылка из письма).
+
 ## [2026-04-05] — Восстановление кириллицы в админ-панели (admin.html)
 
 ### Исправлено

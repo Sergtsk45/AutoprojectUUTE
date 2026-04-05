@@ -420,7 +420,8 @@ def send_new_order_notification(
         "circuits": circuits,
         "price": f"{price:,}".replace(",", " ") if price else None,
         "order_type_label": "Индивидуальный" if order_type == "custom" else "Экспресс",
-        "admin_url": f"{settings.app_base_url}/api/v1/orders/{order.id}",
+        # Ссылка на HTML-админку, не на JSON API (браузер не шлёт X-Admin-Key).
+        "admin_url": f"{settings.app_base_url}/admin?order={order.id}",
     }
 
     subject = f"Новая заявка №{order_id_str[:8]} — {order.client_name}"
