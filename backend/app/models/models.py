@@ -113,7 +113,11 @@ class EmailType(str, enum.Enum):
 
 
 def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
-    """Строки для PostgreSQL enum: member.value, не member.name (иначе INSERT падает)."""
+    """PostgreSQL enum-метки = member.value (order_type, file_category, email_type).
+
+    Для order_status метки в БД совпадают с именами членов Python (NEW, …) — там
+    values_callable не используется: SQLAlchemy по умолчанию персистит имена.
+    """
     return [m.value for m in enum_cls]
 
 
@@ -129,7 +133,7 @@ class Order(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     status = Column(
-        Enum(OrderStatus, name="order_status", values_callable=_enum_db_values),
+        Enum(OrderStatus, name="order_status"),
         nullable=False,
         default=OrderStatus.NEW,
         index=True,

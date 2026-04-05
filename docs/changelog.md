@@ -1,5 +1,10 @@
 # Changelog
 
+## [2026-04-05] — Enum: order_status без values_callable
+
+### Исправлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): у колонки `status` убран `values_callable` — в PostgreSQL тип `order_status` хранит метки как имена членов (`NEW`, `TU_PARSING`, …), а не строки `.value` (`new`, …). Для `order_type`, `file_category`, `email_type` `values_callable` оставлен: там метки в БД совпадают с `Enum.value` (`express`, `tu`, `info_request`, …).
+
 ## [2026-04-05] — SQLAlchemy enum: передача значений в PostgreSQL
 
 ### Исправлено
