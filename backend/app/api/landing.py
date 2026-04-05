@@ -18,6 +18,17 @@ from app.schemas import FileResponse, OrderCreate, PipelineResponse, UploadPageI
 
 router = APIRouter(prefix="/landing", tags=["landing"])
 
+# Статусы, в которых клиент может сохранить опрос по публичной ссылке (UUID).
+_SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
+    {
+        OrderStatus.TU_PARSED,
+        OrderStatus.WAITING_CLIENT_INFO,
+        OrderStatus.CLIENT_INFO_RECEIVED,
+        OrderStatus.DATA_COMPLETE,
+        OrderStatus.GENERATING_PROJECT,
+    }
+)
+
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -175,13 +186,23 @@ async def get_upload_page_info(
     else:
         missing = order.missing_params or []
 
+    parsed_params: dict | None = None
+    survey_data: dict | None = None
+    if order.order_type == OrderType.CUSTOM:
+        if order.parsed_params:
+            parsed_params = order.parsed_params
+        if order.survey_data is not None:
+            survey_data = order.survey_data
+
     return UploadPageInfo(
         order_id=order.id,
         client_name=order.client_name,
         order_status=order.status.value,
-        order_type=order.order_type.value if order.order_type else None,
+        order_type=order.order_type.value,
         missing_params=missing,
         files_uploaded=files,
+        parsed_params=parsed_params,
+        survey_data=survey_data,
     )
 
 
@@ -270,6 +291,12 @@ async def save_survey(
         raise HTTPException(
             status_code=400,
             detail="Опросный лист не требуется для экспресс-заказа",
+        )
+
+    if order.status not in _SURVEY_SAVE_ALLOWED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Сохранение опроса недоступно в статусе «{order.status.value}»",
         )
 
     order.survey_data = body
