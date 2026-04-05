@@ -282,6 +282,22 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .btn:focus-visible {
+      outline: 2px solid var(--c-primary);
+      outline-offset: 2px;
+    }
+    .btn-secondary {
+      background: #fff;
+      color: var(--c-primary);
+      border: 2px solid var(--c-primary);
+      text-decoration: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .btn-secondary:hover {
+      background: var(--c-drop-bg);
+      box-shadow: var(--shadow);
+    }
 
     /* ── Status banner ────────────────────────── */
     .banner {
@@ -838,6 +854,9 @@
           </svg>
           Опросный лист заполнен
         </div>
+        <div class="actions" id="surveyBackActions" style="display:none; margin-top: 16px;">
+          <a class="btn btn-secondary" href="/">Вернуться на сайт</a>
+        </div>
       </div>
 
       <!-- Already completed -->
@@ -853,6 +872,9 @@
           Мы начали обработку вашей заявки. Результат будет отправлен
           на вашу электронную почту.
         </p>
+        <div class="actions" style="margin-top: 20px;">
+          <a class="btn btn-secondary" href="/">Вернуться на сайт</a>
+        </div>
       </div>
     </div>
   </div>
@@ -915,6 +937,7 @@
     const $parsingCard = document.getElementById('parsingCard');
     const $surveyCard  = document.getElementById('surveyCard');
     const $completedCard = document.getElementById('completedCard');
+    const $surveyBackActions = document.getElementById('surveyBackActions');
     const $banner      = document.getElementById('banner');
     const $bannerText  = document.getElementById('bannerText');
 
@@ -1784,11 +1807,13 @@
         }
         $surveySubmitBtn.style.display = 'none';
         $surveyDoneBadge.style.display = 'inline-flex';
+        if ($surveyBackActions) $surveyBackActions.style.display = 'flex';
         showBanner('success', 'Опросный лист сохранён');
       } catch (err) {
         showBanner('error', `Ошибка: ${err.message}`);
         $surveySubmitBtn.disabled = false;
         $surveySubmitBtn.innerHTML = 'Сохранить опросный лист';
+        if ($surveyBackActions) $surveyBackActions.style.display = 'none';
       }
     });
 
