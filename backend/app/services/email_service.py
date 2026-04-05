@@ -326,14 +326,11 @@ def send_project(
         download_url=download_url,
     )
 
-    # Объединяем вложения из шаблона и переданные явно
-    all_attachments = attachments + (attachment_paths or [])
-
     success = send_email(
         recipient=order.client_email,
         subject=subject,
         html_body=html_body,
-        attachment_paths=all_attachments,
+        attachment_paths=attachments,
     )
 
     _log_email(
