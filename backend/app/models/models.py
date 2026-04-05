@@ -85,8 +85,8 @@ class OrderType(str, enum.Enum):
 class FileCategory(str, enum.Enum):
     """Категории загружаемых файлов.
 
-    Клиент: ТУ, акт разграничения, план подключения, план ТП, схема ТП.
-    Служебные: сгенерированные артефакты и прочее.
+    В PostgreSQL тип file_category — метки как имена членов (TU, HEAT_SCHEME, …).
+    Значения .value — для API, query-параметров и сегментов пути в хранилище.
     """
 
     TU = "tu"  # Технические условия (ТУ)
@@ -113,10 +113,10 @@ class EmailType(str, enum.Enum):
 
 
 def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
-    """PostgreSQL enum-метки = member.value (order_type, file_category, email_type).
+    """Только для order_type: в БД метки lowercase (express, custom) = member.value.
 
-    Для order_status метки в БД совпадают с именами членов Python (NEW, …) — там
-    values_callable не используется: SQLAlchemy по умолчанию персистит имена.
+    Остальные enum в этом файле: в PostgreSQL метки совпадают с именами членов Python
+    (order_status, file_category, email_type) — SQLAlchemy персистит имена без callable.
     """
     return [m.value for m in enum_cls]
 
@@ -204,11 +204,8 @@ class OrderFile(Base):
         index=True,
     )
 
-    # Категория файла
-    category = Column(
-        Enum(FileCategory, name="file_category", values_callable=_enum_db_values),
-        nullable=False,
-    )
+    # Категория файла (в БД — UPPER_CASE имена членов: TU, BALANCE_ACT, …)
+    category = Column(Enum(FileCategory, name="file_category"), nullable=False)
 
     # Исходное имя файла от клиента
     original_filename = Column(String(500), nullable=False)
@@ -241,10 +238,7 @@ class EmailLog(Base):
         index=True,
     )
 
-    email_type = Column(
-        Enum(EmailType, name="email_type", values_callable=_enum_db_values),
-        nullable=False,
-    )
+    email_type = Column(Enum(EmailType, name="email_type"), nullable=False)
     recipient = Column(String(255), nullable=False)
     subject = Column(String(500), nullable=False)
     body_text = Column(Text, nullable=True)

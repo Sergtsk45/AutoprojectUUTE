@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-05] — file_category: персистить имена членов Enum (TU, …)
+
+### Исправлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): у `OrderFile.category` убран `values_callable` — в PostgreSQL метки `file_category` совпадают с именами членов Python (`TU`, `BALANCE_ACT`, …), а не с `.value` (`tu`, …). Устраняет `invalid input value for enum file_category: "tu"`.
+- Там же: у `EmailLog.email_type` убран `values_callable` (в БД — имена членов, как для `order_status` / `file_category`); `values_callable` остаётся только у `order_type`.
+
 ## [2026-04-05] — Enum: order_status без values_callable
 
 ### Исправлено
