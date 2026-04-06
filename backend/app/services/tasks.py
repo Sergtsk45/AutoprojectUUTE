@@ -318,6 +318,14 @@ def send_completed_project(self, order_id: str):
             if (settings.upload_dir / f.storage_path).exists()
         ]
 
+        if not attachment_paths:
+            logger.warning(
+                "send_completed_project: order=%s — нет вложений (записи generated_project в БД: %s, "
+                "файлы на диске отсутствуют или пути неверны)",
+                oid,
+                len(project_files),
+            )
+
         success = send_project(
             session, order,
             attachment_paths=attachment_paths,

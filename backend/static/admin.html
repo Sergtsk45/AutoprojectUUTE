@@ -1443,15 +1443,26 @@
       }
 
       if (status === 'review') {
+        const hasProjectPdf = (order.files || []).some(
+          f => f.category === 'generated_project'
+        );
         buttons.push({
           label: '✓ Одобрить и отправить клиенту',
           cls: 'btn-success',
+          disabled: !hasProjectPdf,
+          title: hasProjectPdf
+            ? ''
+            : 'Сначала загрузите готовый проект (PDF) в блоке файлов ниже',
           action: () => {
             if (confirm('Одобрить проект и отправить клиенту?')) {
               runAction(`/pipeline/${order.id}/approve`, 'POST', 'Проект отправляется клиенту');
             }
           },
         });
+        if (!hasProjectPdf) {
+          noteText =
+            'Загрузите файл проекта (категория «Готовый проект»), затем нажмите «Одобрить».';
+        }
       }
 
       if (status === 'error') {
@@ -1470,7 +1481,10 @@
         row.innerHTML = '<span style="color:var(--c-text-secondary); font-size:14px;">Нет доступных действий для текущего статуса</span>';
       } else {
         row.innerHTML = buttons.map((b, i) => `
-          <button class="btn ${b.cls}" id="action_btn_${i}" onclick="actionBtns[${i}]()">${b.label}</button>
+          <button class="btn ${b.cls}" id="action_btn_${i}"
+            ${b.disabled ? 'disabled' : ''}
+            ${b.title ? `title="${esc(b.title)}"` : ''}
+            onclick="actionBtns[${i}]()">${b.label}</button>
         `).join('');
         window.actionBtns = buttons.map(b => b.action);
       }

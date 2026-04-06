@@ -149,6 +149,18 @@ async def approve_project(
             detail="Проект не на этапе проверки",
         )
 
+    project_files = await svc.get_files_by_order(
+        order_id, category=FileCategory.GENERATED_PROJECT
+    )
+    if not project_files:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Невозможно отправить проект клиенту: файл проекта не загружен. "
+                "Загрузите PDF через «Прикрепить файл» (категория «Готовый проект») и повторите."
+            ),
+        )
+
     task = send_completed_project.delay(str(order_id))
 
     return PipelineResponse(
