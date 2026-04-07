@@ -12,6 +12,7 @@ from app.schemas import (
     OrderResponse,
     OrderListItem,
     FileResponse,
+    build_order_response,
 )
 from app.services import OrderService
 
@@ -38,7 +39,7 @@ async def create_order(
     order = await svc.create_order(data)
     # Перезагружаем с файлами и письмами для корректной сериализации
     order = await svc.get_order(order.id)
-    return order
+    return build_order_response(order)
 
 
 # ── Получение заявки ─────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ async def get_order(
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
-    return order
+    return build_order_response(order)
 
 
 # ── Список заявок ────────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ async def update_order_status(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     order = await svc.get_order(order.id)
-    return order
+    return build_order_response(order)
 
 
 # ── Загрузка файла ТУ (при создании заявки) ──────────────────────────────────

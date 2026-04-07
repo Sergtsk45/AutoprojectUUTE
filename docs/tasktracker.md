@@ -1,5 +1,15 @@
 # Task tracker
 
+## Задача: Отложенный info_request, одноразовые письма, уведомление инженеру, прогресс загрузки PDF
+- **Статус**: Завершена
+- **Описание**: Реализация плана [`docs/tasktrecker-progrssbar.md`](tasktrecker-progrssbar.md): 24 ч до авто-`info_request`, флаги и 409 для дублей, письмо инженеру после `client-upload-done`, прогресс XHR для `generated_project` в админке.
+- **Шаги выполнения**:
+  - [x] Модель `waiting_client_info_at`, миграция, `process_due_info_requests` + правки `send_reminders` / `send_info_request_email`
+  - [x] `has_successful_email`, `CLIENT_DOCUMENTS_RECEIVED`, шаблон и Celery-уведомление
+  - [x] `OrderResponse`: `info_request_sent`, `reminder_sent`; админка и 409 в `emails.py`
+  - [x] `docs/changelog.md`, `docs/project.md`, актуализация плана в `tasktrecker-progrssbar.md`
+- **Зависимости**: миграция Alembic на PostgreSQL; перезапуск celery-worker и celery-beat после деплоя
+
 ## Задача: Валидация файла проекта перед одобрением (pipeline approve)
 - **Статус**: Завершена
 - **Описание**: Исключить отправку письма «Проект готов» без вложения: раньше `approve` запускал Celery до загрузки PDF администратором.

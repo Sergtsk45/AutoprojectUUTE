@@ -1,0 +1,19 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<h2>Клиент завершил загрузку документов</h2>
+
+<p>По заявке <strong>№{{ order_id_short }}</strong> клиент нажал «Готово» на странице загрузки файлов. Проверьте вложения и ход пайплайна.</p>
+
+<div class="list-block">
+  <ul>
+    <li><strong>Клиент:</strong> {{ client_name }}</li>
+    <li><strong>Email:</strong> {{ client_email }}</li>
+    {% if object_address %}<li><strong>Объект:</strong> {{ object_address }}</li>{% endif %}
+  </ul>
+</div>
+
+<div class="btn-center">
+  <a href="{{ admin_url }}" class="btn">Открыть заявку в админке</a>
+</div>
+{% endblock %}

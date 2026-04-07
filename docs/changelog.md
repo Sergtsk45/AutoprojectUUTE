@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-07] — Отложенный info_request (24 ч), одноразовые письма, уведомление инженеру, прогресс загрузки PDF
+
+### Добавлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): поле `orders.waiting_client_info_at` (UTC); значение `EmailType.CLIENT_DOCUMENTS_RECEIVED`.
+- Миграция [`backend/alembic/versions/20260407_uute_waiting_client_info_email_enum.py`](../backend/alembic/versions/20260407_uute_waiting_client_info_email_enum.py): колонка + значение `email_type` в PostgreSQL (`CLIENT_DOCUMENTS_RECEIVED`, как имя члена enum в SQLAlchemy); backfill для текущих `WAITING_CLIENT_INFO`.
+- Задачи Celery [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `process_due_info_requests` (Beat раз в 15 мин), `notify_engineer_client_documents_received`; логика `send_reminders` и `send_info_request_email` с идемпотентностью по `email_log`.
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): `has_successful_email`, `send_client_documents_received_notification`, шаблон [`backend/templates/emails/client_documents_received.html`](../backend/templates/emails/client_documents_received.html).
+- В ответе заявки [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): `info_request_sent`, `reminder_sent` (сборка через `build_order_response` в [`backend/app/api/orders.py`](../backend/app/api/orders.py)).
+
+### Изменено
+- [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): при неполных данных после парсинга не вызывается немедленная отправка `info_request`.
+- [`backend/app/api/emails.py`](../backend/app/api/emails.py): повтор `info_request` / `reminder` — **409** с текстом в `detail`.
+- [`backend/app/api/pipeline.py`](../backend/app/api/pipeline.py): после `client-upload-done` — постановка уведомления инженеру в очередь.
+- [`backend/static/admin.html`](../backend/static/admin.html): блокировка кнопок запроса/напоминания по флагам API; прогресс загрузки для `generated_project` через XHR.
+
 ## [2026-04-06] — Одобрение проекта только при загруженном PDF
 
 ### Изменено

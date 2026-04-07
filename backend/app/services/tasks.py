@@ -24,6 +24,7 @@ from app.models.models import (
     ALLOWED_TRANSITIONS,
     Order,
     OrderStatus,
+    EmailType,
 )
 
 logger = logging.getLogger(__name__)
@@ -155,8 +156,11 @@ def check_data_completeness(self, order_id: str):
     """TU_PARSED / CLIENT_INFO_RECEIVED → DATA_COMPLETE или WAITING_CLIENT_INFO.
 
     Если missing_params пуст — данные полные, двигаем дальше.
-    Если нет — отправляем запрос клиенту.
+    Если нет — переход в WAITING_CLIENT_INFO; первый info_request уходит не раньше чем через 24 ч
+    (см. process_due_info_requests и ручную отправку из админки).
     """
+    from datetime import datetime, timezone
+
     oid = uuid.UUID(order_id)
     logger.info("check_data_completeness: order=%s", oid)
 
@@ -172,21 +176,25 @@ def check_data_completeness(self, order_id: str):
             logger.info("Все данные собраны для order=%s", oid)
             fill_excel.delay(order_id)
         else:
+            order.waiting_client_info_at = datetime.now(timezone.utc)
             _transition(session, order, OrderStatus.WAITING_CLIENT_INFO)
             logger.info(
-                "Не хватает данных для order=%s: %s", oid, missing
+                "Не хватает данных для order=%s: %s; запланирован info_request через 24 ч",
+                oid,
+                missing,
             )
-            send_info_request_email.delay(order_id)
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
 def send_info_request_email(self, order_id: str):
     """Отправка письма клиенту с запросом недостающей информации.
 
-    Рендерит шаблон info_request.html с перечнем недостающих документов,
-    прикладывает образцы и отправляет через SMTP.
+    Вызывается из process_due_info_requests после 24 ч в WAITING_CLIENT_INFO.
+    Идемпотентна: не шлёт дубликат при ручной отправке ранее.
     """
-    from app.services.email_service import send_info_request
+    from datetime import datetime, timedelta, timezone
+
+    from app.services.email_service import has_successful_email, send_info_request
 
     oid = uuid.UUID(order_id)
     logger.info("send_info_request_email: order=%s", oid)
@@ -196,6 +204,37 @@ def send_info_request_email(self, order_id: str):
         if order is None:
             return
 
+        if order.status != OrderStatus.WAITING_CLIENT_INFO:
+            logger.info(
+                "send_info_request_email: пропуск order=%s — статус %s",
+                oid,
+                order.status,
+            )
+            return
+
+        if has_successful_email(session, oid, EmailType.INFO_REQUEST):
+            logger.info(
+                "send_info_request_email: пропуск order=%s — запрос уже отправлялся",
+                oid,
+            )
+            return
+
+        if order.waiting_client_info_at is None:
+            logger.info(
+                "send_info_request_email: пропуск order=%s — нет waiting_client_info_at",
+                oid,
+            )
+            return
+
+        due = order.waiting_client_info_at + timedelta(hours=24)
+        if datetime.now(timezone.utc) < due:
+            logger.info(
+                "send_info_request_email: пропуск order=%s — ещё не наступил срок (%s)",
+                oid,
+                due.isoformat(),
+            )
+            return
+
         success = send_info_request(session, order)
 
         if success:
@@ -203,7 +242,8 @@ def send_info_request_email(self, order_id: str):
             session.commit()
             logger.info(
                 "Письмо с запросом отправлено на %s (попытка %d)",
-                order.client_email, order.retry_count,
+                order.client_email,
+                order.retry_count,
             )
         else:
             logger.error(
@@ -215,6 +255,69 @@ def send_info_request_email(self, order_id: str):
                 logger.error(
                     "Исчерпаны попытки отправки email для order=%s", oid
                 )
+
+
+@celery_app.task
+def process_due_info_requests():
+    """Периодически: заявки в WAITING_CLIENT_INFO старше 24 ч без успешного info_request."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.services.email_service import has_successful_email
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=24)
+    orders: list[Order] = []
+    queued = 0
+
+    with SyncSession() as session:
+        stmt = (
+            select(Order)
+            .options(selectinload(Order.emails))
+            .where(Order.status == OrderStatus.WAITING_CLIENT_INFO)
+            .where(Order.waiting_client_info_at.isnot(None))
+            .where(Order.waiting_client_info_at <= cutoff)
+        )
+        orders = list(session.execute(stmt).scalars().all())
+        queued = 0
+        for order in orders:
+            if has_successful_email(session, order.id, EmailType.INFO_REQUEST):
+                continue
+            logger.info(
+                "process_due_info_requests: очередь info_request для order=%s",
+                order.id,
+            )
+            send_info_request_email.delay(str(order.id))
+            queued += 1
+
+    logger.info(
+        "process_due_info_requests: кандидатов %d, поставлено в очередь %d",
+        len(orders),
+        queued,
+    )
+
+
+@celery_app.task
+def notify_engineer_client_documents_received(order_id: str):
+    """Один раз уведомляет инженера после «Готово» на странице загрузки клиентом."""
+    from app.services.email_service import (
+        has_successful_email,
+        send_client_documents_received_notification,
+    )
+
+    oid = uuid.UUID(order_id)
+    logger.info("notify_engineer_client_documents_received: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            return
+        if has_successful_email(session, oid, EmailType.CLIENT_DOCUMENTS_RECEIVED):
+            logger.info(
+                "notify_engineer_client_documents_received: пропуск order=%s — уже уведомляли",
+                oid,
+            )
+            return
+        send_client_documents_received_notification(session, order)
 
 
 @celery_app.task(bind=True)
@@ -351,20 +454,21 @@ def send_completed_project(self, order_id: str):
 
 @celery_app.task
 def send_reminders():
-    """Периодическая задача: напоминания клиентам, не приславшим документы.
+    """Периодическая задача: одно напоминание клиенту после успешного info_request.
 
-    Запускается по расписанию (Celery Beat).
-    Ищет заявки в статусе WAITING_CLIENT_INFO, где последнее письмо
-    было отправлено более 3 дней назад, и retry_count < max_retry_count.
+    Условия: WAITING_CLIENT_INFO, уже был успешный info_request, успешного reminder ещё не было,
+    с момента последнего успешного info_request прошло не менее 3 суток, retry_count < max_retry_count.
     """
     from datetime import datetime, timedelta, timezone
-    from app.services.email_service import send_reminder
+
+    from app.services.email_service import has_successful_email, send_reminder
 
     logger.info("send_reminders: проверка заявок, ожидающих ответа клиента")
 
     with SyncSession() as session:
         stmt = (
             select(Order)
+            .options(selectinload(Order.emails))
             .where(Order.status == OrderStatus.WAITING_CLIENT_INFO)
             .where(Order.retry_count < settings.max_retry_count)
         )
@@ -374,14 +478,28 @@ def send_reminders():
         sent_count = 0
 
         for order in orders:
-            # Проверяем дату последнего письма
-            last_email = max(
-                (e.created_at for e in order.emails if e.email_type.value == "info_request"),
+            if not has_successful_email(session, order.id, EmailType.INFO_REQUEST):
+                continue
+            if has_successful_email(session, order.id, EmailType.REMINDER):
+                logger.debug(
+                    "send_reminders: пропуск order=%s — напоминание уже отправлялось",
+                    order.id,
+                )
+                continue
+
+            last_info = max(
+                (
+                    e.sent_at
+                    for e in order.emails
+                    if e.email_type == EmailType.INFO_REQUEST and e.sent_at is not None
+                ),
                 default=None,
             )
-
-            if last_email is not None and last_email.replace(tzinfo=timezone.utc) > cutoff:
-                continue  # Ещё не прошло 3 дня
+            if last_info is None:
+                continue
+            last_info_utc = last_info.replace(tzinfo=timezone.utc)
+            if last_info_utc > cutoff:
+                continue
 
             success = send_reminder(session, order)
             if success:
@@ -390,7 +508,8 @@ def send_reminders():
                 sent_count += 1
                 logger.info(
                     "Напоминание отправлено: order=%s, попытка %d",
-                    order.id, order.retry_count,
+                    order.id,
+                    order.retry_count,
                 )
 
         logger.info("send_reminders: отправлено %d напоминаний", sent_count)

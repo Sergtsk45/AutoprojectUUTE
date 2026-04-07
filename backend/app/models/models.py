@@ -108,6 +108,7 @@ class EmailType(str, enum.Enum):
     ERROR_NOTIFICATION = "error_notification"  # Уведомление об ошибке
     SAMPLE_DELIVERY = "sample_delivery"        # Отправка образца проекта
     NEW_ORDER_NOTIFICATION = "new_order_notification"  # Уведомление инженеру о новой заявке
+    CLIENT_DOCUMENTS_RECEIVED = "client_documents_received"  # Клиент нажал «Готово» на загрузке
     PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
     SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
 
@@ -169,6 +170,9 @@ class Order(Base):
 
     # Счётчик повторных запросов клиенту
     retry_count = Column(Integer, nullable=False, default=0)
+
+    # Момент (UTC) перехода в waiting_client_info — не раньше чем через 24 ч шлём первый info_request
+    waiting_client_info_at = Column(DateTime(timezone=True), nullable=True)
 
     # Комментарий инженера (для этапа review)
     reviewer_comment = Column(Text, nullable=True)

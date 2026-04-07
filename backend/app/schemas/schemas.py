@@ -1,9 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.models import EmailType, FileCategory, OrderStatus, OrderType
+
+if TYPE_CHECKING:
+    from app.models.models import Order as OrderModel
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -49,6 +53,8 @@ class OrderResponse(BaseModel):
     updated_at: datetime
     files: list["FileResponse"]
     emails: list["EmailLogResponse"]
+    info_request_sent: bool = False
+    reminder_sent: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -129,3 +135,23 @@ class PipelineResponse(BaseModel):
     message: str
     order_id: UUID
     task_id: str | None = None
+
+
+def build_order_response(order: "OrderModel") -> OrderResponse:
+    """Собирает OrderResponse с флагами одноразовых писем (по успешным записям в логе)."""
+    emails = order.emails or []
+    info_request_sent = any(
+        e.email_type == EmailType.INFO_REQUEST and e.sent_at is not None
+        for e in emails
+    )
+    reminder_sent = any(
+        e.email_type == EmailType.REMINDER and e.sent_at is not None
+        for e in emails
+    )
+    base = OrderResponse.model_validate(order)
+    return base.model_copy(
+        update={
+            "info_request_sent": info_request_sent,
+            "reminder_sent": reminder_sent,
+        }
+    )

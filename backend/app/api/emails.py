@@ -111,6 +111,7 @@ async def manual_send_email(
     - отправки уведомления об ошибке с кастомным текстом
     """
     from app.services.email_service import (
+        has_successful_email,
         send_info_request,
         send_reminder,
         send_project,
@@ -131,8 +132,18 @@ async def manual_send_email(
             raise HTTPException(status_code=404, detail="Заявка не найдена")
 
         if data.email_type == EmailType.INFO_REQUEST:
+            if has_successful_email(sync_session, order_id, EmailType.INFO_REQUEST):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Запрос клиенту уже отправлялся",
+                )
             success = send_info_request(sync_session, sync_order)
         elif data.email_type == EmailType.REMINDER:
+            if has_successful_email(sync_session, order_id, EmailType.REMINDER):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Напоминание уже отправлялось",
+                )
             success = send_reminder(sync_session, sync_order)
         elif data.email_type == EmailType.PROJECT_DELIVERY:
             success = send_project(sync_session, sync_order)

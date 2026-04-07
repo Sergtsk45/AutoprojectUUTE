@@ -29,6 +29,11 @@ celery_app.conf.update(
             "schedule": crontab(hour=10, minute=0),  # Каждый день в 10:00 МСК
             "options": {"queue": "default"},
         },
+        "process-due-info-requests": {
+            "task": "app.services.tasks.process_due_info_requests",
+            "schedule": crontab(minute="*/15"),
+            "options": {"queue": "default"},
+        },
     },
 )
 

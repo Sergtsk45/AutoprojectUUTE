@@ -14,6 +14,7 @@ from app.services.tasks import (
     start_tu_parsing,
     process_client_response,
     send_completed_project,
+    notify_engineer_client_documents_received,
 )
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
@@ -121,6 +122,7 @@ async def client_upload_done(
     await db.commit()
 
     task = process_client_response.delay(str(order_id))
+    notify_engineer_client_documents_received.delay(str(order_id))
 
     return PipelineResponse(
         message="Файлы приняты, идёт проверка",

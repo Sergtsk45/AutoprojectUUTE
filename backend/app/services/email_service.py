@@ -7,6 +7,7 @@
 import logging
 import smtplib
 import ssl
+import uuid
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -15,6 +16,7 @@ from email.utils import formataddr, formatdate
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -251,6 +253,24 @@ def send_email(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def has_successful_email(
+    session: Session,
+    order_id: uuid.UUID,
+    email_type: EmailType,
+) -> bool:
+    """True, если по заявке уже есть успешная отправка данного типа (sent_at задан)."""
+    stmt = (
+        select(EmailLog.id)
+        .where(
+            EmailLog.order_id == order_id,
+            EmailLog.email_type == email_type,
+            EmailLog.sent_at.isnot(None),
+        )
+        .limit(1)
+    )
+    return session.execute(stmt).scalar_one_or_none() is not None
+
+
 def _log_email(
     session: Session,
     order: Order,
@@ -392,6 +412,43 @@ def send_sample_delivery(recipient_email: str) -> bool:
         html_body=html_body,
         attachment_paths=attachments,
     )
+
+
+def render_client_documents_received(order: Order) -> tuple[str, str]:
+    """Письмо инженеру: клиент завершил загрузку документов."""
+    env = _get_jinja()
+    template = env.get_template("emails/client_documents_received.html")
+    order_id_str = str(order.id)
+    ctx = {
+        **_order_context(order),
+        "header_title": "Документы от клиента",
+        "admin_url": f"{settings.app_base_url}/admin?order={order.id}",
+        "order_id_short": order_id_str[:8],
+    }
+    subject = f"Клиент отправил документы — заявка №{order_id_str[:8]}"
+    return subject, template.render(ctx)
+
+
+def send_client_documents_received_notification(session: Session, order: Order) -> bool:
+    """Уведомить инженера после «Готово» на странице загрузки клиентом."""
+    subject, html_body = render_client_documents_received(order)
+    success = send_email(
+        recipient=settings.admin_email,
+        subject=subject,
+        html_body=html_body,
+    )
+    log = EmailLog(
+        order_id=order.id,
+        email_type=EmailType.CLIENT_DOCUMENTS_RECEIVED,
+        recipient=settings.admin_email,
+        subject=subject,
+        body_text=html_body[:5000],
+        sent_at=datetime.now(timezone.utc) if success else None,
+        error_message=None if success else "SMTP delivery failed",
+    )
+    session.add(log)
+    session.commit()
+    return success
 
 
 def send_new_order_notification(
