@@ -1,5 +1,17 @@
 # Changelog
 
+## [2026-04-07] — Сопроводительное письмо в РСО при отправке проекта
+
+### Добавлено
+- В [`backend/app/services/cover_letter.py`](../backend/app/services/cover_letter.py): генератор DOCX сопроводительного письма в РСО из данных `TUParsedData` (applicant.*, rso.*, document.*, object.*).
+- В [`backend/requirements.txt`](../backend/requirements.txt): зависимость `python-docx==1.1.2`.
+
+### Изменено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `send_completed_project` — генерирует DOCX сопроводительного письма и прикладывает его к email вместе с PDF проекта; временный файл удаляется после отправки.
+- В [`backend/templates/emails/project_delivery.html`](../backend/templates/emails/project_delivery.html): обновлён текст письма — добавлена инструкция по сопроводительному письму и требование оплаты в течение 2 рабочих дней или скана с входящим номером РСО.
+
+---
+
 ## [2026-04-07] — Отложенный info_request (24 ч), одноразовые письма, уведомление инженеру, прогресс загрузки PDF
 
 ### Добавлено
