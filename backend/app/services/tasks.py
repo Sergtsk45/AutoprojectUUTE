@@ -398,12 +398,18 @@ def send_completed_project(self, order_id: str):
     """REVIEW → COMPLETED: Отправка готового проекта клиенту.
 
     Находит сгенерированный PDF проекта в файлах заявки,
-    отправляет клиенту письмом с вложением.
+    генерирует DOCX сопроводительного письма в РСО,
+    отправляет клиенту письмом с вложениями.
     """
     from app.services.email_service import send_project
+    from app.services.cover_letter import generate_cover_letter
+    from app.services.tu_schema import TUParsedData
 
     oid = uuid.UUID(order_id)
+    order_id_short = order_id[:8]
     logger.info("send_completed_project: order=%s", oid)
+
+    cover_letter_path = None
 
     with SyncSession() as session:
         order = _get_order(session, oid)
@@ -429,6 +435,32 @@ def send_completed_project(self, order_id: str):
                 len(project_files),
             )
 
+        # Генерируем сопроводительное письмо из parsed_params
+        try:
+            if order.parsed_params:
+                parsed = TUParsedData.model_validate(order.parsed_params)
+                cover_letter_path = generate_cover_letter(parsed, order_id_short)
+                attachment_paths.append(str(cover_letter_path))
+                logger.info(
+                    "send_completed_project: сопроводительное письмо создано: %s",
+                    cover_letter_path,
+                )
+            else:
+                logger.warning(
+                    "send_completed_project: order=%s — parsed_params пуст, "
+                    "сопроводительное письмо не создано",
+                    oid,
+                )
+        except Exception as e:
+            logger.error(
+                "send_completed_project: ошибка генерации сопроводительного письма "
+                "для order=%s: %s",
+                oid,
+                e,
+                exc_info=True,
+            )
+            # Degraded mode: отправляем без docx
+
         success = send_project(
             session, order,
             attachment_paths=attachment_paths,
@@ -445,6 +477,13 @@ def send_completed_project(self, order_id: str):
                 logger.error(
                     "Исчерпаны попытки отправки проекта для order=%s", oid
                 )
+
+    # Удаляем временный файл вне сессии (независимо от успеха/неуспеха)
+    if cover_letter_path and cover_letter_path.exists():
+        try:
+            cover_letter_path.unlink()
+        except OSError as e:
+            logger.warning("Не удалось удалить временный файл %s: %s", cover_letter_path, e)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
