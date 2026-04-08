@@ -904,6 +904,8 @@
     let orderData = null;
     let isNewOrder = false;
     const uploadedCategories = new Set();
+    /** Custom после парсинга ТУ: «Всё загружено» только после сохранения опроса и чеклиста. */
+    let surveySavedCustom = false;
 
     /** Статусы после успешного парсинга ТУ (ожидание можно завершить). */
     const POST_PARSE_STATUSES = new Set([
@@ -919,6 +921,68 @@
 
     let parsingPollTimer = null;
     let parsingPollCount = 0;
+
+    function formatHttpDetail(detail) {
+      if (detail == null) return '';
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        return detail.map(x => (x && typeof x === 'object' && x.msg ? x.msg : JSON.stringify(x))).join('; ');
+      }
+      if (typeof detail === 'object' && detail.msg) return String(detail.msg);
+      try {
+        return JSON.stringify(detail);
+      } catch (e) {
+        return String(detail);
+      }
+    }
+
+    function syncSubmitButtonState() {
+      if (!$submitBtn) return;
+      if (isNewOrder) {
+        $submitBtn.disabled = uploadedCategories.size === 0;
+        return;
+      }
+      const customPost =
+        orderData &&
+        orderData.order_type === 'custom' &&
+        CUSTOM_EDITABLE_STATUSES.includes(orderData.order_status);
+      if (customPost) {
+        if (!surveySavedCustom) {
+          $submitBtn.disabled = true;
+          $submitBtn.title = 'Сначала сохраните опросный лист внизу страницы';
+          return;
+        }
+        $submitBtn.title = '';
+        const mp = orderData.missing_params || [];
+        if (mp.length === 0) {
+          $submitBtn.disabled = false;
+          return;
+        }
+        const allDone = mp.every(code => uploadedCategories.has(code));
+        $submitBtn.disabled = !allDone;
+        if (!allDone) {
+          $submitBtn.title = 'Загрузите все документы из списка выше';
+        }
+        return;
+      }
+      $submitBtn.title = '';
+      $submitBtn.disabled = uploadedCategories.size === 0;
+    }
+
+    function applySurveySavedVisuals(saved) {
+      if (!$surveySubmitBtn || !$surveyDoneBadge) return;
+      if (saved) {
+        $surveySubmitBtn.style.display = 'none';
+        $surveyDoneBadge.style.display = 'inline-flex';
+        if ($surveyBackActions) $surveyBackActions.style.display = 'flex';
+      } else {
+        $surveySubmitBtn.style.display = '';
+        $surveySubmitBtn.disabled = false;
+        $surveySubmitBtn.innerHTML = 'Сохранить опросный лист';
+        $surveyDoneBadge.style.display = 'none';
+        if ($surveyBackActions) $surveyBackActions.style.display = 'none';
+      }
+    }
 
     // ── DOM refs ────────────────────────────────────────────────────────
     const $loading     = document.getElementById('loadingScreen');
@@ -938,6 +1002,8 @@
     const $surveyCard  = document.getElementById('surveyCard');
     const $completedCard = document.getElementById('completedCard');
     const $surveyBackActions = document.getElementById('surveyBackActions');
+    const $surveySubmitBtn = document.getElementById('surveySubmitBtn');
+    const $surveyDoneBadge = document.getElementById('surveyDoneBadge');
     const $banner      = document.getElementById('banner');
     const $bannerText  = document.getElementById('bannerText');
 
@@ -1029,13 +1095,16 @@
         showSurveyCard();
         if (hasMeaningfulSurveyData(orderData.survey_data)) {
           prefillSurveyFromSaved(orderData.survey_data);
+          applySurveySavedVisuals(true);
         } else if (orderData.parsed_params && Object.keys(orderData.parsed_params).length > 0) {
           unlockSurveyCard();
           clearSurveyDecorations();
           applyParsedParamsToSurvey(orderData.parsed_params);
+          applySurveySavedVisuals(false);
         } else {
           unlockSurveyCard();
           clearSurveyDecorations();
+          applySurveySavedVisuals(false);
         }
         showUploadAlongsideSurveyIfNeeded(orderData);
         return true;
@@ -1097,6 +1166,10 @@
             showCompleted();
           }
         }
+
+        surveySavedCustom =
+          orderData.order_type === 'custom' && hasMeaningfulSurveyData(orderData.survey_data);
+        syncSubmitButtonState();
       } catch (err) {
         $loading.style.display = 'none';
         $error.style.display = 'block';
@@ -1263,8 +1336,7 @@
         renderChecklist();
         renderCategoryOptions();
 
-        // Enable submit if at least one file uploaded
-        $submitBtn.disabled = false;
+        syncSubmitButtonState();
 
       } catch (err) {
         item.classList.add('error');
@@ -1287,7 +1359,7 @@
         const resp = await fetch(doneUrl, { method: 'POST' });
         if (!resp.ok) {
           const data = await resp.json().catch(() => ({}));
-          throw new Error(data.detail || `HTTP ${resp.status}`);
+          throw new Error(formatHttpDetail(data.detail) || `HTTP ${resp.status}`);
         }
 
         const customNewParsing =
@@ -1304,8 +1376,8 @@
 
       } catch (err) {
         showBanner('error', `Ошибка: ${err.message}`);
-        $submitBtn.disabled = false;
         $submitBtn.innerHTML = 'Всё загружено — отправить';
+        syncSubmitButtonState();
       }
     });
 
@@ -1704,8 +1776,15 @@
             hydrateSurveyFromOrder(data);
             showSurveyCard();
             showUploadAlongsideSurveyIfNeeded(data);
-            $submitBtn.disabled = true;
             $submitBtn.innerHTML = 'Всё загружено — отправить';
+            surveySavedCustom =
+              data.order_type === 'custom' && hasMeaningfulSurveyData(data.survey_data);
+            if (data.order_type === 'custom' && hasMeaningfulSurveyData(data.survey_data)) {
+              applySurveySavedVisuals(true);
+            } else {
+              applySurveySavedVisuals(false);
+            }
+            syncSubmitButtonState();
             showBanner('success', 'Анализ завершён! Проверьте и дополните данные.');
           }
         } catch (e) {
@@ -1720,10 +1799,11 @@
     }
 
     // ── Banner ──────────────────────────────────────────────────────────
-    function showBanner(type, text) {
+    function showBanner(type, text, durationMs) {
+      const ms = typeof durationMs === 'number' ? durationMs : 6000;
       $banner.className = `banner visible ${type}`;
       $bannerText.textContent = text;
-      setTimeout(() => { $banner.classList.remove('visible'); }, 6000);
+      setTimeout(() => { $banner.classList.remove('visible'); }, ms);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -1736,10 +1816,8 @@
     // ── Survey form ─────────────────────────────────────────────────────
     const $manufacturerSelect   = document.getElementById('s_manufacturer');
     const $manufacturerOtherRow = document.getElementById('s_manufacturer_other_row');
-    const $surveySubmitBtn      = document.getElementById('surveySubmitBtn');
-    const $surveyDoneBadge      = document.getElementById('surveyDoneBadge');
 
-    $manufacturerSelect.addEventListener('change', () => {
+    if ($manufacturerSelect) $manufacturerSelect.addEventListener('change', () => {
       $manufacturerOtherRow.style.display =
         $manufacturerSelect.value === 'other' ? 'block' : 'none';
     });
@@ -1785,10 +1863,10 @@
       };
     }
 
-    $surveySubmitBtn.addEventListener('click', async () => {
+    if ($surveySubmitBtn) $surveySubmitBtn.addEventListener('click', async () => {
       const manufacturer = strVal('s_manufacturer');
       if (!manufacturer) {
-        showBanner('error', 'Укажите производителя прибора учёта');
+        showBanner('error', 'Укажите производителя прибора учёта', 8000);
         return;
       }
 
@@ -1803,14 +1881,18 @@
         });
         if (!resp.ok) {
           const data = await resp.json().catch(() => ({}));
-          throw new Error(data.detail || `HTTP ${resp.status}`);
+          throw new Error(formatHttpDetail(data.detail) || `HTTP ${resp.status}`);
         }
-        $surveySubmitBtn.style.display = 'none';
-        $surveyDoneBadge.style.display = 'inline-flex';
-        if ($surveyBackActions) $surveyBackActions.style.display = 'flex';
-        showBanner('success', 'Опросный лист сохранён');
+        orderData.survey_data = collectSurveyData();
+        surveySavedCustom = true;
+        applySurveySavedVisuals(true);
+        syncSubmitButtonState();
+        if ($surveyCard) {
+          $surveyCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        showBanner('success', 'Опросный лист сохранён. Теперь при необходимости догрузите файлы и нажмите «Всё загружено — отправить».', 12000);
       } catch (err) {
-        showBanner('error', `Ошибка: ${err.message}`);
+        showBanner('error', `Ошибка: ${err.message}`, 10000);
         $surveySubmitBtn.disabled = false;
         $surveySubmitBtn.innerHTML = 'Сохранить опросный лист';
         if ($surveyBackActions) $surveyBackActions.style.display = 'none';
