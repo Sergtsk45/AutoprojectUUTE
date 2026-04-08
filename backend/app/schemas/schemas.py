@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -55,6 +55,8 @@ class OrderResponse(BaseModel):
     emails: list["EmailLogResponse"]
     info_request_sent: bool = False
     reminder_sent: bool = False
+    #: Не ранее этого момента (UTC) уйдёт авто-запрос документов, если инженер не отправил раньше.
+    info_request_earliest_auto_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -148,10 +150,19 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
         e.email_type == EmailType.REMINDER and e.sent_at is not None
         for e in emails
     )
+    earliest_auto: datetime | None = None
+    if (
+        not info_request_sent
+        and order.waiting_client_info_at is not None
+        and order.status == OrderStatus.WAITING_CLIENT_INFO
+    ):
+        earliest_auto = order.waiting_client_info_at + timedelta(hours=24)
+
     base = OrderResponse.model_validate(order)
     return base.model_copy(
         update={
             "info_request_sent": info_request_sent,
             "reminder_sent": reminder_sent,
+            "info_request_earliest_auto_at": earliest_auto,
         }
     )

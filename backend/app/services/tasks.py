@@ -29,6 +29,9 @@ from app.models.models import (
 
 logger = logging.getLogger(__name__)
 
+# Задержка перед первой автоотправкой письма «запрос документов» (info_request), сек.
+INFO_REQUEST_AUTO_DELAY_SECONDS = 24 * 60 * 60
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Утилиты для синхронного доступа к БД из Celery
@@ -156,8 +159,9 @@ def check_data_completeness(self, order_id: str):
     """TU_PARSED / CLIENT_INFO_RECEIVED → DATA_COMPLETE или WAITING_CLIENT_INFO.
 
     Если missing_params пуст — данные полные, двигаем дальше.
-    Если нет — переход в WAITING_CLIENT_INFO; первый info_request уходит не раньше чем через 24 ч
-    (см. process_due_info_requests и ручную отправку из админки).
+    Если нет — переход в WAITING_CLIENT_INFO; первый info_request уходит не раньше чем через 24 ч:
+    отложенная задача Celery (таймер) + резерв — process_due_info_requests в Beat.
+    Раньше 24 ч инженер может отправить запрос вручную из админки.
     """
     from datetime import datetime, timezone
 
@@ -183,14 +187,26 @@ def check_data_completeness(self, order_id: str):
                 oid,
                 missing,
             )
+            send_info_request_email.apply_async(
+                args=[order_id],
+                countdown=INFO_REQUEST_AUTO_DELAY_SECONDS,
+            )
+            logger.info(
+                "check_data_completeness: send_info_request_email с задержкой %s с, order=%s",
+                INFO_REQUEST_AUTO_DELAY_SECONDS,
+                oid,
+            )
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
 def send_info_request_email(self, order_id: str):
     """Отправка письма клиенту с запросом недостающей информации.
 
-    Вызывается из process_due_info_requests после 24 ч в WAITING_CLIENT_INFO.
-    Идемпотентна: не шлёт дубликат при ручной отправке ранее.
+    Вызывается:
+    - по таймеру: apply_async(..., countdown=INFO_REQUEST_AUTO_DELAY_SECONDS) из check_data_completeness;
+    - резервно: process_due_info_requests (Beat), если отложенная задача не отработала.
+
+    Идемпотентна: не шлёт дубликат при ручной отправке инженером ранее.
     """
     from datetime import datetime, timedelta, timezone
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-08] — Таймер 24 ч для авто-запроса документов (info_request)
+
+### Добавлено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): при переходе в `waiting_client_info` постановка `send_info_request_email` в очередь Celery с задержкой 24 часа (`INFO_REQUEST_AUTO_DELAY_SECONDS`); периодическая `process_due_info_requests` остаётся резервом.
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): в `OrderResponse` поле `info_request_earliest_auto_at` (UTC), в [`build_order_response`](../backend/app/schemas/schemas.py) — расчёт `waiting_client_info_at + 24 ч`, пока `info_request` ещё не отправляли.
+
+### Изменено
+- В [`backend/static/admin.html`](../backend/static/admin.html): подсказка с датой/временем автоотправки (МСК) в статусе ожидания клиента, если запрос ещё не уходил; кнопка «Отправить запрос клиенту» по-прежнему неактивна после успешной отправки (`info_request_sent`).
+
+---
+
 ## [2026-04-08] — Сопроводительное письмо: e-mail заказчика и инженера для замечаний
 
 ### Изменено

@@ -38,6 +38,6 @@
 
 ## Письма и Celery (фрагмент)
 
-- После `check_data_completeness` при непустых `missing_params` заявка переходит в `waiting_client_info`, в `orders.waiting_client_info_at` пишется UTC; **автоотправка** `info_request` клиенту — не раньше чем через 24 ч (периодическая задача `process_due_info_requests`, Beat каждые 15 минут). Ручная отправка из админки возможна сразу; дубликат блокируется по `email_log`.
+- После `check_data_completeness` при непустых `missing_params` заявка переходит в `waiting_client_info`, в `orders.waiting_client_info_at` пишется UTC; **автоотправка** `info_request` клиенту — не раньше чем через 24 ч: отложенная задача Celery `send_info_request_email` с `countdown` 24 ч плюс резерв `process_due_info_requests` (Beat каждые 15 минут). Ручная отправка из админки возможна сразу; дубликат блокируется по `email_log`. В ответе `GET /orders/{id}` поле `info_request_earliest_auto_at` (UTC) подсказывает момент ближайшей автоотправки, пока запрос ещё не уходил.
 - Напоминание (`reminder`): не чаще одного успешного на заявку; периодика `send_reminders` (ежедневно 10:00 МСК) шлёт только если уже был успешный `info_request` и с его `sent_at` прошло ≥ 3 суток.
 - После `POST /pipeline/{id}/client-upload-done` в очередь ставится `notify_engineer_client_documents_received` — одно письмо на `admin_email` (тип `client_documents_received`, идемпотентность по логу).

@@ -1489,6 +1489,16 @@
         });
       }
 
+      if (status === 'waiting_client_info' && !infoSent && order.info_request_earliest_auto_at) {
+        const d = new Date(order.info_request_earliest_auto_at);
+        const msk = d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+        const autoLine =
+          '\u0410\u0432\u0442\u043e\u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u043a\u043b\u0438\u0435\u043d\u0442\u0443 \u043d\u0435 \u0440\u0430\u043d\u0435\u0435: '
+          + msk
+          + ' (\u041c\u0421\u041a). \u0420\u0430\u043d\u044c\u0448\u0435 \u2014 \u043a\u043d\u043e\u043f\u043a\u0430 \u00ab\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441 \u043a\u043b\u0438\u0435\u043d\u0442\u0443\u00bb.';
+        noteText = noteText ? noteText + ' ' + autoLine : autoLine;
+      }
+
       if (buttons.length === 0) {
         row.innerHTML = '<span style="color:var(--c-text-secondary); font-size:14px;">Нет доступных действий для текущего статуса</span>';
       } else {
