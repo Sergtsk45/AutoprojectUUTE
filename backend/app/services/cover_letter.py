@@ -16,12 +16,20 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from app.services.tu_schema import TUParsedData
 
 
-def generate_cover_letter(parsed: TUParsedData, order_id_short: str) -> Path:
+def generate_cover_letter(
+    parsed: TUParsedData,
+    order_id_short: str,
+    *,
+    client_email: str,
+    admin_email: str,
+) -> Path:
     """Генерирует DOCX сопроводительного письма в РСО.
 
     Args:
         parsed: Извлечённые данные из ТУ (applicant.*, rso.*, document.*, object.*).
         order_id_short: Первые 8 символов UUID заявки — используется в имени файла.
+        client_email: E-mail заказчика (из заявки на сайте).
+        admin_email: E-mail инженера (из настроек сервиса).
 
     Returns:
         Path к временному .docx файлу. Вызывающий код обязан удалить файл после отправки.
@@ -42,6 +50,9 @@ def generate_cover_letter(parsed: TUParsedData, order_id_short: str) -> Path:
     tu_number = parsed.document.tu_number or "___"
     tu_date = parsed.document.tu_date or "________"
     object_address = parsed.object.object_address or "________________________"
+
+    client_mail = (client_email or "").strip() or "________________________"
+    engineer_mail = (admin_email or "").strip() or "________________________"
 
     # ── Кому ─────────────────────────────────────────────────────────────
     to_para = doc.add_paragraph()
@@ -88,7 +99,8 @@ def generate_cover_letter(parsed: TUParsedData, order_id_short: str) -> Path:
         f"{object_address}.\n\n"
         f"Просим рассмотреть представленный проект и согласовать его "
         f"в установленные сроки в соответствии с действующим законодательством.\n\n"
-        f"По вопросам согласования просим обращаться: {contact_person}."
+        f"Замечания просим отправлять нам на адреса электронной почты "
+        f"{client_mail} (заказчик) и {engineer_mail} (инженер)."
     )
 
     body_para = doc.add_paragraph()

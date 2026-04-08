@@ -439,7 +439,12 @@ def send_completed_project(self, order_id: str):
         try:
             if order.parsed_params:
                 parsed = TUParsedData.model_validate(order.parsed_params)
-                cover_letter_path = generate_cover_letter(parsed, order_id_short)
+                cover_letter_path = generate_cover_letter(
+                    parsed,
+                    order_id_short,
+                    client_email=order.client_email,
+                    admin_email=settings.admin_email,
+                )
                 attachment_paths.append(str(cover_letter_path))
                 logger.info(
                     "send_completed_project: сопроводительное письмо создано: %s",

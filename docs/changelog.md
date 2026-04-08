@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-04-08] — Сопроводительное письмо: e-mail заказчика и инженера для замечаний
+
+### Изменено
+- В [`backend/app/services/cover_letter.py`](../backend/app/services/cover_letter.py): вместо контактного лица из ТУ в абзаце про замечания подставляются e-mail заказчика (`orders.client_email`) и e-mail инженера (`ADMIN_EMAIL` из настроек); сигнатура `generate_cover_letter(..., client_email=..., admin_email=...)`.
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `send_completed_project` передаёт эти адреса в генератор DOCX.
+
+---
+
 ## [2026-04-07] — Сопроводительное письмо в РСО при отправке проекта
 
 ### Добавлено
