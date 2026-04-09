@@ -656,6 +656,9 @@
               <progress id="adminUploadProgress" value="0" max="100" style="width:100%; height:10px;"></progress>
               <div id="adminUploadProgressLabel" style="font-size:12px; color:var(--c-text-secondary); margin-top:6px;">0%</div>
             </div>
+            <p style="margin-top:12px; font-size:12px; color:var(--c-text-secondary); line-height:1.5;">
+              Для отправки проекта клиенту: выберите категорию «Готовый проект (PDF)», выберите файл, нажмите «Загрузить», затем нажмите «Одобрить и отправить клиенту» в разделе действий.
+            </p>
           </div>
         </div>
 
@@ -1598,6 +1601,8 @@
     }
 
     async function runAction(path, method, successMsg) {
+      const actionBtns = document.querySelectorAll('[id^="action_btn_"]');
+      actionBtns.forEach(b => { b.disabled = true; });
       showOrderAlert('info', 'Выполняется…');
       try {
         await apiJSON(path, { method });
@@ -1605,6 +1610,7 @@
         setTimeout(() => loadOrder(currentOrderId), 1200);
       } catch (e) {
         showOrderAlert('error', 'Ошибка: ' + e.message);
+        actionBtns.forEach(b => { b.disabled = false; });
       }
     }
 

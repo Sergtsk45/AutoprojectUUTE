@@ -1389,6 +1389,9 @@
       $parsingCard.style.display = 'none';
       unlockSurveyCard();
       $completedCard.style.display = 'block';
+      if (orderData && orderData.order_type !== 'custom' && $greeting) {
+        $greeting.innerHTML = `<strong>${orderData.client_name}</strong>, спасибо! Документы загружены, ждите готовый проект или запрос на уточнения.`;
+      }
     }
 
     /** Путь в parsed_params → ключ поля опроса (без префикса s_). */
