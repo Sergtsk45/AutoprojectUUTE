@@ -990,6 +990,33 @@
       comments: 'Комментарии',
     };
 
+    const SURVEY_SECTIONS = [
+      {
+        title: '🏢 Объект',
+        keys: ['building_type', 'floors', 'construction_year', 'heat_supply_source'],
+      },
+      {
+        title: '⚡ Теплоснабжение',
+        keys: ['connection_type', 'system_type', 'temp_schedule', 'pressure_supply', 'pressure_return'],
+      },
+      {
+        title: '🔥 Тепловые нагрузки, Гкал/ч',
+        keys: ['heat_load_heating', 'heat_load_hw', 'heat_load_vent', 'heat_load_tech'],
+      },
+      {
+        title: '🔧 Трубопроводы',
+        keys: ['pipe_dn_supply', 'pipe_dn_return', 'has_mud_separators', 'has_filters'],
+      },
+      {
+        title: '📊 Приборы учёта',
+        keys: ['manufacturer', 'manufacturer_other', 'flow_meter_type', 'calculator_model', 'accuracy_class'],
+      },
+      {
+        title: '➕ Дополнительно',
+        keys: ['has_pressure_regulator', 'distance_to_vru', 'rso_requirements', 'comments'],
+      },
+    ];
+
     function renderSurveyData(survey) {
       const card = document.getElementById('surveyCard');
       const content = document.getElementById('surveyContent');
@@ -998,12 +1025,23 @@
         return;
       }
       card.style.display = 'block';
-      const rows = Object.entries(survey).map(([k, v]) => {
-        const label = SURVEY_LABELS[k] || k;
-        const val = typeof v === 'boolean' ? (v ? 'Да' : 'Нет') : esc(String(v ?? '—'));
-        return `<tr><td class="parsed-label-cell">${esc(label)}</td><td class="parsed-value-cell"><span class="parsed-value">${val}</span></td></tr>`;
-      }).join('');
-      content.innerHTML = `<table class="parsed-params-table"><thead><tr><th>Параметр</th><th>Значение</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+      const sections = SURVEY_SECTIONS.map(section => {
+        const rows = section.keys
+          .filter(k => survey[k] !== undefined && survey[k] !== null && survey[k] !== '')
+          .map(k => {
+            const label = SURVEY_LABELS[k] || k;
+            const v = survey[k];
+            const val = typeof v === 'boolean' ? (v ? 'Да' : 'Нет') : esc(String(v ?? '—'));
+            return parsedTableRow(label, `<td class="parsed-value-cell"><span class="parsed-value">${val}</span></td>`);
+          });
+        if (rows.length === 0) return '';
+        return parsedSectionHtml(section.title, rows);
+      }).filter(Boolean);
+
+      content.innerHTML = sections.length > 0
+        ? `<div class="parsed-details-body">${sections.join('')}</div>`
+        : '<p class="parsed-empty-msg">Опросный лист не заполнен</p>';
     }
 
     // ─────────────────────────────────────────────────────────────────────
