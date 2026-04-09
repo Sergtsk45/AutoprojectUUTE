@@ -832,8 +832,8 @@
             <label for="s_has_pressure_regulator" style="margin-bottom:0; font-weight:400;">Наличие регулятора давления</label>
           </div>
           <div class="form-row">
-            <label for="s_distance_to_vru">Расстояние до ВРУ, м <span class="optional">(необяз.)</span></label>
-            <input type="number" id="s_distance_to_vru" min="0" placeholder="метры">
+            <label for="s_distance_to_vru">Расстояние до ВРУ или щита собственных нужд ТП, м</label>
+            <input type="number" id="s_distance_to_vru" min="0" placeholder="метры" required>
           </div>
           <div class="form-row">
             <label for="s_rso_requirements">Требования РСО <span class="optional">(необяз.)</span></label>
@@ -848,6 +848,7 @@
         <div class="actions">
           <button class="btn btn-primary" id="surveySubmitBtn">Сохранить опросный лист</button>
         </div>
+        <div id="surveyError" style="display:none; margin-top:10px; padding:12px 16px; border-radius:8px; background:var(--c-error-bg); color:#991b1b; border:1px solid #fecaca; font-size:14px;"></div>
         <div id="surveyDoneBadge" class="survey-badge" style="display:none;">
           <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -1863,10 +1864,27 @@
       };
     }
 
+    const $surveyError = document.getElementById('surveyError');
+    function showSurveyError(msg) {
+      if (!$surveyError) return;
+      $surveyError.textContent = msg;
+      $surveyError.style.display = 'block';
+      $surveyError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function hideSurveyError() {
+      if ($surveyError) $surveyError.style.display = 'none';
+    }
+
     if ($surveySubmitBtn) $surveySubmitBtn.addEventListener('click', async () => {
+      hideSurveyError();
       const manufacturer = strVal('s_manufacturer');
       if (!manufacturer) {
-        showBanner('error', 'Укажите производителя прибора учёта', 8000);
+        showSurveyError('Укажите производителя прибора учёта');
+        return;
+      }
+      const distanceToVru = numVal('s_distance_to_vru');
+      if (distanceToVru === null) {
+        showSurveyError('Укажите расстояние до ВРУ или щита собственных нужд ТП');
         return;
       }
 
@@ -1892,7 +1910,7 @@
         }
         showBanner('success', 'Опросный лист сохранён. Теперь при необходимости догрузите файлы и нажмите «Всё загружено — отправить».', 12000);
       } catch (err) {
-        showBanner('error', `Ошибка: ${err.message}`, 10000);
+        showSurveyError(`Ошибка: ${err.message}`);
         $surveySubmitBtn.disabled = false;
         $surveySubmitBtn.innerHTML = 'Сохранить опросный лист';
         if ($surveyBackActions) $surveyBackActions.style.display = 'none';
