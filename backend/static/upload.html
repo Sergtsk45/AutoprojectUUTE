@@ -1151,6 +1151,7 @@
 
       if (status === 'new') {
         $surveyCard.style.display = 'none';
+        if ($submitBtn) $submitBtn.innerHTML = 'Загрузить';
         return true;
       }
       if (status === 'tu_parsing') {
