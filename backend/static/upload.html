@@ -677,15 +677,6 @@
                 </select>
               </div>
             </div>
-            <div class="form-row">
-              <label for="s_temp_schedule">Температурный график <span class="required-star">*</span></label>
-              <select id="s_temp_schedule">
-                <option value="">— Выберите —</option>
-                <option value="150/70">150/70</option>
-                <option value="130/70">130/70</option>
-                <option value="95/70">95/70</option>
-              </select>
-            </div>
             <div class="form-row-inline">
               <div class="form-row">
                 <label for="s_supply_temp">Температура подачи, °C <span class="required-star">*</span></label>
@@ -1479,7 +1470,6 @@
       'coolant.return_temp': 'return_temp',
       'coolant.supply_pressure_kgcm2': 'pressure_supply',
       'coolant.return_pressure_kgcm2': 'pressure_return',
-      'coolant.temp_schedule': 'temp_schedule',
       'connection.connection_type': 'connection_type',
       'connection.system_type': 'system_type',
       'pipeline.pipe_outer_diameter_mm': 'pipe_dn_supply',
@@ -1528,20 +1518,6 @@
       if (s.includes('нежил') || s.includes('обществен')) return 'public';
       if (s.includes('промыш')) return 'industrial';
       return null;
-    }
-
-    function normalizeTempScheduleValue(raw) {
-      const tss = String(raw || '').replace(/\s/g, '');
-      if (!tss) return null;
-      const sel = document.getElementById('s_temp_schedule');
-      if (!sel) return null;
-      let match = [...sel.options].map(o => o.value).find(v => v && tss.includes(v.replace(/\s/g, '')));
-      if (!match) {
-        if (tss.includes('150') && tss.includes('70')) match = '150/70';
-        else if (tss.includes('130') && tss.includes('70')) match = '130/70';
-        else if (tss.includes('95') && tss.includes('70')) match = '95/70';
-      }
-      return match || null;
     }
 
     function surveyFieldId(surveyKey) {
@@ -1682,7 +1658,6 @@
         if (surveyKey === 'connection_type') normalized = normalizeConnectionType(raw);
         else if (surveyKey === 'system_type') normalized = normalizeSystemType(raw);
         else if (surveyKey === 'building_type') normalized = normalizeBuildingType(raw);
-        else if (surveyKey === 'temp_schedule') normalized = normalizeTempScheduleValue(raw);
         else if (surveyKey === 'accuracy_class' && raw != null) normalized = String(raw);
 
         if (normalized != null && normalized !== '') {
@@ -1913,7 +1888,6 @@
         heat_supply_source: strVal('s_heat_supply_source') || null,
         connection_type: strVal('s_connection_type') || null,
         system_type: strVal('s_system_type') || null,
-        temp_schedule: strVal('s_temp_schedule') || null,
         supply_temp: numVal('s_supply_temp'),
         return_temp: numVal('s_return_temp'),
         pressure_supply: numVal('s_pressure_supply'),
