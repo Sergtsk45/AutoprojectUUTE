@@ -836,6 +836,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('listScreen').style.display = 'block';
       document.getElementById('orderScreen').style.display = 'none';
+      stopWaitingEmailPoll();
       refreshList();
       clearInterval(refreshTimer);
       refreshTimer = setInterval(refreshList, 30000);
@@ -897,6 +898,34 @@
     let parsingPollTimer = null;
     let parsingPollCount = 0;
     let parsingPollBusy = false;
+
+    // Waiting-for-email poll state (обновляем карточку пока авто-письмо ещё не ушло)
+    let waitingEmailPollTimer = null;
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Waiting-for-email poll helpers
+    // ─────────────────────────────────────────────────────────────────────
+    function stopWaitingEmailPoll() {
+      if (waitingEmailPollTimer !== null) {
+        clearInterval(waitingEmailPollTimer);
+        waitingEmailPollTimer = null;
+      }
+    }
+
+    function startWaitingEmailPoll() {
+      stopWaitingEmailPoll();
+      waitingEmailPollTimer = setInterval(async () => {
+        try {
+          const order = await apiJSON(`/orders/${currentOrderId}`);
+          if (order.info_request_sent || order.status !== 'waiting_client_info') {
+            stopWaitingEmailPoll();
+            renderOrder(order);
+          }
+        } catch (e) {
+          console.error('waitingEmailPoll:', e);
+        }
+      }, 30000); // каждые 30 сек
+    }
 
     // ─────────────────────────────────────────────────────────────────────
     // Parsing poll helpers
@@ -1198,6 +1227,15 @@
       // Start polling if parsing in progress
       if (order.status === 'tu_parsing') {
         startParsingPoll();
+      } else {
+        stopParsingPoll();
+      }
+
+      // Poll пока авто-письмо не ушло: обновим кнопку без ручного обновления страницы
+      if (order.status === 'waiting_client_info' && !order.info_request_sent) {
+        startWaitingEmailPoll();
+      } else {
+        stopWaitingEmailPoll();
       }
     }
 
@@ -1662,6 +1700,8 @@
     }
 
     async function sendEmail(orderId, emailType, successMsg) {
+      const actionBtns = document.querySelectorAll('[id^="action_btn_"]');
+      actionBtns.forEach(b => { b.disabled = true; });
       showOrderAlert('info', 'Отправка…');
       try {
         const resp = await apiFetch(`/emails/${orderId}/send`, {
@@ -1678,6 +1718,7 @@
         setTimeout(() => loadOrder(currentOrderId), 1200);
       } catch (e) {
         showOrderAlert('error', 'Ошибка отправки: ' + e.message);
+        actionBtns.forEach(b => { b.disabled = false; });
       }
     }
 
