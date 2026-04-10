@@ -216,7 +216,18 @@ def send_info_request_email(self, order_id: str):
     logger.info("send_info_request_email: order=%s", oid)
 
     with SyncSession() as session:
-        order = _get_order(session, oid)
+        # SELECT FOR UPDATE блокирует строку на уровне БД: если несколько воркеров
+        # стартуют одновременно, второй воркер ждёт снятия блокировки первым.
+        # После разблокировки has_successful_email уже видит запись в EmailLog
+        # от первого воркера и пропускает повторную отправку.
+        # Блокировка удерживается до session.commit() в конце функции.
+        order = session.execute(
+            select(Order)
+            .options(selectinload(Order.files), selectinload(Order.emails))
+            .where(Order.id == oid)
+            .with_for_update()
+        ).scalar_one_or_none()
+
         if order is None:
             return
 
