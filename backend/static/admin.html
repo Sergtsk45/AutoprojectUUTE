@@ -1043,8 +1043,11 @@
       connection_type: 'Схема подключения',
       system_type: 'Тип системы',
       temp_schedule: 'Температурный график',
+      supply_temp: 'Температура подачи, °C',
+      return_temp: 'Температура обратки, °C',
       pressure_supply: 'Давление подачи, кгс/см²',
       pressure_return: 'Давление обратки, кгс/см²',
+      heat_load_total: 'Нагрузка суммарная, Гкал/ч',
       heat_load_heating: 'Нагрузка отопления, Гкал/ч',
       heat_load_hw: 'Нагрузка ГВС, Гкал/ч',
       heat_load_vent: 'Нагрузка вентиляции, Гкал/ч',
@@ -1056,12 +1059,22 @@
       manufacturer: 'Производитель',
       manufacturer_other: 'Производитель (другой)',
       flow_meter_type: 'Тип расходомера',
-      calculator_model: 'Модель вычислителя',
       accuracy_class: 'Класс точности',
-      has_pressure_regulator: 'Регулятор давления',
+      meter_location: 'Место установки узла учёта',
       distance_to_vru: 'Расстояние до ВРУ или щита собственных нужд ТП, м',
       rso_requirements: 'Требования РСО',
       comments: 'Комментарии',
+    };
+
+    /** Перевод enum-значений опросника на русский для отображения инженеру. */
+    const SURVEY_VALUE_MAP = {
+      building_type: { residential: 'Жилое', public: 'Общественное', industrial: 'Промышленное' },
+      system_type: { open: 'Открытая', closed: 'Закрытая' },
+      connection_type: { dependent: 'Зависимая', independent: 'Независимая' },
+      manufacturer: { esko: 'Эско 3Э', teplokom: 'Теплоком', logika: 'Логика (СПТ)', pulsar: 'Пульсар', other: 'Другой' },
+      flow_meter_type: { ultrasonic: 'Ультразвуковой', electromagnetic: 'Электромагнитный' },
+      has_mud_separators: { yes: 'Да', no: 'Нет' },
+      has_filters: { yes: 'Да', no: 'Нет' },
     };
 
     const SURVEY_SECTIONS = [
@@ -1071,11 +1084,11 @@
       },
       {
         title: '⚡ Теплоснабжение',
-        keys: ['connection_type', 'system_type', 'temp_schedule', 'pressure_supply', 'pressure_return'],
+        keys: ['connection_type', 'system_type', 'temp_schedule', 'supply_temp', 'return_temp', 'pressure_supply', 'pressure_return'],
       },
       {
         title: '🔥 Тепловые нагрузки, Гкал/ч',
-        keys: ['heat_load_heating', 'heat_load_hw', 'heat_load_vent', 'heat_load_tech'],
+        keys: ['heat_load_total', 'heat_load_heating', 'heat_load_hw', 'heat_load_vent', 'heat_load_tech'],
       },
       {
         title: '🔧 Трубопроводы',
@@ -1083,11 +1096,11 @@
       },
       {
         title: '📊 Приборы учёта',
-        keys: ['manufacturer', 'manufacturer_other', 'flow_meter_type', 'calculator_model', 'accuracy_class'],
+        keys: ['manufacturer', 'manufacturer_other', 'flow_meter_type', 'accuracy_class', 'meter_location'],
       },
       {
         title: '➕ Дополнительно',
-        keys: ['has_pressure_regulator', 'distance_to_vru', 'rso_requirements', 'comments'],
+        keys: ['distance_to_vru', 'rso_requirements', 'comments'],
       },
     ];
 
@@ -1106,7 +1119,14 @@
           .map(k => {
             const label = SURVEY_LABELS[k] || k;
             const v = survey[k];
-            const val = typeof v === 'boolean' ? (v ? 'Да' : 'Нет') : esc(String(v ?? '—'));
+            let val;
+            if (typeof v === 'boolean') {
+              val = v ? 'Да' : 'Нет';
+            } else {
+              const strV = String(v ?? '');
+              const map = SURVEY_VALUE_MAP[k];
+              val = esc(map && map[strV] ? map[strV] : strV || '—');
+            }
             return parsedTableRow(label, `<td class="parsed-value-cell"><span class="parsed-value">${val}</span></td>`);
           });
         if (rows.length === 0) return '';

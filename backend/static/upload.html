@@ -688,6 +688,16 @@
             </div>
             <div class="form-row-inline">
               <div class="form-row">
+                <label for="s_supply_temp">Температура подачи, °C <span class="required-star">*</span></label>
+                <input type="number" id="s_supply_temp" step="0.1" min="50" max="180" placeholder="°C">
+              </div>
+              <div class="form-row">
+                <label for="s_return_temp">Температура обратки, °C <span class="required-star">*</span></label>
+                <input type="number" id="s_return_temp" step="0.1" min="30" max="100" placeholder="°C">
+              </div>
+            </div>
+            <div class="form-row-inline">
+              <div class="form-row">
                 <label for="s_pressure_supply">Давление подача, кгс/см² <span class="required-star">*</span></label>
                 <input type="number" id="s_pressure_supply" step="0.1" min="0" placeholder="0.0">
               </div>
@@ -701,6 +711,10 @@
           <!-- Группа 3 — Тепловые нагрузки -->
           <div class="survey-group">
             <div class="survey-group-title">3. Тепловые нагрузки, Гкал/ч</div>
+            <div class="form-row">
+              <label for="s_heat_load_total">Суммарная <span class="required-star">*</span></label>
+              <input type="number" id="s_heat_load_total" step="0.001" min="0" placeholder="0.000">
+            </div>
             <div class="form-row-inline">
               <div class="form-row">
                 <label for="s_heat_load_heating">Отопление <span class="required-star">*</span></label>
@@ -782,29 +796,23 @@
                 <option value="electromagnetic">Электромагнитный</option>
               </select>
             </div>
-            <div class="form-row-inline">
-              <div class="form-row">
-                <label for="s_calculator_model">Модель вычислителя <span class="optional">(необяз.)</span></label>
-                <input type="text" id="s_calculator_model" placeholder="например, СПТ961">
-              </div>
-              <div class="form-row">
-                <label for="s_accuracy_class">Класс точности <span class="required-star">*</span></label>
-                <select id="s_accuracy_class">
-                  <option value="">— Выберите —</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </select>
-              </div>
+            <div class="form-row">
+              <label for="s_accuracy_class">Класс точности <span class="required-star">*</span></label>
+              <select id="s_accuracy_class">
+                <option value="">— Выберите —</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="s_meter_location">Место установки узла учёта <span class="optional">(необяз.)</span></label>
+              <input type="text" id="s_meter_location" placeholder="на вводе, в ИТП и т.п.">
             </div>
           </div>
 
           <!-- Группа 6 — Дополнительно -->
           <div class="survey-group">
             <div class="survey-group-title">6. Дополнительно</div>
-            <div class="checkbox-row">
-              <input type="checkbox" id="s_has_pressure_regulator">
-              <label for="s_has_pressure_regulator" style="margin-bottom:0; font-weight:400;">Наличие регулятора давления</label>
-            </div>
             <div class="form-row">
               <label for="s_distance_to_vru">Расстояние до ВРУ или щита собственных нужд ТП, м <span class="required-star">*</span></label>
               <input type="number" id="s_distance_to_vru" min="0" placeholder="метры" required>
@@ -1463,9 +1471,12 @@
 
     /** Путь в parsed_params → ключ поля опроса (без префикса s_). */
     const PARAM_TO_SURVEY = {
+      'heat_loads.total_load': 'heat_load_total',
       'heat_loads.heating_load': 'heat_load_heating',
       'heat_loads.hot_water_load': 'heat_load_hw',
       'heat_loads.ventilation_load': 'heat_load_vent',
+      'coolant.supply_temp': 'supply_temp',
+      'coolant.return_temp': 'return_temp',
       'coolant.supply_pressure_kgcm2': 'pressure_supply',
       'coolant.return_pressure_kgcm2': 'pressure_return',
       'coolant.temp_schedule': 'temp_schedule',
@@ -1473,9 +1484,9 @@
       'connection.system_type': 'system_type',
       'pipeline.pipe_outer_diameter_mm': 'pipe_dn_supply',
       'metering.heat_meter_class': 'accuracy_class',
+      'metering.meter_location': 'meter_location',
       'object.object_type': 'building_type',
       'rso.rso_name': 'heat_supply_source',
-      'metering.heat_calculator_model': 'calculator_model',
     };
 
     function getNestedValue(obj, path) {
@@ -1678,15 +1689,6 @@
           if (setSurveyControlValue(fieldId, normalized)) {
             markFieldPrefilled(fieldId, 'из ТУ');
           }
-        }
-      }
-
-      const heat = parsedParams.heat_loads || {};
-      const supplyId = surveyFieldId('heat_load_heating');
-      const supplyEl = document.getElementById(supplyId);
-      if (supplyEl && !String(supplyEl.value).trim() && heat.total_load != null) {
-        if (setSurveyControlValue(supplyId, heat.total_load)) {
-          markFieldPrefilled(supplyId, 'из ТУ');
         }
       }
 
@@ -1912,8 +1914,11 @@
         connection_type: strVal('s_connection_type') || null,
         system_type: strVal('s_system_type') || null,
         temp_schedule: strVal('s_temp_schedule') || null,
+        supply_temp: numVal('s_supply_temp'),
+        return_temp: numVal('s_return_temp'),
         pressure_supply: numVal('s_pressure_supply'),
         pressure_return: numVal('s_pressure_return'),
+        heat_load_total: numVal('s_heat_load_total'),
         heat_load_heating: numVal('s_heat_load_heating'),
         heat_load_hw: numVal('s_heat_load_hw'),
         heat_load_vent: numVal('s_heat_load_vent'),
@@ -1925,9 +1930,8 @@
         manufacturer: manufacturer || null,
         manufacturer_other: manufacturer === 'other' ? strVal('s_manufacturer_other') : null,
         flow_meter_type: strVal('s_flow_meter_type') || null,
-        calculator_model: strVal('s_calculator_model') || null,
         accuracy_class: strVal('s_accuracy_class') || null,
-        has_pressure_regulator: document.getElementById('s_has_pressure_regulator').checked,
+        meter_location: strVal('s_meter_location') || null,
         distance_to_vru: numVal('s_distance_to_vru'),
         rso_requirements: strVal('s_rso_requirements') || null,
         comments: strVal('s_comments') || null,
