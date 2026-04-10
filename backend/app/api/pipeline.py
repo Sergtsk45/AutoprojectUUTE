@@ -150,15 +150,20 @@ async def approve_project(
     svc: OrderService = Depends(get_service),
     _key: str = Depends(verify_admin_key),
 ):
-    """Инженер одобрил проект — отправить клиенту."""
+    """Инженер одобрил проект — отправить клиенту.
+
+    Доступно на любом статусе, кроме new, tu_parsing и completed.
+    """
+    _APPROVE_BLOCKED = {OrderStatus.NEW, OrderStatus.TU_PARSING, OrderStatus.COMPLETED}
+
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    if order.status != OrderStatus.REVIEW:
+    if order.status in _APPROVE_BLOCKED:
         raise HTTPException(
             status_code=400,
-            detail="Проект не на этапе проверки",
+            detail=f"Одобрение недоступно в статусе «{order.status.value}»",
         )
 
     project_files = await svc.get_files_by_order(

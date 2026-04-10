@@ -1885,7 +1885,8 @@
         });
       }
 
-      if (status === 'review') {
+      const approveAllowed = !['new','tu_parsing','completed','error'].includes(status);
+      if (approveAllowed) {
         const hasProjectPdf = (order.files || []).some(
           f => f.category === 'generated_project'
         );
@@ -1899,8 +1900,9 @@
           action: () => approveProject(order.id),
         });
         if (!hasProjectPdf) {
-          noteText =
-            'Загрузите файл проекта (категория «Готовый проект»), затем нажмите «Одобрить».';
+          noteText = noteText
+            ? noteText + ' Загрузите файл проекта (категория «Готовый проект»), затем нажмите «Одобрить».'
+            : 'Загрузите файл проекта (категория «Готовый проект»), затем нажмите «Одобрить».';
         }
       }
 

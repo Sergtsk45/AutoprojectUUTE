@@ -54,19 +54,22 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     OrderStatus.TU_PARSED: [
         OrderStatus.WAITING_CLIENT_INFO,  # если данных не хватает
         OrderStatus.DATA_COMPLETE,        # если всё есть из ТУ
+        OrderStatus.COMPLETED,            # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.WAITING_CLIENT_INFO: [
         OrderStatus.CLIENT_INFO_RECEIVED,
+        OrderStatus.COMPLETED,            # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.CLIENT_INFO_RECEIVED: [
         OrderStatus.DATA_COMPLETE,        # всё получено
         OrderStatus.WAITING_CLIENT_INFO,  # нужно ещё
+        OrderStatus.COMPLETED,            # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
-    OrderStatus.DATA_COMPLETE: [OrderStatus.GENERATING_PROJECT, OrderStatus.ERROR],
-    OrderStatus.GENERATING_PROJECT: [OrderStatus.REVIEW, OrderStatus.ERROR],
+    OrderStatus.DATA_COMPLETE: [OrderStatus.GENERATING_PROJECT, OrderStatus.COMPLETED, OrderStatus.ERROR],
+    OrderStatus.GENERATING_PROJECT: [OrderStatus.REVIEW, OrderStatus.COMPLETED, OrderStatus.ERROR],
     OrderStatus.REVIEW: [OrderStatus.COMPLETED, OrderStatus.GENERATING_PROJECT, OrderStatus.ERROR],
     OrderStatus.COMPLETED: [],
     OrderStatus.ERROR: [OrderStatus.NEW],  # перезапуск заявки
