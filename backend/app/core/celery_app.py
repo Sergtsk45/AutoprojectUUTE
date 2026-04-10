@@ -18,6 +18,9 @@ celery_app.conf.update(
     # Повторные попытки при падении воркера
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    # visibility_timeout >= максимального countdown задачи (24 ч = 86400 с),
+    # иначе Redis переотдаёт неподтверждённую задачу раньше, чем она выполнится.
+    broker_transport_options={"visibility_timeout": 86400},
     # Автообнаружение задач
     task_routes={
         "app.services.tasks.*": {"queue": "default"},
