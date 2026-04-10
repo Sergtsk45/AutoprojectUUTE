@@ -377,7 +377,11 @@
       font-size: 14px;
       padding: 10px 0 4px;
     }
-
+    /* ── Comparison table (3 columns) ─────────────── */
+    .cmp-label-cell { color: var(--c-text); width: 32%; }
+    .cmp-parsed-cell { width: 34%; }
+    .cmp-survey-cell { width: 34%; }
+    .cmp-mismatch td { background: #fff8e1 !important; }
 
     /* ── Actions section ──────────────────────────── */
     .actions-row {
@@ -678,6 +682,15 @@
             Опросный лист
           </div>
           <div id="surveyContent"></div>
+        </div>
+
+        <!-- Comparison card: parsed ТУ vs опросный лист -->
+        <div class="card" id="comparisonCard" style="display:none;">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Сравнение: ТУ vs Опросный лист
+          </div>
+          <div id="comparisonContent"></div>
         </div>
 
         <!-- Actions card -->
@@ -1143,6 +1156,184 @@
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    // Comparison table: parsed ТУ vs survey
+    // ─────────────────────────────────────────────────────────────────────
+
+    /** Форматирует значение из parsed_params в <td>. */
+    function cmpParsedCell(raw, unit, fmt) {
+      if (raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '')) {
+        return '<td class="parsed-value-cell cmp-parsed-cell"><span class="parsed-null">—</span></td>';
+      }
+      const inner = fmt ? fmt(raw) : (typeof raw === 'number' ? fmtNum(raw) : esc(String(raw)));
+      return `<td class="parsed-value-cell cmp-parsed-cell"><span class="parsed-value">${inner}${unit || ''}</span></td>`;
+    }
+
+    /** Форматирует значение из survey_data в <td>. */
+    function cmpSurveyCell(key, raw) {
+      if (raw === null || raw === undefined || raw === '') {
+        return '<td class="parsed-value-cell cmp-survey-cell"><span class="parsed-null">—</span></td>';
+      }
+      const map = SURVEY_VALUE_MAP[key];
+      const strV = String(raw);
+      const display = (map && map[strV]) ? map[strV] : strV;
+      return `<td class="parsed-value-cell cmp-survey-cell"><span class="parsed-value">${esc(display)}</span></td>`;
+    }
+
+    /**
+     * Строит строку сравнительной таблицы.
+     * mismatch=true подсвечивает строку жёлтым если оба значения есть, но не равны.
+     */
+    function cmpRow(label, parsedCell, surveyCell, parsedRaw, surveyRaw) {
+      const bothExist = (parsedRaw !== null && parsedRaw !== undefined && parsedRaw !== '')
+                     && (surveyRaw !== null && surveyRaw !== undefined && surveyRaw !== '');
+      const differ = bothExist && String(parsedRaw).trim() !== String(surveyRaw).trim();
+      const cls = differ ? ' class="cmp-mismatch"' : '';
+      return `<tr${cls}><td class="parsed-label-cell cmp-label-cell">${esc(label)}</td>${parsedCell}${surveyCell}</tr>`;
+    }
+
+    /** Строит секцию сравнительной таблицы. */
+    function cmpSectionHtml(title, rows) {
+      return `
+        <div class="parsed-section">
+          <div class="parsed-section-title">${title}</div>
+          <table class="parsed-params-table">
+            <thead><tr>
+              <th style="width:32%">Поле</th>
+              <th style="width:34%">Парсинг ТУ</th>
+              <th style="width:34%">Опросный лист</th>
+            </tr></thead>
+            <tbody>${rows.join('')}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderComparisonTable(params, survey) {
+      const card = document.getElementById('comparisonCard');
+      const content = document.getElementById('comparisonContent');
+      card.style.display = 'block';
+
+      const hl   = heatLoadsFromParams(params);
+      const cool = coolantFromParams(params);
+      const pipe = pipelineFromParams(params);
+      const conn = connectionFromParams(params);
+      const met  = meteringFromParams(params);
+      const { doc, rsoName, obj, validTo } = documentBlockSources(params);
+
+      // Confidence badge
+      let header = '';
+      const confidence = params.parse_confidence;
+      if (confidence !== undefined && confidence !== null) {
+        const pct = Math.round(Number(confidence) * 100);
+        const color = pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626';
+        header = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <span style="font-size:13px;color:var(--c-text-secondary);">Уверенность парсинга:</span>
+          <span style="font-size:18px;font-weight:700;color:${color};">${pct}%</span>
+        </div>`;
+      }
+
+      // Document block (только из парсинга — survey-аналога нет)
+      const docSection = cmpSectionHtml('📄 Документ (только из ТУ)', [
+        parsedTableRow('РСО', fmtParsedValueCell(rsoName, '')),
+        parsedTableRow('Номер ТУ', fmtParsedValueCell(doc.tu_number, '')),
+        parsedTableRow('Дата ТУ', fmtParsedValueCell(doc.tu_date, '')),
+        parsedTableRow('Действует до', fmtParsedValueCell(validTo, '')),
+        parsedTableRow('Адрес объекта', fmtParsedValueCell(obj.object_address ?? doc.object_address, '')),
+      ].map(r => r.replace('<thead><tr><th>Поле</th><th>Значение</th></tr></thead>', '')));
+
+      // Для секции «Документ» используем обычную 2-колоночную таблицу
+      const docSection2col = `
+        <div class="parsed-section">
+          <div class="parsed-section-title">📄 Документ (только из ТУ)</div>
+          <table class="parsed-params-table">
+            <thead><tr><th>Поле</th><th>Значение</th></tr></thead>
+            <tbody>
+              ${parsedTableRow('РСО', fmtParsedValueCell(rsoName, ''))}
+              ${parsedTableRow('Номер ТУ', fmtParsedValueCell(doc.tu_number, ''))}
+              ${parsedTableRow('Дата ТУ', fmtParsedValueCell(doc.tu_date, ''))}
+              ${parsedTableRow('Действует до', fmtParsedValueCell(validTo, ''))}
+              ${parsedTableRow('Адрес объекта', fmtParsedValueCell(obj.object_address ?? doc.object_address, ''))}
+            </tbody>
+          </table>
+        </div>`;
+
+      // Секция «Объект» — только из опросника
+      const objSection = cmpSectionHtml('🏢 Объект (из опросного листа)', [
+        cmpRow('Тип здания',           cmpParsedCell(null), cmpSurveyCell('building_type', survey.building_type), null, survey.building_type),
+        cmpRow('Этажность',            cmpParsedCell(null), cmpSurveyCell('floors', survey.floors), null, survey.floors),
+        cmpRow('Год постройки',        cmpParsedCell(null), cmpSurveyCell('construction_year', survey.construction_year), null, survey.construction_year),
+        cmpRow('Источник теплоснабжения', cmpParsedCell(null), cmpSurveyCell('heat_supply_source', survey.heat_supply_source), null, survey.heat_supply_source),
+      ]);
+
+      // Теплоснабжение
+      const heatSection = cmpSectionHtml('⚡ Теплоснабжение', [
+        cmpRow('Схема подключения', cmpParsedCell(conn.connection_type), cmpSurveyCell('connection_type', survey.connection_type), conn.connection_type, survey.connection_type),
+        cmpRow('Тип системы',       cmpParsedCell(conn.system_type, '', fmtSystemTypeDisplay), cmpSurveyCell('system_type', survey.system_type), conn.system_type, survey.system_type),
+        cmpRow('Температура подачи, °C',   cmpParsedCell(cool.supply_temp, ' °C'), cmpSurveyCell('supply_temp', survey.supply_temp), cool.supply_temp, survey.supply_temp),
+        cmpRow('Температура обратки, °C',  cmpParsedCell(cool.return_temp, ' °C'), cmpSurveyCell('return_temp', survey.return_temp), cool.return_temp, survey.return_temp),
+        cmpRow('Давление подачи, кгс/см²', cmpParsedCell(cool.supply_pressure_kgcm2, ' кгс/см²'), cmpSurveyCell('pressure_supply', survey.pressure_supply), cool.supply_pressure_kgcm2, survey.pressure_supply),
+        cmpRow('Давление обратки, кгс/см²',cmpParsedCell(cool.return_pressure_kgcm2, ' кгс/см²'), cmpSurveyCell('pressure_return', survey.pressure_return), cool.return_pressure_kgcm2, survey.pressure_return),
+      ]);
+
+      // Нагрузки
+      const loadsSection = cmpSectionHtml('🔥 Тепловые нагрузки, Гкал/ч', [
+        cmpRow('Суммарная',   cmpParsedCell(hl.total_load, ' Гкал/ч'), cmpSurveyCell('heat_load_total', survey.heat_load_total), hl.total_load, survey.heat_load_total),
+        cmpRow('Отопление',   cmpParsedCell(hl.heating_load, ' Гкал/ч'), cmpSurveyCell('heat_load_heating', survey.heat_load_heating), hl.heating_load, survey.heat_load_heating),
+        cmpRow('ГВС',         cmpParsedCell(hl.hot_water_load, ' Гкал/ч'), cmpSurveyCell('heat_load_hw', survey.heat_load_hw), hl.hot_water_load, survey.heat_load_hw),
+        cmpRow('Вентиляция',  cmpParsedCell(hl.ventilation_load, ' Гкал/ч'), cmpSurveyCell('heat_load_vent', survey.heat_load_vent), hl.ventilation_load, survey.heat_load_vent),
+      ]);
+
+      // Трубопроводы
+      const pipeSection = cmpSectionHtml('🔧 Трубопроводы', [
+        cmpRow('Ду подачи, мм',   cmpParsedCell(pipe.pipe_outer_diameter_mm, ' мм'), cmpSurveyCell('pipe_dn_supply', survey.pipe_dn_supply), pipe.pipe_outer_diameter_mm, survey.pipe_dn_supply),
+        cmpRow('Ду обратки, мм',  cmpParsedCell(null), cmpSurveyCell('pipe_dn_return', survey.pipe_dn_return), null, survey.pipe_dn_return),
+        cmpRow('Грязевики',       cmpParsedCell(null), cmpSurveyCell('has_mud_separators', survey.has_mud_separators), null, survey.has_mud_separators),
+        cmpRow('Фильтры',         cmpParsedCell(null), cmpSurveyCell('has_filters', survey.has_filters), null, survey.has_filters),
+      ]);
+
+      // Приборы учёта
+      const metSection = cmpSectionHtml('📊 Приборы учёта', [
+        cmpRow('Производитель',     cmpParsedCell(null), cmpSurveyCell('manufacturer', survey.manufacturer), null, survey.manufacturer),
+        cmpRow('Тип расходомера',   cmpParsedCell(null), cmpSurveyCell('flow_meter_type', survey.flow_meter_type), null, survey.flow_meter_type),
+        cmpRow('Класс точности',    cmpParsedCell(met.heat_meter_class), cmpSurveyCell('accuracy_class', survey.accuracy_class), met.heat_meter_class, survey.accuracy_class),
+        cmpRow('Место установки',   cmpParsedCell(met.meter_location), cmpSurveyCell('meter_location', survey.meter_location), met.meter_location, survey.meter_location),
+      ]);
+
+      // Дополнительно
+      const extraSection = cmpSectionHtml('➕ Дополнительно (из опросного листа)', [
+        cmpRow('Расстояние до ВРУ, м', cmpParsedCell(null), cmpSurveyCell('distance_to_vru', survey.distance_to_vru), null, survey.distance_to_vru),
+        cmpRow('Требования РСО',       cmpParsedCell(null), cmpSurveyCell('rso_requirements', survey.rso_requirements), null, survey.rso_requirements),
+        cmpRow('Комментарии',          cmpParsedCell(null), cmpSurveyCell('comments', survey.comments), null, survey.comments),
+      ]);
+
+      // Warnings
+      let warningsHtml = '';
+      if (params.warnings && params.warnings.length > 0) {
+        warningsHtml = `<div class="warnings-list" style="margin-top:14px;">
+          <div style="font-size:13px;font-weight:600;color:var(--c-warn);margin-bottom:6px;">Предупреждения парсинга:</div>
+          ${params.warnings.map(w => `<div class="warning-item">${esc(w)}</div>`).join('')}
+        </div>`;
+      }
+
+      content.innerHTML = `<details open class="parsed-params-details">
+        <summary>Данные ТУ и опросного листа &#9654;</summary>
+        <div class="parsed-details-body">
+          ${header}
+          <p style="font-size:12px;color:var(--c-text-secondary);margin:0 0 10px;">
+            🟡 Жёлтым выделены строки, где значения из ТУ и опросного листа расходятся.
+          </p>
+          ${docSection2col}
+          ${objSection}
+          ${heatSection}
+          ${loadsSection}
+          ${pipeSection}
+          ${metSection}
+          ${extraSection}
+          ${warningsHtml}
+        </div>
+      </details>`;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // List screen
     // ─────────────────────────────────────────────────────────────────────
     async function refreshList() {
@@ -1281,11 +1472,20 @@
       // Files
       renderFiles(order.files || [], order.id);
 
-      // Parsed params
-      renderParsedParams(order.parsed_params, order.missing_params);
+      // Parsed params + Survey data
+      const hasParsed = !isParsedParamsEmpty(order.parsed_params);
+      const hasSurvey = order.survey_data && typeof order.survey_data === 'object' && Object.keys(order.survey_data).length > 0;
 
-      // Survey data
-      renderSurveyData(order.survey_data);
+      if (hasParsed && hasSurvey) {
+        // Показываем единую таблицу сравнения
+        document.getElementById('parsedCard').style.display = 'none';
+        document.getElementById('surveyCard').style.display = 'none';
+        renderComparisonTable(order.parsed_params, order.survey_data);
+      } else {
+        document.getElementById('comparisonCard').style.display = 'none';
+        renderParsedParams(order.parsed_params, order.missing_params);
+        renderSurveyData(order.survey_data);
+      }
 
       // Actions
       renderActions(order);
