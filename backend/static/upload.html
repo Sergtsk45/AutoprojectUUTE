@@ -882,6 +882,10 @@
           <button class="btn btn-primary" id="submitBtn" disabled>
             Всё загружено — отправить
           </button>
+          <div id="docsOptionalHint" style="display:none; margin-top:10px; padding:10px 14px; border-radius:8px; background:var(--c-warn-bg); border:1px solid #fde68a; font-size:13px; color:#92400e; line-height:1.5;">
+            Вы можете отправить заявку сейчас — инженер свяжется с вами для уточнения деталей.<br>
+            Либо дополнительно загрузите документы из списка выше для ускорения обработки.
+          </div>
         </div>
       </div>
 
@@ -976,6 +980,7 @@
       if (!$submitBtn) return;
       if (isNewOrder) {
         $submitBtn.disabled = uploadedCategories.size === 0;
+        showDocsOptionalHint(false);
         return;
       }
       const customPost =
@@ -986,23 +991,24 @@
         if (!surveySavedCustom) {
           $submitBtn.disabled = true;
           $submitBtn.title = 'Сначала сохраните опросный лист внизу страницы';
+          showDocsOptionalHint(false);
           return;
         }
+        $submitBtn.disabled = false;
         $submitBtn.title = '';
         const mp = orderData.missing_params || [];
-        if (mp.length === 0) {
-          $submitBtn.disabled = false;
-          return;
-        }
-        const allDone = mp.every(code => uploadedCategories.has(code));
-        $submitBtn.disabled = !allDone;
-        if (!allDone) {
-          $submitBtn.title = 'Загрузите все документы из списка выше';
-        }
+        const allDone = mp.length === 0 || mp.every(code => uploadedCategories.has(code));
+        showDocsOptionalHint(!allDone);
         return;
       }
       $submitBtn.title = '';
       $submitBtn.disabled = uploadedCategories.size === 0;
+      showDocsOptionalHint(false);
+    }
+
+    function showDocsOptionalHint(show) {
+      const el = document.getElementById('docsOptionalHint');
+      if (el) el.style.display = show ? 'block' : 'none';
     }
 
     function applySurveySavedVisuals(saved) {
@@ -1971,7 +1977,7 @@
         if ($surveyCard) {
           $surveyCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        showBanner('success', 'Опросный лист сохранён. Теперь при необходимости догрузите файлы и нажмите «Всё загружено — отправить».', 12000);
+        showBanner('success', 'Опросный лист сохранён. Вы можете отправить заявку сейчас или дополнительно загрузить документы из списка выше.', 12000);
       } catch (err) {
         showSurveyError(`Ошибка: ${err.message}`);
         $surveySubmitBtn.disabled = false;
