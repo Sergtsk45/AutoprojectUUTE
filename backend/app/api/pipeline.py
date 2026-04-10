@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
-from app.models import OrderStatus, FileCategory
+from app.models import OrderStatus, FileCategory, OrderType
 from app.schemas import FileResponse, PipelineResponse
 from app.services import OrderService
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
@@ -124,14 +124,19 @@ async def client_upload_done(
 
     task = process_client_response.delay(str(order_id))
 
-    # Уведомляем инженера только если клиент загрузил хотя бы один документ
-    # (не считая ТУ): BALANCE_ACT, CONNECTION_PLAN, heat_point_plan, heat_scheme.
-    # Если загружены только ТУ — инженер не получает письмо; он сам инициирует
-    # запрос с образцами документов.
+    # Уведомляем инженера о полученных документах.
+    # Экспресс: уведомляем при любых загруженных файлах.
+    # Custom: только если загружены документы из обязательного списка
+    #   (BALANCE_ACT, CONNECTION_PLAN, heat_point_plan, heat_scheme);
+    #   если загружены только ТУ — инженер не получает письмо и сам
+    #   инициирует запрос с образцами.
     all_files = await svc.get_files_by_order(order_id)
     uploaded_categories = {f.category.value for f in all_files}
-    has_documents = any(c in uploaded_categories for c in CLIENT_DOCUMENT_PARAM_CODES)
-    if has_documents:
+    if order.order_type == OrderType.EXPRESS:
+        should_notify = len(uploaded_categories) > 0
+    else:
+        should_notify = any(c in uploaded_categories for c in CLIENT_DOCUMENT_PARAM_CODES)
+    if should_notify:
         notify_engineer_client_documents_received.delay(str(order_id))
 
     return PipelineResponse(

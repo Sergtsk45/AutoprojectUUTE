@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.models import FileCategory, OrderStatus, OrderType
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
-from app.services.tasks import start_tu_parsing
+from app.services.tasks import start_tu_parsing, notify_engineer_client_documents_received
 from app.schemas import FileResponse, OrderCreate, PipelineResponse, UploadPageInfo
 
 router = APIRouter(prefix="/landing", tags=["landing"])
@@ -265,6 +265,10 @@ async def client_submit_new_order(
         )
 
     task = start_tu_parsing.delay(str(order_id))
+
+    # Для экспресс-заявок уведомляем инженера при каждой отправке документов клиентом
+    if order.order_type == OrderType.EXPRESS:
+        notify_engineer_client_documents_received.delay(str(order_id))
 
     return PipelineResponse(
         message="Обработка запущена",
