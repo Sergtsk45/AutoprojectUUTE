@@ -96,7 +96,7 @@ async def create_order_from_landing(
     Создаёт заявку в БД, уведомляет инженера, возвращает ссылку на upload-страницу.
     """
     from app.core.config import settings
-    from app.services.email_service import send_new_order_notification, send_survey_reminder
+    from app.services.email_service import send_new_order_notification
     from app.services.tasks import SyncSession, _get_order
 
     svc = OrderService(db)
@@ -121,8 +121,6 @@ async def create_order_from_landing(
                     price=data.price,
                     order_type=data.order_type,
                 )
-                if data.order_type == "custom":
-                    send_survey_reminder(sync_session, sync_order)
     except Exception:
         pass  # Не ломаем создание заявки из-за проблем с email
 
