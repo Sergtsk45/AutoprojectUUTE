@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.models import OrderStatus, FileCategory
 from app.schemas import FileResponse, PipelineResponse
 from app.services import OrderService
+from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services.tasks import (
     start_tu_parsing,
     process_client_response,
@@ -122,7 +123,16 @@ async def client_upload_done(
     await db.commit()
 
     task = process_client_response.delay(str(order_id))
-    notify_engineer_client_documents_received.delay(str(order_id))
+
+    # Уведомляем инженера только если клиент загрузил хотя бы один документ
+    # (не считая ТУ): BALANCE_ACT, CONNECTION_PLAN, heat_point_plan, heat_scheme.
+    # Если загружены только ТУ — инженер не получает письмо; он сам инициирует
+    # запрос с образцами документов.
+    all_files = await svc.get_files_by_order(order_id)
+    uploaded_categories = {f.category.value for f in all_files}
+    has_documents = any(c in uploaded_categories for c in CLIENT_DOCUMENT_PARAM_CODES)
+    if has_documents:
+        notify_engineer_client_documents_received.delay(str(order_id))
 
     return PipelineResponse(
         message="Файлы приняты, идёт проверка",
