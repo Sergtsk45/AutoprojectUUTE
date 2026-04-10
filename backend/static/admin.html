@@ -1149,7 +1149,7 @@
       const sectionsHtml = sections.length > 0
         ? sections.join('')
         : '<p class="parsed-empty-msg">Опросный лист не заполнен</p>';
-      content.innerHTML = `<details open class="parsed-params-details">
+      content.innerHTML = `<details class="parsed-params-details">
         <summary>Данные опросного листа &#9654;</summary>
         <div class="parsed-details-body">${sectionsHtml}</div>
       </details>`;
@@ -1314,7 +1314,7 @@
         </div>`;
       }
 
-      content.innerHTML = `<details open class="parsed-params-details">
+      content.innerHTML = `<details class="parsed-params-details">
         <summary>Данные ТУ и опросного листа &#9654;</summary>
         <div class="parsed-details-body">
           ${header}
