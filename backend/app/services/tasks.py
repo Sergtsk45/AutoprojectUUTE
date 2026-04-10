@@ -325,11 +325,8 @@ def process_due_info_requests():
 
 @celery_app.task
 def notify_engineer_client_documents_received(order_id: str):
-    """Один раз уведомляет инженера после «Готово» на странице загрузки клиентом."""
-    from app.services.email_service import (
-        has_successful_email,
-        send_client_documents_received_notification,
-    )
+    """Уведомляет инженера каждый раз, когда клиент отправляет документы."""
+    from app.services.email_service import send_client_documents_received_notification
 
     oid = uuid.UUID(order_id)
     logger.info("notify_engineer_client_documents_received: order=%s", oid)
@@ -337,12 +334,6 @@ def notify_engineer_client_documents_received(order_id: str):
     with SyncSession() as session:
         order = _get_order(session, oid)
         if order is None:
-            return
-        if has_successful_email(session, oid, EmailType.CLIENT_DOCUMENTS_RECEIVED):
-            logger.info(
-                "notify_engineer_client_documents_received: пропуск order=%s — уже уведомляли",
-                oid,
-            )
             return
         send_client_documents_received_notification(session, order)
 
