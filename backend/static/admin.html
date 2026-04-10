@@ -921,9 +921,9 @@
       waitingEmailPollTimer = setInterval(async () => {
         try {
           const order = await apiJSON(`/orders/${currentOrderId}`);
-          if (order.info_request_sent || order.status !== 'waiting_client_info') {
+          renderOrder(order);
+          if (order.status !== 'waiting_client_info') {
             stopWaitingEmailPoll();
-            renderOrder(order);
           }
         } catch (e) {
           console.error('waitingEmailPoll:', e);
@@ -1300,8 +1300,8 @@
         stopParsingPoll();
       }
 
-      // Poll пока авто-письмо не ушло: обновим кнопку без ручного обновления страницы
-      if (order.status === 'waiting_client_info' && !order.info_request_sent) {
+      // Poll пока заявка ждёт ответа клиента: обновляем карточку при смене статуса или файлов
+      if (order.status === 'waiting_client_info') {
         startWaitingEmailPoll();
       } else {
         stopWaitingEmailPoll();
@@ -1332,8 +1332,8 @@
 
       const catLabels = {
         tu: 'Технические условия',
-        balance_act: 'Акт разграничения балансовой принадлежности',
-        connection_plan: 'План подключения потребителя к тепловой сети',
+        BALANCE_ACT: 'Акт разграничения балансовой принадлежности',
+        CONNECTION_PLAN: 'План подключения потребителя к тепловой сети',
         heat_point_plan: 'План теплового пункта (УУТЭ, ШУ)',
         heat_scheme: 'Принципиальная схема теплового пункта с УУТЭ',
         generated_excel: 'Excel (расчёты)',
