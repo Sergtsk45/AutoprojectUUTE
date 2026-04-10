@@ -411,6 +411,10 @@
       outline: none;
       border-color: var(--c-primary);
     }
+    .field-invalid {
+      border-color: #ef4444 !important;
+      background: #fff5f5 !important;
+    }
     .form-row select {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
@@ -1923,16 +1927,54 @@
       if ($surveyError) $surveyError.style.display = 'none';
     }
 
+    /** Обязательные поля опросного листа: [id, тип проверки] */
+    const SURVEY_REQUIRED_FIELDS = [
+      ['s_building_type',       'str'],
+      ['s_heat_supply_source',  'str'],
+      ['s_connection_type',     'str'],
+      ['s_system_type',         'str'],
+      ['s_supply_temp',         'num'],
+      ['s_return_temp',         'num'],
+      ['s_pressure_supply',     'num'],
+      ['s_pressure_return',     'num'],
+      ['s_heat_load_total',     'num'],
+      ['s_heat_load_heating',   'num'],
+      ['s_pipe_dn_supply',      'num'],
+      ['s_pipe_dn_return',      'num'],
+      ['s_has_mud_separators',  'str'],
+      ['s_has_filters',         'str'],
+      ['s_manufacturer',        'str'],
+      ['s_flow_meter_type',     'str'],
+      ['s_distance_to_vru',     'num'],
+    ];
+
+    function validateSurveyFields() {
+      let firstInvalid = null;
+      let hasErrors = false;
+      for (const [id, type] of SURVEY_REQUIRED_FIELDS) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const empty = type === 'num'
+          ? (numVal(id) === null)
+          : (strVal(id) === '' || strVal(id) === null);
+        if (empty) {
+          el.classList.add('field-invalid');
+          if (!firstInvalid) firstInvalid = el;
+          hasErrors = true;
+        } else {
+          el.classList.remove('field-invalid');
+        }
+      }
+      return { hasErrors, firstInvalid };
+    }
+
     if ($surveySubmitBtn) $surveySubmitBtn.addEventListener('click', async () => {
       hideSurveyError();
-      const manufacturer = strVal('s_manufacturer');
-      if (!manufacturer) {
-        showSurveyError('Укажите производителя прибора учёта');
-        return;
-      }
-      const distanceToVru = numVal('s_distance_to_vru');
-      if (distanceToVru === null) {
-        showSurveyError('Укажите расстояние до ВРУ или щита собственных нужд ТП');
+
+      const { hasErrors, firstInvalid } = validateSurveyFields();
+      if (hasErrors) {
+        showSurveyError('Заполните все обязательные поля');
+        if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
@@ -1963,6 +2005,12 @@
         $surveySubmitBtn.innerHTML = 'Сохранить опросный лист';
         if ($surveyBackActions) $surveyBackActions.style.display = 'none';
       }
+    });
+
+    // Снимаем подсветку ошибки при изменении поля
+    SURVEY_REQUIRED_FIELDS.forEach(([id]) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => el.classList.remove('field-invalid'));
     });
 
     // ── Start ───────────────────────────────────────────────────────────
