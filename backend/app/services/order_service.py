@@ -32,6 +32,7 @@ class OrderService:
             client_phone=data.client_phone,
             client_organization=data.client_organization,
             object_address=data.object_address,
+            object_city=data.object_city,
             status=OrderStatus.NEW,
             order_type=OrderType(data.order_type) if data.order_type else OrderType.EXPRESS,
         )

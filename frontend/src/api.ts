@@ -6,6 +6,7 @@ export interface OrderRequest {
   client_phone?: string;
   client_organization?: string;
   object_address?: string;
+  object_city: string;
   circuits?: number;
   price?: number;
   order_type?: string;

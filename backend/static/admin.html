@@ -572,6 +572,7 @@
                   <th>Клиент</th>
                   <th>Email</th>
                   <th>Объект</th>
+                  <th>Город</th>
                   <th>Статус</th>
                   <th>Тип заявки</th>
                   <th>Дата</th>
@@ -1258,6 +1259,7 @@
 
       // Секция «Объект» — только из опросника
       const objSection = cmpSectionHtml('🏢 Объект (из опросного листа)', [
+        cmpRow('Город',           cmpParsedCell(obj.city), cmpSurveyCell('city', survey.city), obj.city, survey.city),
         cmpRow('Тип здания',           cmpParsedCell(null), cmpSurveyCell('building_type', survey.building_type), null, survey.building_type),
         cmpRow('Этажность',            cmpParsedCell(null), cmpSurveyCell('floors', survey.floors), null, survey.floors),
         cmpRow('Год постройки',        cmpParsedCell(null), cmpSurveyCell('construction_year', survey.construction_year), null, survey.construction_year),
@@ -1406,6 +1408,7 @@
           <td class="td-name">${esc(o.client_name)}</td>
           <td>${esc(o.client_email)}</td>
           <td>${esc(o.object_address || '—')}</td>
+          <td>${esc(o.object_city || '—')}</td>
           <td>${statusBadge(o.status)}</td>
           <td>${orderTypeBadge(o.order_type)}</td>
           <td class="td-date">${formatDate(o.created_at)}</td>
@@ -1450,6 +1453,7 @@
         ['Телефон', order.client_phone || '—'],
         ['Организация', order.client_organization || '—'],
         ['Адрес объекта', order.object_address || '—'],
+        ['Город объекта', order.object_city || '—'],
         ['Дата создания', formatDateFull(order.created_at)],
         ['Обновлена', formatDateFull(order.updated_at)],
         ['Повторных запросов', order.retry_count],

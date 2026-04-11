@@ -19,6 +19,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -40,6 +41,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
           client_email: email,
           client_phone: phone || undefined,
           object_address: address || undefined,
+          object_city: city,
           circuits: orderDefaults?.circuits,
           price: orderDefaults?.price,
           order_type: orderType ?? 'express',
@@ -67,6 +69,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
     setCompany('');
     setPhone('');
     setAddress('');
+    setCity('');
     setIsSubmitted(false);
     setError('');
     setRedirectUrl('');
@@ -89,6 +92,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
   const showPhoneField = purpose === 'order' || purpose === 'partnership';
   const showCompanyField = purpose === 'partnership';
   const showAddressField = purpose === 'order';
+  const showCityField = purpose === 'order';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -185,6 +189,23 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="г. Москва, ул. Строителей, д. 5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E53935]"
+                  />
+                </div>
+              )}
+
+              {showCityField && (
+                <div className="mb-4">
+                  <label htmlFor="modal-city" className="block text-sm font-medium text-gray-700 mb-1">
+                    Город объекта *
+                  </label>
+                  <input
+                    type="text"
+                    id="modal-city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="Москва"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#E53935]"
+                    required
                   />
                 </div>
               )}

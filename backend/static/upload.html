@@ -671,6 +671,10 @@
               <label for="s_heat_supply_source">Источник теплоснабжения <span class="required-star">*</span></label>
               <input type="text" id="s_heat_supply_source" placeholder="котельная, ТЭЦ, ИТП и т.п.">
             </div>
+            <div class="form-row">
+              <label for="s_city">Город объекта <span class="required-star">*</span></label>
+              <input type="text" id="s_city" placeholder="Москва">
+            </div>
           </div>
 
           <!-- Группа 2 — Теплоснабжение -->
@@ -1513,6 +1517,7 @@
       'metering.meter_location': 'meter_location',
       'object.object_type': 'building_type',
       'rso.rso_name': 'heat_supply_source',
+      'object.city': 'city',
     };
 
     function getNestedValue(obj, path) {
@@ -1922,6 +1927,7 @@
         floors: numVal('s_floors'),
         construction_year: numVal('s_construction_year'),
         heat_supply_source: strVal('s_heat_supply_source') || null,
+        city: strVal('s_city') || null,
         connection_type: strVal('s_connection_type') || null,
         system_type: strVal('s_system_type') || null,
         supply_temp: numVal('s_supply_temp'),
@@ -1963,6 +1969,7 @@
     const SURVEY_REQUIRED_FIELDS = [
       ['s_building_type',       'str'],
       ['s_heat_supply_source',  'str'],
+      ['s_city',                'str'],
       ['s_connection_type',     'str'],
       ['s_system_type',         'str'],
       ['s_supply_temp',         'num'],

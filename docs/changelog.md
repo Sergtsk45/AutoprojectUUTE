@@ -30,6 +30,7 @@
 - В [`docs/templates/client-survey-excel/uute_client_survey_sheet2_mapping.csv`](templates/client-survey-excel/uute_client_survey_sheet2_mapping.csv): технический CSV-лист соответствия между кодами полей, `survey_data` и `parsed_params`.
 - В [`docs/templates/client-survey-excel/README.md`](templates/client-survey-excel/README.md): описание структуры шаблона и порядка переноса двух CSV в единый `.xlsx`.
 
+
 ## [2026-04-11] — Custom: заполненные поля опросного листа только для чтения при повторном открытии
 
 ### Изменено

@@ -43,6 +43,7 @@ class OrderRequest(BaseModel):
     client_phone: str | None = Field(None, max_length=50)
     client_organization: str | None = Field(None, max_length=255)
     object_address: str | None = None
+    object_city: str = Field(..., min_length=2, max_length=255)
     circuits: int | None = Field(None, ge=1, le=10)
     price: int | None = None
     order_type: str = Field("express", pattern="^(express|custom)$")
@@ -106,6 +107,7 @@ async def create_order_from_landing(
         client_phone=data.client_phone,
         client_organization=data.client_organization,
         object_address=data.object_address,
+        object_city=data.object_city,
         order_type=data.order_type,
     )
     order = await svc.create_order(order_data)
