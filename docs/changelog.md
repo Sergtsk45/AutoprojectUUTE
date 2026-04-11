@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-11] — Поле «Город объекта»
+
+### Добавлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): колонка `object_city TEXT` в таблице `orders`
+- В [`backend/alembic/versions/`](../backend/alembic/versions/): миграция `20260411_uute_add_object_city`
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): обязательное поле `object_city` в `OrderRequest`
+- В [`frontend/src/components/EmailModal.tsx`](../frontend/src/components/EmailModal.tsx): поле «Город объекта *» в форме заказа
+- В [`backend/static/upload.html`](../backend/static/upload.html): поле «Город объекта *» в опросном листе (группа «1. Объект»), предзаполнение из `parsed_params.object.city`
+- В [`backend/static/admin.html`](../backend/static/admin.html): столбец «Город» в списке заявок, строка в карточке, строка в сравнительной таблице
+
+### Изменено
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): поле `object_city` в `OrderCreate`, `OrderResponse`, `OrderListItem`
+- В [`backend/app/services/order_service.py`](../backend/app/services/order_service.py): передача `object_city` при создании заявки
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): автозаполнение `order.object_city` из `parsed.object.city` после парсинга ТУ
+
 ## [2026-04-11] — Custom: заполненные поля опросного листа только для чтения при повторном открытии
 
 ### Изменено
