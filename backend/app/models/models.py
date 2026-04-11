@@ -152,6 +152,9 @@ class Order(Base):
     # Адрес объекта
     object_address = Column(Text, nullable=True)
 
+    # Город объекта
+    object_city = Column(Text, nullable=True)
+
     # Извлечённые параметры из ТУ (JSON)
     # Пример: {"heat_load_gvs": 0.15, "heat_load_ot": 0.45, "t_supply": 150, ...}
     parsed_params = Column(JSONB, nullable=True, default=dict)
