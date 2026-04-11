@@ -1,4 +1,5 @@
 import React from 'react';
+import { SITE_CONTACT, SITE_REQUISITES } from '../constants/siteLegal';
 
 const Footer: React.FC = () => {
   return (
@@ -19,18 +20,18 @@ const Footer: React.FC = () => {
             <h3 className="text-xl font-bold mb-4">Контакты</h3>
             <ul className="space-y-2 text-gray-300">
               <li>
-                <strong className="font-medium">Адрес:</strong> 675000, г. Благовещенск, ул. Партизанская д.43/2 стр. 2
+                <strong className="font-medium">Адрес:</strong> {SITE_CONTACT.address}
               </li>
               <li>
                 <strong className="font-medium">Телефон:</strong>{' '}
-                <a href="tel:+74162660106" className="hover:text-[#E53935] transition-colors">
-                  (4162) 66-01-06
+                <a href={`tel:${SITE_CONTACT.phoneTel}`} className="hover:text-[#E53935] transition-colors">
+                  {SITE_CONTACT.phoneDisplay}
                 </a>
               </li>
               <li>
                 <strong className="font-medium">Email:</strong>{' '}
-                <a href="mailto:noreplay@tsk28.ru" className="hover:text-[#E53935] transition-colors">
-                  noreplay@tsk28.ru
+                <a href={`mailto:${SITE_CONTACT.email}`} className="hover:text-[#E53935] transition-colors">
+                  {SITE_CONTACT.email}
                 </a>
               </li>
             </ul>
@@ -39,13 +40,13 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-xl font-bold mb-4">Реквизиты</h3>
             <ul className="space-y-2 text-gray-300">
-              <li><strong className="font-medium">ООО «Теплосервис-Комплект»</strong></li>
-              <li>ИНН: 2801131520 / КПП: 280101001</li>
-              <li>ОГРН: 1082801003944</li>
-              <li>Р/с: 40702810803000008544</li>
-              <li>К/с: 30101810600000000608</li>
-              <li>БИК: 040813608</li>
-              <li>ДАЛЬНЕВОСТОЧНЫЙ БАНК ПАО СБЕРБАНК РОССИИ Г. ХАБАРОВСК</li>
+              <li><strong className="font-medium">{SITE_REQUISITES.legalName}</strong></li>
+              <li>{SITE_REQUISITES.innKpp}</li>
+              <li>{SITE_REQUISITES.ogrn}</li>
+              <li>{SITE_REQUISITES.rs}</li>
+              <li>{SITE_REQUISITES.ks}</li>
+              <li>{SITE_REQUISITES.bik}</li>
+              <li>{SITE_REQUISITES.bank}</li>
             </ul>
           </div>
         </div>

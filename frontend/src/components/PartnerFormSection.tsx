@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SITE_CONTACT } from '../constants/siteLegal';
 import EmailModal from './EmailModal';
 
 const PartnerFormSection: React.FC = () => {
@@ -53,25 +54,25 @@ const PartnerFormSection: React.FC = () => {
               <div className="space-y-6">
                 <div>
                   <p className="text-gray-700 font-medium">Email:</p>
-                  <a href="mailto:info@uute-project.ru" className="text-[#E53935] hover:underline">
-                    info@uute-project.ru
+                  <a href={`mailto:${SITE_CONTACT.email}`} className="text-[#E53935] hover:underline">
+                    {SITE_CONTACT.email}
                   </a>
                 </div>
-                
+
                 <div>
                   <p className="text-gray-700 font-medium">Телефон:</p>
-                  <a href="tel:+78001234567" className="text-[#E53935] hover:underline">
-                    +7 (800) 123-45-67
+                  <a href={`tel:${SITE_CONTACT.phoneTel}`} className="text-[#E53935] hover:underline">
+                    {SITE_CONTACT.phoneDisplay}
                   </a>
                 </div>
-                
+
                 <div>
                   <p className="text-gray-700 font-medium">Адрес:</p>
                   <address className="text-gray-600 not-italic">
-                    123456, г. Москва, ул. Примерная, д. 10, офис 100
+                    {SITE_CONTACT.address}
                   </address>
                 </div>
-                
+
                 <div>
                   <p className="text-gray-700 font-medium">Время работы:</p>
                   <p className="text-gray-600">

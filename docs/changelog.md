@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-04-11] — Лэндинг: реквизиты только в подвале
+
+### Изменено
+- В [`frontend/src/components/PartnerFormSection.tsx`](../frontend/src/components/PartnerFormSection.tsx): из блока «Свяжитесь с нами» убран подзаголовок «Реквизиты»; ИНН, счета и банк остаются только в подвале.
+
+## [2026-04-11] — Лэндинг: единые контакты и реквизиты в подвале и в «Свяжитесь с нами»
+
+### Изменено
+- В [`frontend/src/components/PartnerFormSection.tsx`](../frontend/src/components/PartnerFormSection.tsx): блок «Свяжитесь с нами» использует те же адрес, телефон и email, что и подвал (ранее были заглушки).
+- В [`frontend/src/components/Footer.tsx`](../frontend/src/components/Footer.tsx): контакты и реквизиты берутся из общего модуля.
+
+### Добавлено
+- [`frontend/src/constants/siteLegal.ts`](../frontend/src/constants/siteLegal.ts): `SITE_CONTACT`, `SITE_REQUISITES` — единый источник для лэндинга.
+
 ## [2026-04-11] — Исправлено: PDF с лендинга в production открывался как повреждённый
 
 ### Исправлено
