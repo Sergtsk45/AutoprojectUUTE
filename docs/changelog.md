@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-11] — Скачивание опросного листа (PDF) с лендинга
+
+### Добавлено
+- Статический файл [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf): копия [`docs/opros_list_form.pdf`](opros_list_form.pdf) для раздачи Vite/production.
+
+### Изменено
+- В [`frontend/src/components/ProcessSection.tsx`](../frontend/src/components/ProcessSection.tsx): ссылки «Скачать опросный лист» (шаг 1 и блок под `#questionnaire`) ведут на `/downloads/opros_list_form.pdf` с атрибутом `download`.
+
+## [2026-04-11] — Excel-совместимый шаблон опросного листа для клиента
+
+### Добавлено
+- В [`docs/templates/client-survey-excel/uute_client_survey_sheet1.csv`](templates/client-survey-excel/uute_client_survey_sheet1.csv): основной CSV-лист для отправки клиенту с полями из текущего парсинга ТУ и действующего опросного листа.
+- В [`docs/templates/client-survey-excel/uute_client_survey_sheet2_mapping.csv`](templates/client-survey-excel/uute_client_survey_sheet2_mapping.csv): технический CSV-лист соответствия между кодами полей, `survey_data` и `parsed_params`.
+- В [`docs/templates/client-survey-excel/README.md`](templates/client-survey-excel/README.md): описание структуры шаблона и порядка переноса двух CSV в единый `.xlsx`.
+
 ## [2026-04-11] — Custom: заполненные поля опросного листа только для чтения при повторном открытии
 
 ### Изменено

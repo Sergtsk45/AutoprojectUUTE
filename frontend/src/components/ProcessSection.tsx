@@ -1,15 +1,31 @@
 import React from 'react';
 import { FileText, Clock3, FileCheck } from 'lucide-react';
 
+/** Источник: `docs/opros_list_form.pdf`; копия в `frontend/public/downloads/` для прод-сборки. */
+const SURVEY_FORM_PDF_HREF = '/downloads/opros_list_form.pdf';
+const SURVEY_FORM_PDF_DOWNLOAD_AS = 'opros_list_form.pdf';
+
+type StepAction = {
+  text: string;
+  link: string;
+  download?: string;
+};
+
 const ProcessSection: React.FC = () => {
-  const steps = [
+  const steps: Array<{
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    action: StepAction;
+  }> = [
     {
       icon: <FileText size={48} className="text-[#E53935]" />,
       title: 'Шаг 1',
       description: 'Скачайте опросный лист и загрузите ТУ',
       action: {
         text: 'Скачать опросный лист',
-        link: '#questionnaire'
+        link: SURVEY_FORM_PDF_HREF,
+        download: SURVEY_FORM_PDF_DOWNLOAD_AS,
       }
     },
     {
@@ -66,7 +82,8 @@ const ProcessSection: React.FC = () => {
               </p>
               
               <a 
-                href={step.action.link} 
+                href={step.action.link}
+                {...(step.action.download ? { download: step.action.download } : {})}
                 className="inline-block text-[#E53935] font-medium hover:text-red-700 transition-colors"
               >
                 {step.action.text}
@@ -87,8 +104,8 @@ const ProcessSection: React.FC = () => {
               </p>
               
               <a 
-                href="#" 
-                download
+                href={SURVEY_FORM_PDF_HREF}
+                download={SURVEY_FORM_PDF_DOWNLOAD_AS}
                 className="inline-block bg-[#E53935] hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
               >
                 Скачать опросный лист
