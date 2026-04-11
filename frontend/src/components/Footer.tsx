@@ -19,33 +19,33 @@ const Footer: React.FC = () => {
             <h3 className="text-xl font-bold mb-4">Контакты</h3>
             <ul className="space-y-2 text-gray-300">
               <li>
-                <strong className="font-medium">Адрес:</strong> 123456, г. Москва, ул. Примерная, д. 10, офис 100
+                <strong className="font-medium">Адрес:</strong> 675000, г. Благовещенск, ул. Партизанская д.43/2 стр. 2
               </li>
               <li>
                 <strong className="font-medium">Телефон:</strong>{' '}
-                <a href="tel:+78001234567" className="hover:text-[#E53935] transition-colors">
-                  +7 (800) 123-45-67
+                <a href="tel:+74162660106" className="hover:text-[#E53935] transition-colors">
+                  (4162) 66-01-06
                 </a>
               </li>
               <li>
                 <strong className="font-medium">Email:</strong>{' '}
-                <a href="mailto:info@uute-project.ru" className="hover:text-[#E53935] transition-colors">
-                  info@uute-project.ru
+                <a href="mailto:noreplay@tsk28.ru" className="hover:text-[#E53935] transition-colors">
+                  noreplay@tsk28.ru
                 </a>
               </li>
             </ul>
           </div>
-          
+
           <div>
             <h3 className="text-xl font-bold mb-4">Реквизиты</h3>
             <ul className="space-y-2 text-gray-300">
-              <li><strong className="font-medium">ООО "УУТЭ Проект"</strong></li>
-              <li>ИНН: 1234567890</li>
-              <li>КПП: 123456789</li>
-              <li>ОГРН: 1234567890123</li>
-              <li>Р/с: 40702810123456789012</li>
-              <li>Банк: АО "Примерный Банк"</li>
-              <li>БИК: 044525123</li>
+              <li><strong className="font-medium">ООО «Теплосервис-Комплект»</strong></li>
+              <li>ИНН: 2801131520 / КПП: 280101001</li>
+              <li>ОГРН: 1082801003944</li>
+              <li>Р/с: 40702810803000008544</li>
+              <li>К/с: 30101810600000000608</li>
+              <li>БИК: 040813608</li>
+              <li>ДАЛЬНЕВОСТОЧНЫЙ БАНК ПАО СБЕРБАНК РОССИИ Г. ХАБАРОВСК</li>
             </ul>
           </div>
         </div>
