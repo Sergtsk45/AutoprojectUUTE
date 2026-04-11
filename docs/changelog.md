@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-12] — Настроечная БД вычислителя (мультиприборность)
+
+### Добавлено
+- В [`backend/calculator_templates/`](../backend/calculator_templates/): JSON-шаблоны настроечных параметров для ТВ7 (29 параметров, `has_dual_db: true`), СПТ-941.20 (25 параметров), ЭСКО-Терра М (22 параметра); каждый параметр содержит `source` (auto/default/engineer/client), `auto_rule` и метаданные для UI
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): модель `CalculatorConfig` с полями `calculator_type`, `config_data` (JSONB), `status`, `total_params`, `filled_params`, `missing_required`, `client_requested_params`; relationship в `Order`
+- В [`backend/alembic/versions/20260412_uute_add_calculator_configs.py`](../backend/alembic/versions/20260412_uute_add_calculator_configs.py): миграция создания таблицы `calculator_configs`
+- В [`backend/app/services/calculator_config_service.py`](../backend/app/services/calculator_config_service.py): сервис автозаполнения — маппинг `manufacturer→calculator_type`, 8 авто-правил (расчёт Gдог, вывод SI/FT/HT, маппинг давлений и температур из ТУ), функции `init_config`, `update_params`, `export_pdf` (PyMuPDF)
+- В [`backend/app/api/calculator_config.py`](../backend/app/api/calculator_config.py): CRUD-эндпоинты `GET/POST(init)/PATCH/POST(export-pdf)` для `/api/v1/admin/orders/{order_id}/calc-config`
+- В [`backend/app/main.py`](../backend/app/main.py): подключён `calculator_config_router`
+- В [`backend/static/admin.html`](../backend/static/admin.html): сворачиваемая карточка `calcConfigCard` с прогресс-баром заполненности, легендой цветов источников, таблицами параметров по группам, inline-редактированием (инженер/клиент), кнопками «Инициализировать», «Сохранить», «Экспорт PDF»; блок показывается только для `custom`-заказов
+
 ## [2026-04-11] — Лэндинг: реквизиты только в подвале
 
 ### Изменено

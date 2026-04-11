@@ -1,0 +1,321 @@
+{
+  "calculator_id": "esko_terra",
+  "calculator_name": "ЭСКО-Терра М (ЭСКО 3Э)",
+  "re_version": "ЭСКО-Терра М РЭ",
+  "has_dual_db": false,
+  "groups": [
+    {
+      "id": "system",
+      "name": "Общие параметры",
+      "params": [
+        {
+          "id": "EI",
+          "label": "ЕИ",
+          "description": "Единицы измерений тепловой энергии",
+          "type": "select",
+          "options": [
+            {"value": "0", "text": "Гкал"},
+            {"value": "1", "text": "МДж"},
+            {"value": "2", "text": "кВт·ч"},
+            {"value": "3", "text": "ГДж"}
+          ],
+          "default": "0",
+          "source": "default"
+        },
+        {
+          "id": "PI",
+          "label": "ПИ",
+          "description": "Период интеграции (мин)",
+          "type": "select",
+          "options": [
+            {"value": "60", "text": "60 мин"},
+            {"value": "30", "text": "30 мин"},
+            {"value": "20", "text": "20 мин"}
+          ],
+          "default": "60",
+          "source": "default"
+        },
+        {
+          "id": "MA",
+          "label": "МА",
+          "description": "Количество магистралей",
+          "type": "select",
+          "options": [
+            {"value": "1", "text": "1"},
+            {"value": "2", "text": "2"},
+            {"value": "3", "text": "3"},
+            {"value": "4", "text": "4"}
+          ],
+          "default": "1",
+          "source": "engineer"
+        },
+        {
+          "id": "TS",
+          "label": "ТС",
+          "description": "Тип теплоносителя",
+          "type": "select",
+          "options": [
+            {"value": "0", "text": "Вода"},
+            {"value": "1", "text": "Пар"}
+          ],
+          "default": "0",
+          "source": "default"
+        },
+        {
+          "id": "tHW",
+          "label": "tхв",
+          "description": "Температура холодной воды (°C)",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "step": 0.1,
+          "default": "5",
+          "source": "client",
+          "auto_rule": "map_survey_tcw"
+        },
+        {
+          "id": "PHW",
+          "label": "Рхв",
+          "description": "Давление холодной воды (кгс/см²)",
+          "type": "number",
+          "min": 0,
+          "max": 16,
+          "step": 0.1,
+          "default": "0.3",
+          "source": "client"
+        }
+      ]
+    },
+    {
+      "id": "magistral1",
+      "name": "Параметры магистрали М1",
+      "params": [
+        {
+          "id": "SI_M1",
+          "label": "СИ-М1",
+          "description": "Схема измерений магистрали 1",
+          "type": "select",
+          "options": [
+            {"value": "0", "text": "0 - закрытая 2-трубная"},
+            {"value": "1", "text": "1 - открытая 2-трубная"},
+            {"value": "2", "text": "2 - открытая 3-трубная"},
+            {"value": "3", "text": "3 - закрытая 3-трубная"},
+            {"value": "4", "text": "4 - тупиковая ГВС"}
+          ],
+          "default": "0",
+          "source": "auto",
+          "auto_rule": "derive_si"
+        },
+        {
+          "id": "FT_M1",
+          "label": "ФТ-М1",
+          "description": "Формула тепловой энергии М1",
+          "type": "select",
+          "options": [
+            {"value": "1", "text": "1 - по разности энтальпий"},
+            {"value": "2", "text": "2 - упрощённая"},
+            {"value": "3", "text": "3 - с подпиткой"}
+          ],
+          "default": "1",
+          "source": "auto",
+          "auto_rule": "derive_ft"
+        },
+        {
+          "id": "HT_M1",
+          "label": "ХТ-М1",
+          "description": "Характеристика ТС магистрали 1",
+          "type": "select",
+          "options": [
+            {"value": "0", "text": "100П"},
+            {"value": "1", "text": "Pt100"},
+            {"value": "2", "text": "100М"}
+          ],
+          "default": "0",
+          "source": "auto",
+          "auto_rule": "derive_ht"
+        },
+        {
+          "id": "KT_M1",
+          "label": "КТ-М1",
+          "description": "Контроль температуры М1",
+          "type": "select",
+          "options": [
+            {"value": "0", "text": "0 - нет"},
+            {"value": "1", "text": "1 - есть"}
+          ],
+          "default": "0",
+          "source": "default"
+        }
+      ]
+    },
+    {
+      "id": "tr1_m1",
+      "name": "Трубопровод Тр1 М1 (подающий)",
+      "params": [
+        {
+          "id": "VI_T1",
+          "label": "ВИ-Тр1",
+          "description": "Вес импульса расходомера Тр1 (л/имп)",
+          "type": "number",
+          "min": 0.001,
+          "max": 10000,
+          "step": 0.001,
+          "default": null,
+          "source": "engineer",
+          "required": true,
+          "hint": "По паспорту расходомера"
+        },
+        {
+          "id": "Gn_T1",
+          "label": "Gн-Тр1",
+          "description": "Нижний предел расхода Тр1 (т/ч)",
+          "type": "number",
+          "min": 0,
+          "max": 9999,
+          "step": 0.01,
+          "default": null,
+          "source": "engineer",
+          "required": true
+        },
+        {
+          "id": "Gv_T1",
+          "label": "Gв-Тр1",
+          "description": "Верхний предел расхода Тр1 (т/ч)",
+          "type": "number",
+          "min": 0,
+          "max": 9999,
+          "step": 0.01,
+          "default": null,
+          "source": "engineer",
+          "required": true
+        },
+        {
+          "id": "Pdog_T1",
+          "label": "Рдог-Тр1",
+          "description": "Договорное давление подачи (кгс/см²)",
+          "type": "number",
+          "min": 0,
+          "max": 25,
+          "step": 0.01,
+          "default": null,
+          "source": "auto",
+          "auto_rule": "map_tu_pressure_supply"
+        },
+        {
+          "id": "tdog_T1",
+          "label": "tдог-Тр1",
+          "description": "Договорная температура подачи (°C)",
+          "type": "number",
+          "min": 50,
+          "max": 180,
+          "step": 0.1,
+          "default": null,
+          "source": "auto",
+          "auto_rule": "map_tu_supply_temp"
+        },
+        {
+          "id": "Gdog_T1",
+          "label": "Gдог-Тр1",
+          "description": "Договорной расход Тр1 (т/ч)",
+          "type": "number",
+          "min": 0,
+          "max": 9999,
+          "step": 0.001,
+          "default": null,
+          "source": "auto",
+          "auto_rule": "calculate_gdog"
+        }
+      ]
+    },
+    {
+      "id": "tr2_m1",
+      "name": "Трубопровод Тр2 М1 (обратный)",
+      "params": [
+        {
+          "id": "VI_T2",
+          "label": "ВИ-Тр2",
+          "description": "Вес импульса расходомера Тр2 (л/имп)",
+          "type": "number",
+          "min": 0.001,
+          "max": 10000,
+          "step": 0.001,
+          "default": null,
+          "source": "engineer",
+          "required": true,
+          "hint": "По паспорту расходомера"
+        },
+        {
+          "id": "Gn_T2",
+          "label": "Gн-Тр2",
+          "description": "Нижний предел расхода Тр2 (т/ч)",
+          "type": "number",
+          "min": 0,
+          "max": 9999,
+          "step": 0.01,
+          "default": null,
+          "source": "engineer",
+          "required": true
+        },
+        {
+          "id": "Gv_T2",
+          "label": "Gв-Тр2",
+          "description": "Верхний предел расхода Тр2 (т/ч)",
+          "type": "number",
+          "min": 0,
+          "max": 9999,
+          "step": 0.01,
+          "default": null,
+          "source": "engineer",
+          "required": true
+        },
+        {
+          "id": "Pdog_T2",
+          "label": "Рдог-Тр2",
+          "description": "Договорное давление обратного трубопровода (кгс/см²)",
+          "type": "number",
+          "min": 0,
+          "max": 25,
+          "step": 0.01,
+          "default": null,
+          "source": "auto",
+          "auto_rule": "map_tu_pressure_return"
+        },
+        {
+          "id": "tdog_T2",
+          "label": "tдог-Тр2",
+          "description": "Договорная температура обратного трубопровода (°C)",
+          "type": "number",
+          "min": 30,
+          "max": 120,
+          "step": 0.1,
+          "default": null,
+          "source": "auto",
+          "auto_rule": "map_tu_return_temp"
+        },
+        {
+          "id": "Gdog_T2",
+          "label": "Gдог-Тр2",
+          "description": "Договорной расход Тр2 (т/ч)",
+          "type": "number",
+          "min": 0,
+          "max": 9999,
+          "step": 0.001,
+          "default": null,
+          "source": "auto",
+          "auto_rule": "calculate_gdog"
+        }
+      ]
+    }
+  ],
+  "auto_rules": {
+    "calculate_gdog": "G = Q*1000/(t1-t2), где Q из heat_loads.total_load, t1/t2 из coolant",
+    "derive_si": "Закрытая система → '0'; открытая → '1'; из connection.system_type",
+    "derive_ft": "SI=0→'1'; SI=1,2→'2'; SI=3,4→'3'",
+    "map_tu_pressure_supply": "coolant.supply_pressure_kgcm2",
+    "map_tu_pressure_return": "coolant.return_pressure_kgcm2",
+    "map_tu_supply_temp": "coolant.supply_temp",
+    "map_tu_return_temp": "coolant.return_temp",
+    "derive_ht": "metering.temp_sensor_model: КТСН→'0' (100П); Pt100→'1'; 100М→'2'",
+    "map_survey_tcw": "survey_data.tcw если есть"
+  }
+}

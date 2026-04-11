@@ -195,6 +195,7 @@ class Order(Base):
     # Связи
     files = relationship("OrderFile", back_populates="order", cascade="all, delete-orphan")
     emails = relationship("EmailLog", back_populates="order", cascade="all, delete-orphan")
+    calculator_config = relationship("CalculatorConfig", back_populates="order", uselist=False)
 
     def can_transition_to(self, new_status: OrderStatus) -> bool:
         """Проверяет, допустим ли переход в новый статус."""
@@ -261,3 +262,35 @@ class EmailLog(Base):
 
     # Связи
     order = relationship("Order", back_populates="emails")
+
+
+class CalculatorConfig(Base):
+    """Настроечная база данных вычислителя теплоэнергии."""
+
+    __tablename__ = "calculator_configs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    order_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    calculator_type = Column(String(50), nullable=False)   # "tv7" | "spt941" | "esko_terra"
+    config_data = Column(JSONB, nullable=False, default=dict)
+    status = Column(String(20), nullable=False, default="draft")  # draft | complete
+    total_params = Column(Integer, nullable=False, default=0)
+    filled_params = Column(Integer, nullable=False, default=0)
+    missing_required = Column(JSONB, nullable=False, default=list)
+    client_requested_params = Column(JSONB, nullable=False, default=list)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    exported_at = Column(DateTime(timezone=True), nullable=True)
+
+    order = relationship("Order", back_populates="calculator_config")

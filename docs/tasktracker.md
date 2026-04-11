@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Настроечная БД вычислителя (мультиприборность)
+- **Статус**: Завершена
+- **Описание**: Реализовать фичу «Настроечная БД вычислителя» — JSON-шаблоны параметров для ТВ7, СПТ-941.20, ЭСКО-Терра М; модель CalculatorConfig в БД; сервис автозаполнения из ТУ; CRUD API; UI в админке; экспорт PDF
+- **Шаги выполнения**:
+  - [x] Создать ветку `feature/calculator-config`
+  - [x] JSON-шаблоны: `tv7.json` (29 параметров), `spt941.json` (25), `esko_terra.json` (22)
+  - [x] Модель `CalculatorConfig` в `models.py` + relationship в `Order`
+  - [x] Alembic-миграция `20260412_uute_add_calculator_configs`
+  - [x] Сервис `calculator_config_service.py`: load_template, auto_fill, init_config, update_params, export_pdf
+  - [x] API-роутер `calculator_config.py`: GET/POST/PATCH/export-pdf
+  - [x] Подключить роутер в `main.py`
+  - [x] UI в `admin.html`: calcConfigCard с прогресс-баром, легендой, таблицей, редактированием
+  - [x] Обновить changelog.md и tasktracker.md
+  - [x] Коммит в ветку `feature/calculator-config`
+- **Зависимости**: Модели заявок (Order, survey_data, parsed_params), tu_schema.py (структура parsed_params)
+
 ## Задача: Поле «Город объекта»
 - **Статус**: Завершена
 - **Описание**: Добавить обязательное поле «Город объекта» в форму заказа на лендинге и распространить по всей системе: БД, бэкенд, опросный лист, парсер ТУ, AdminPanel

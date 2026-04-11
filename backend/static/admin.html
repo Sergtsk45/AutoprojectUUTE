@@ -505,6 +505,74 @@
       .detail-grid { grid-template-columns: 1fr; }
       .stats-row .stat-card { min-width: 100px; }
     }
+
+        /* ─── Настроечная БД вычислителя ─────────────────────────────────── */
+        .calc-source-auto { background: #d5f5e3; }
+        .calc-source-default { color: #2980b9; }
+        .calc-source-client { background: #fef9e7; }
+        .calc-source-engineer { background: white; }
+        .calc-progress-bar {
+          width: 100%;
+          height: 8px;
+          background: #e0e0e0;
+          border-radius: 4px;
+          margin: 6px 0;
+          overflow: hidden;
+        }
+        .calc-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #27ae60, #2ecc71);
+          border-radius: 4px;
+          transition: width 0.3s ease;
+        }
+        .calc-legend {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          font-size: 12px;
+          color: var(--c-text-secondary);
+          margin-bottom: 8px;
+        }
+        .calc-legend-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .calc-legend-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+        .calc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .calc-table th { background: #f5f5f5; font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 2px solid #ddd; }
+        .calc-table td { padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .calc-table tr:hover td { background: rgba(0,0,0,0.02); }
+        .calc-table input[type="number"],
+        .calc-table input[type="text"],
+        .calc-table select {
+          width: 100%;
+          padding: 3px 6px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 12px;
+          font-family: inherit;
+        }
+        .calc-missing-warning {
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 6px;
+          padding: 8px 12px;
+          margin: 8px 0;
+          font-size: 13px;
+          color: #856404;
+        }
+        .calc-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 12px;
+        }
   </style>
 </head>
 <body>
@@ -683,6 +751,15 @@
             Опросный лист
           </div>
           <div id="surveyContent"></div>
+        </div>
+
+        <!-- Calculator config card -->
+        <div class="card" id="calcConfigCard" style="display:none;">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            Настроечная БД вычислителя
+          </div>
+          <div id="calcConfigContent"></div>
         </div>
 
         <!-- Comparison card: parsed ТУ vs опросный лист -->
@@ -1157,6 +1234,220 @@
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    // Настроечная БД вычислителя
+    // ─────────────────────────────────────────────────────────────────────
+
+    let calcConfigState = { config: null, template: null, calcType: null };
+
+    async function loadCalcConfig(orderId) {
+      const card = document.getElementById('calcConfigCard');
+      const content = document.getElementById('calcConfigContent');
+      try {
+        const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config`, {
+          headers: { 'X-Admin-Key': getKey() }
+        });
+        if (!resp.ok) {
+          card.style.display = 'none';
+          return;
+        }
+        const data = await resp.json();
+        calcConfigState = { config: data.config, template: data.template, calcType: data.calculator_type };
+        renderCalcConfig(data, orderId);
+        card.style.display = 'block';
+      } catch (e) {
+        card.style.display = 'none';
+      }
+    }
+
+    function renderCalcConfig(data, orderId) {
+      const content = document.getElementById('calcConfigContent');
+      const { config, template, status } = data;
+
+      if (!template && !config) {
+        content.innerHTML = `<div class="empty-state" style="padding:16px 0;">${data.message || 'Производитель не поддерживается'}</div>`;
+        return;
+      }
+
+      const tpl = template || {};
+      const calcName = tpl.calculator_name || (config && config.calculator_type) || '—';
+      const hasDual = tpl.has_dual_db || false;
+      const cfgData = (config && config.config_data) || {};
+      const total = (config && config.total_params) || 0;
+      const filled = (config && config.filled_params) || 0;
+      const missing = (config && config.missing_required) || [];
+      const pct = total > 0 ? Math.round(filled / total * 100) : 0;
+
+      let html = `<div style="margin-bottom:8px;">`;
+      html += `<div style="font-weight:600; font-size:14px;">${calcName}</div>`;
+
+      if (config) {
+        html += `<div style="font-size:12px; color:var(--c-text-secondary);">Заполнено: ${filled} / ${total} (${pct}%)</div>`;
+        html += `<div class="calc-progress-bar"><div class="calc-progress-fill" style="width:${pct}%"></div></div>`;
+      }
+
+      html += `<div class="calc-legend">
+        <span class="calc-legend-item"><span class="calc-legend-dot" style="background:#27ae60;"></span>из ТУ (авто)</span>
+        <span class="calc-legend-item"><span class="calc-legend-dot" style="background:#2980b9;"></span>по умолч.</span>
+        <span class="calc-legend-item"><span class="calc-legend-dot" style="background:#f39c12;"></span>запрос</span>
+        <span class="calc-legend-item"><span class="calc-legend-dot" style="background:#ccc; border:1px solid #ddd;"></span>инженер</span>
+      </div></div>`;
+
+      if (missing.length > 0) {
+        html += `<div class="calc-missing-warning">⚠️ Незаполненные обязательные поля: ${missing.join(', ')}</div>`;
+      }
+
+      if (!config) {
+        html += `<div class="calc-actions">
+          <button class="btn btn-primary" onclick="initCalcConfig('${orderId}')">Инициализировать БД</button>
+        </div>`;
+        if (tpl.groups) {
+          html += renderCalcGroups(tpl, {}, hasDual, orderId, false);
+        }
+        content.innerHTML = html;
+        return;
+      }
+
+      html += renderCalcGroups(tpl, cfgData, hasDual, orderId, true);
+
+      html += `<div class="calc-actions">
+        <button class="btn btn-primary" onclick="saveCalcConfig('${orderId}')">Сохранить</button>
+        <button class="btn" onclick="exportCalcConfigPdf('${orderId}')">📄 Экспорт PDF</button>
+      </div>`;
+
+      content.innerHTML = html;
+    }
+
+    function renderCalcGroups(template, cfgData, hasDual, orderId, editable) {
+      if (!template.groups) return '';
+      let html = '';
+      for (const group of template.groups) {
+        html += `<details open style="margin-bottom:8px;">
+          <summary style="cursor:pointer; font-weight:600; font-size:13px; padding:6px 0; color:var(--c-text);">${group.title} ▶</summary>
+          <table class="calc-table">
+            <thead><tr>
+              <th style="width:60px;">Обозн.</th>
+              <th>Параметр</th>
+              <th style="width:${hasDual ? '160px' : '200px'};">${hasDual ? 'БД1 (зима)' : 'Значение'}</th>
+              ${hasDual ? '<th style="width:160px;">БД2 (лето)</th>' : ''}
+              <th style="width:70px;">Источник</th>
+            </tr></thead>
+            <tbody>`;
+        for (const param of group.params) {
+          const src = param.source || 'engineer';
+          const val = cfgData[param.id] !== undefined ? cfgData[param.id] : (param.default || '');
+          const srcLabel = { auto: '🟢 авто', default: '🔵 умолч.', client: '🟡 запрос', engineer: '⬜ инженер' }[src] || src;
+          const srcClass = { auto: 'calc-source-auto', default: 'calc-source-default', client: 'calc-source-client', engineer: 'calc-source-engineer' }[src] || '';
+          const isEditable = editable && (src === 'engineer' || src === 'client');
+          const isRequired = param.required ? ' *' : '';
+
+          let valCell = '';
+          if (isEditable) {
+            if (param.type === 'select' && param.options && param.options.length) {
+              valCell = `<select data-param-id="${param.id}" onchange="calcParamChanged(this, '${orderId}')">`;
+              for (const opt of param.options) {
+                valCell += `<option value="${opt.value}"${String(opt.value) === String(val) ? ' selected' : ''}>${opt.text}</option>`;
+              }
+              valCell += '</select>';
+            } else {
+              const minAttr = param.min != null ? ` min="${param.min}"` : '';
+              const maxAttr = param.max != null ? ` max="${param.max}"` : '';
+              const stepAttr = param.step != null ? ` step="${param.step}"` : '';
+              valCell = `<input type="${param.type === 'number' ? 'number' : 'text'}" data-param-id="${param.id}" value="${val}"${minAttr}${maxAttr}${stepAttr} onchange="calcParamChanged(this, '${orderId}')" placeholder="${param.hint || ''}">`;
+            }
+          } else {
+            let displayVal = val !== '' && val != null ? String(val) : '—';
+            if (param.type === 'select' && param.options) {
+              const opt = param.options.find(o => String(o.value) === String(val));
+              if (opt) displayVal = `${val} — ${opt.text}`;
+            }
+            valCell = `<span class="${srcClass}" style="padding:2px 4px; border-radius:3px;">${displayVal}</span>`;
+          }
+
+          html += `<tr>
+            <td style="font-family:monospace; font-size:12px;">${param.label}${isRequired}</td>
+            <td title="${param.hint || ''}">${param.full_label || param.label}</td>
+            <td>${valCell}</td>
+            ${hasDual ? '<td>—</td>' : ''}
+            <td style="font-size:11px; white-space:nowrap;">${srcLabel}</td>
+          </tr>`;
+        }
+        html += `</tbody></table></details>`;
+      }
+      return html;
+    }
+
+    async function initCalcConfig(orderId) {
+      try {
+        const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config/init`, {
+          method: 'POST',
+          headers: { 'X-Admin-Key': getKey(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert('Ошибка: ' + (err.detail || resp.statusText));
+          return;
+        }
+        await loadCalcConfig(orderId);
+      } catch (e) {
+        alert('Ошибка инициализации: ' + e.message);
+      }
+    }
+
+    let calcPendingChanges = {};
+
+    function calcParamChanged(el, orderId) {
+      const paramId = el.dataset.paramId;
+      calcPendingChanges[paramId] = el.value;
+    }
+
+    async function saveCalcConfig(orderId) {
+      if (Object.keys(calcPendingChanges).length === 0) {
+        alert('Нет изменений для сохранения');
+        return;
+      }
+      try {
+        const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config`, {
+          method: 'PATCH',
+          headers: { 'X-Admin-Key': getKey(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ params: calcPendingChanges })
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert('Ошибка: ' + (err.detail || resp.statusText));
+          return;
+        }
+        calcPendingChanges = {};
+        await loadCalcConfig(orderId);
+      } catch (e) {
+        alert('Ошибка сохранения: ' + e.message);
+      }
+    }
+
+    async function exportCalcConfigPdf(orderId) {
+      try {
+        const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config/export-pdf`, {
+          method: 'POST',
+          headers: { 'X-Admin-Key': getKey() }
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert('Ошибка: ' + (err.detail || resp.statusText));
+          return;
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `calc_config_${orderId}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Ошибка экспорта PDF: ' + e.message);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // Comparison table: parsed ТУ vs survey
     // ─────────────────────────────────────────────────────────────────────
 
@@ -1489,6 +1780,13 @@
         document.getElementById('comparisonCard').style.display = 'none';
         renderParsedParams(order.parsed_params, order.missing_params);
         renderSurveyData(order.survey_data);
+      }
+
+      // Настроечная БД — только для custom заказов
+      if (order.order_type === 'custom') {
+        loadCalcConfig(order.id);
+      } else {
+        document.getElementById('calcConfigCard').style.display = 'none';
       }
 
       // Actions
