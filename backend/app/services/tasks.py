@@ -134,6 +134,10 @@ def start_tu_parsing(self, order_id: str):
             )
             order.missing_params = determine_missing_params(parsed)
 
+            # Если город ещё не указан клиентом — взять из ТУ
+            if not order.object_city and parsed.object.city:
+                order.object_city = parsed.object.city
+
             _transition(session, order, OrderStatus.TU_PARSED)
             logger.info(
                 "Парсинг завершён: order=%s, confidence=%.2f, missing=%s",
