@@ -18,6 +18,21 @@ STATIC_DIR = Path(__file__).parent.parent / "static"
 FRONTEND_DIR = Path("/app/frontend-dist")
 
 
+def _safe_dist_file(full_path: str) -> Path | None:
+    """Файл из каталога сборки фронта или None (в т.ч. при path traversal)."""
+    if not full_path or full_path.startswith("/"):
+        return None
+    if not FRONTEND_DIR.is_dir():
+        return None
+    try:
+        base = FRONTEND_DIR.resolve()
+        candidate = (FRONTEND_DIR / full_path).resolve()
+        candidate.relative_to(base)
+    except (OSError, ValueError, RuntimeError):
+        return None
+    return candidate if candidate.is_file() else None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Создаём директорию для файлов при старте
@@ -87,5 +102,8 @@ if FRONTEND_DIR.exists():
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    """Отдаём React SPA для всех остальных маршрутов (после API и прочих GET)."""
+    """Статика из сборки (PDF в /downloads/, …) или React SPA."""
+    dist_file = _safe_dist_file(full_path)
+    if dist_file is not None:
+        return FileResponse(dist_file)
     return FileResponse(FRONTEND_DIR / "index.html", media_type="text/html")

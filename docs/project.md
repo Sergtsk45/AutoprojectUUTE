@@ -4,7 +4,7 @@
 
 Сборка Vite кладётся в `frontend/dist`; в production образ монтируется в контейнер как `/app/frontend-dist` (`docker-compose.prod.yml`). FastAPI в [`backend/app/main.py`](../backend/app/main.py) отдаёт `index.html` для путей вне зарегистрированных маршрутов (`/{full_path:path}` регистрируется последним) и статику `/assets` из той же папки. Явные маршруты `/api/v1/*`, `/health`, `/upload/{id}`, `/admin`, `/static` имеют приоритет.
 
-Файлы из [`frontend/public/`](../frontend/public/) попадают в корень статики: опросный лист для скачивания с лендинга — `/downloads/opros_list_form.pdf` (копия [`docs/opros_list_form.pdf`](opros_list_form.pdf); при обновлении PDF в `docs/` нужно обновить копию в `public/downloads/`).
+Файлы из [`frontend/public/`](../frontend/public/) попадают в корень статики: опросный лист для скачивания с лендинга — `/downloads/opros_list_form.pdf` (копия [`docs/opros_list_form.pdf`](opros_list_form.pdf); при обновлении PDF в `docs/` нужно обновить копию в `public/downloads/`). В production [`backend/app/main.py`](../backend/app/main.py) для путей вне `/api`, `/upload`, `/admin`, `/static`, `/assets` сначала проверяет наличие **реального файла** в `frontend-dist` (`_safe_dist_file`) и отдаёт его через `FileResponse`; иначе — `index.html` SPA. Без этого запрос к PDF попадал бы в SPA и отдавал бы HTML под именем `.pdf`.
 
 ## Админка (`/admin`, `backend/static/admin.html`)
 
