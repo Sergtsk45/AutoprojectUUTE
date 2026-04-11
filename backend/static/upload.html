@@ -415,6 +415,19 @@
       border-color: #ef4444 !important;
       background: #fff5f5 !important;
     }
+    /* Поля опросного листа, заполненные при создании заявки — только для чтения */
+    .form-row input.survey-field-locked,
+    .form-row textarea.survey-field-locked,
+    .form-row select.survey-field-locked {
+      background: #f9fafb !important;
+      cursor: default;
+      color: var(--c-text);
+      opacity: 1;
+      border-color: var(--c-border) !important;
+    }
+    .form-row select.survey-field-locked {
+      pointer-events: none;
+    }
     .form-row select {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
@@ -1091,6 +1104,24 @@
       lockSurveyCard(false);
     }
 
+    /**
+     * Блокирует поля опросного листа, в которых уже есть сохранённые значения.
+     * Незаполненные поля остаются редактируемыми.
+     * @param {object} surveyData — плоский объект ключ→значение из survey_data
+     */
+    function lockFilledSurveyFields(surveyData) {
+      if (!surveyData) return;
+      Object.entries(surveyData).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === '') return;
+        const el = document.getElementById('s_' + key);
+        if (!el) return;
+        el.classList.add('survey-field-locked');
+        if (el.tagName !== 'SELECT') {
+          el.setAttribute('readonly', 'readonly');
+        }
+      });
+    }
+
     function hideSurveyMeta() {
       const block = document.getElementById('surveyMetaBlock');
       const conf = document.getElementById('surveyConfidence');
@@ -1146,6 +1177,7 @@
       clearSurveyDecorations();
       applySurveyData(surveyData);
       hideSurveyMeta();
+      lockFilledSurveyFields(surveyData);
     }
 
     /** Инициализация UI для custom-заказа по статусу. @returns {boolean} true если ветка обработана */
