@@ -278,7 +278,7 @@ def export_pdf(config, template: dict, order) -> bytes:
     def insert_text(pg, pos, text, fontsize, color=BLACK, bold=False):
         fn = font_name
         if not use_custom_font and bold:
-            fn = "helv-bold"
+            fn = "hebo"
         pg.insert_text(pos, text, fontsize=fontsize, fontname=fn, color=color)
 
     # ─── Шапка ───────────────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ def export_pdf(config, template: dict, order) -> bytes:
                 page.insert_font(fontname="dvu", fontfile=FONT_PATH)
             y = 40
 
-        insert_text(page, (col_id, y + 10), group["title"], fontsize=9, bold=True)
+        insert_text(page, (col_id, y + 10), group["label"], fontsize=9, bold=True)
         y += 14
         page.draw_line((margin_l, y), (margin_r, y), color=GRAY, width=0.3)
 
