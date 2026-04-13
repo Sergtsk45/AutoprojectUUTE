@@ -1263,6 +1263,18 @@
       const content = document.getElementById('calcConfigContent');
       const { config, template, status } = data;
 
+      // Express: вычислитель не обнаружен автоматически — показываем сообщение + кнопку ручной инициализации
+      if (status === 'not_supported_for_express') {
+        content.innerHTML = `
+          <div style="padding:12px 0; color:var(--c-warn); font-size:13px;">
+            ⚠️ ${data.message || 'Вычислитель Эско-Терра не обнаружен в ТУ автоматически.'}
+          </div>
+          <div class="calc-actions">
+            <button class="btn btn-primary" onclick="initCalcConfigExpress('${orderId}')">Инициализировать как Эско 3Э</button>
+          </div>`;
+        return;
+      }
+
       if (!template && !config) {
         content.innerHTML = `<div class="empty-state" style="padding:16px 0;">${data.message || 'Производитель не поддерживается'}</div>`;
         return;
@@ -1382,6 +1394,24 @@
           method: 'POST',
           headers: { 'X-Admin-Key': getKey(), 'Content-Type': 'application/json' },
           body: JSON.stringify({})
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert('Ошибка: ' + (err.detail || resp.statusText));
+          return;
+        }
+        await loadCalcConfig(orderId);
+      } catch (e) {
+        alert('Ошибка инициализации: ' + e.message);
+      }
+    }
+
+    async function initCalcConfigExpress(orderId) {
+      try {
+        const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config/init`, {
+          method: 'POST',
+          headers: { 'X-Admin-Key': getKey(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ calculator_type: 'esko_terra' })
         });
         if (!resp.ok) {
           const err = await resp.json();
@@ -1782,8 +1812,8 @@
         renderSurveyData(order.survey_data);
       }
 
-      // Настроечная БД — только для custom заказов
-      if (order.order_type === 'custom') {
+      // Настроечная БД — для custom всегда, для express если определена Эско-Терра
+      if (order.order_type === 'custom' || order.order_type === 'express') {
         loadCalcConfig(order.id);
       } else {
         document.getElementById('calcConfigCard').style.display = 'none';

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
-from app.models.models import CalculatorConfig, Order
+from app.models.models import CalculatorConfig, Order, OrderType
 from app.services import calculator_config_service as svc
 
 router = APIRouter(
@@ -66,28 +66,62 @@ async def get_calc_config(
     config = await _get_config(order_id, db)
 
     if config is None:
-        survey_data = order.survey_data or {}
-        manufacturer = survey_data.get("manufacturer", "")
-        calculator_type = svc.MANUFACTURER_TO_CALCULATOR.get(manufacturer)
+        if order.order_type == OrderType.EXPRESS:
+            # Express: определяем тип только через parsed_params (только Эско-Терра)
+            calculator_type = svc.resolve_calculator_type_for_express(order)
+            esko_detected = calculator_type == "esko_terra"
 
-        if not calculator_type:
+            if not esko_detected:
+                # Возвращаем шаблон Эско-Терра для ручной инициализации инженером
+                try:
+                    template = svc.load_template("esko_terra")
+                except ValueError:
+                    template = None
+                return {
+                    "config": None,
+                    "template": template,
+                    "calculator_type": "esko_terra",
+                    "status": "not_supported_for_express",
+                    "esko_detected": False,
+                    "message": "Вычислитель Эско-Терра не обнаружен в ТУ автоматически. Можно инициализировать вручную.",
+                }
+
+            try:
+                template = svc.load_template("esko_terra")
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
             return {
                 "config": None,
-                "template": None,
-                "message": "Производитель не поддерживается или не указан",
+                "template": template,
+                "calculator_type": "esko_terra",
+                "status": "not_initialized",
+                "esko_detected": True,
             }
+        else:
+            # Custom: определяем тип через survey_data.manufacturer
+            survey_data = order.survey_data or {}
+            manufacturer = survey_data.get("manufacturer", "")
+            calculator_type = svc.MANUFACTURER_TO_CALCULATOR.get(manufacturer)
 
-        try:
-            template = svc.load_template(calculator_type)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            if not calculator_type:
+                return {
+                    "config": None,
+                    "template": None,
+                    "message": "Производитель не поддерживается или не указан",
+                }
 
-        return {
-            "config": None,
-            "template": template,
-            "calculator_type": calculator_type,
-            "status": "not_initialized",
-        }
+            try:
+                template = svc.load_template(calculator_type)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+            return {
+                "config": None,
+                "template": template,
+                "calculator_type": calculator_type,
+                "status": "not_initialized",
+            }
 
     try:
         template = svc.load_template(config.calculator_type)
@@ -110,6 +144,16 @@ async def init_calc_config(
 ):
     """Инициализировать или переинициализировать конфиг вычислителя."""
     order = await _get_order_or_404(order_id, db)
+
+    # Для express-заявок разрешён только тип esko_terra
+    if order.order_type == OrderType.EXPRESS:
+        if "calculator_type" in body and body["calculator_type"] != "esko_terra":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Для экспресс-заявки допустим только тип 'esko_terra', получен '{body['calculator_type']}'",
+            )
+        # Если calculator_type не указан — принудительно используем esko_terra
+        body = {**body, "calculator_type": "esko_terra"}
 
     if "calculator_type" in body:
         calc_type = body["calculator_type"]

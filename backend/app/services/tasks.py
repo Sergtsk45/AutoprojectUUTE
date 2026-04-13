@@ -144,6 +144,33 @@ def start_tu_parsing(self, order_id: str):
                 oid, parsed.parse_confidence, order.missing_params,
             )
 
+            # Автоинициализация настроечной БД для express-заявок с Эско-Терра
+            from app.models.models import OrderType
+            if order.order_type == OrderType.EXPRESS:
+                try:
+                    from app.services.calculator_config_service import (
+                        resolve_calculator_type_for_express,
+                        init_config_sync,
+                    )
+                    calc_type = resolve_calculator_type_for_express(order)
+                    if calc_type:
+                        init_config_sync(order, session)
+                        logger.info(
+                            "Авто-инициализация настроечной БД (%s) для order=%s",
+                            calc_type, oid,
+                        )
+                    else:
+                        logger.info(
+                            "Express order=%s: Эско-Терра не обнаружена в ТУ, "
+                            "инициализация настроечной БД пропущена",
+                            oid,
+                        )
+                except Exception as init_err:
+                    logger.warning(
+                        "Авто-инициализация настроечной БД не удалась для order=%s: %s",
+                        oid, init_err,
+                    )
+
         except Exception as e:
             logger.error("Ошибка парсинга ТУ для order=%s: %s", oid, e, exc_info=True)
             order.status = OrderStatus.ERROR

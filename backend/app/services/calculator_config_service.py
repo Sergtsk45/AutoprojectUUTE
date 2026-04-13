@@ -23,6 +23,24 @@ MANUFACTURER_TO_CALCULATOR = {
 
 ALLOWED_CALCULATOR_TYPES = frozenset(MANUFACTURER_TO_CALCULATOR.values())  # {'tv7', 'spt941', 'esko_terra'}
 
+# Маркеры Эско-Терра в поле metering.heat_calculator_model
+ESKO_MARKERS = frozenset({"эско", "терра", "эско-3э", "esko", "terra", "3э"})
+
+
+def resolve_calculator_type_for_express(order) -> str | None:
+    """Определить тип вычислителя для express-заявки по parsed_params.
+
+    Проверяет metering.heat_calculator_model на маркеры Эско-Терра.
+    Возвращает 'esko_terra' если обнаружены, иначе None.
+    """
+    parsed = order.parsed_params or {}
+    metering = parsed.get("metering") or {}
+    model = metering.get("heat_calculator_model") or ""
+    model_lower = model.lower()
+    if any(marker in model_lower for marker in ESKO_MARKERS):
+        return "esko_terra"
+    return None
+
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "calculator_templates"
 
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -250,6 +268,60 @@ async def update_params(config, params_dict: dict, db: AsyncSession):
 
     await db.commit()
     await db.refresh(config)
+    return config
+
+
+def init_config_sync(order, session) -> "CalculatorConfig":
+    """Синхронная версия init_config для Celery-задач (express-заявки).
+
+    Определяет тип вычислителя через resolve_calculator_type_for_express,
+    инициализирует или перезаписывает конфиг в той же sync-сессии.
+    Raises ValueError если тип не определён.
+    """
+    from app.models.models import CalculatorConfig
+    from sqlalchemy import select as sa_select
+    from sqlalchemy.orm.attributes import flag_modified as fm
+
+    calculator_type = resolve_calculator_type_for_express(order)
+    if not calculator_type:
+        raise ValueError(
+            "Тип вычислителя не определён: маркеры Эско-Терра не найдены в parsed_params"
+        )
+
+    template = load_template(calculator_type)
+    config_data = auto_fill(template, order.parsed_params or {}, order.survey_data or {})
+    total, filled, missing = compute_fill_stats(template, config_data)
+
+    existing = session.execute(
+        sa_select(CalculatorConfig).where(CalculatorConfig.order_id == order.id)
+    ).scalar_one_or_none()
+
+    if existing:
+        existing.calculator_type = calculator_type
+        existing.config_data = config_data
+        existing.status = "draft"
+        existing.total_params = total
+        existing.filled_params = filled
+        existing.missing_required = missing
+        fm(existing, "config_data")
+        fm(existing, "missing_required")
+        session.commit()
+        session.refresh(existing)
+        return existing
+
+    config = CalculatorConfig(
+        order_id=order.id,
+        calculator_type=calculator_type,
+        config_data=config_data,
+        status="draft",
+        total_params=total,
+        filled_params=filled,
+        missing_required=missing,
+        client_requested_params=[],
+    )
+    session.add(config)
+    session.commit()
+    session.refresh(config)
     return config
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-04-14] — Настроечная БД Эско-Терра в express-пайплайне
+
+### Добавлено
+- В [`backend/app/services/calculator_config_service.py`](../backend/app/services/calculator_config_service.py): константа `ESKO_MARKERS`, функция `resolve_calculator_type_for_express(order)` — автоопределение Эско-Терра по `parsed_params.metering.heat_calculator_model`; синхронная `init_config_sync(order, session)` для Celery-задач
+- В [`backend/app/api/calculator_config.py`](../backend/app/api/calculator_config.py): ветка для express-заявок в `GET /calc-config` (через `resolve_calculator_type_for_express`); guard в `POST /calc-config/init` — для express разрешён только `esko_terra`; новое поле `esko_detected` в ответе GET для express
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): автоинициализация настроечной БД после парсинга ТУ для express-заявок — если Эско-Терра обнаружена, конфиг создаётся автоматически; ошибка не прерывает пайплайн
+- В [`backend/static/admin.html`](../backend/static/admin.html): карточка настроечной БД показывается и для express-заявок; статус `not_supported_for_express` отображает предупреждение + кнопку «Инициализировать как Эско 3Э»; добавлена функция `initCalcConfigExpress`
+
 ## [2026-04-12] — Настроечная БД вычислителя (мультиприборность)
 
 ### Добавлено

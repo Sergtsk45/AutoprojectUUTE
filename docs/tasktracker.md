@@ -1,5 +1,17 @@
 # Task tracker
 
+## Задача: Внедрение настроечной БД Эско-Терра в express-пайплайн
+- **Статус**: Завершена
+- **Описание**: Интегрировать CalculatorConfig для express-заявок (только производитель Эско-Терра). Автоопределение из parsed_params + ручной override в админке.
+- **Шаги выполнения**:
+  - [x] `resolve_calculator_type_for_express` — автоопределение по metering.heat_calculator_model
+  - [x] `init_config_sync` — синхронная версия для Celery-задач
+  - [x] API guard: для express только `esko_terra`, GET возвращает `esko_detected` и `status=not_supported_for_express`
+  - [x] Автоинициализация в `start_tu_parsing` после TU_PARSED
+  - [x] UI admin.html: карточка для express + кнопка «Инициализировать как Эско 3Э»
+  - [x] Документация: changelog.md, tasktracker.md
+- **Зависимости**: feature/calculator-config (CalculatorConfig модель, сервис, API)
+
 ## Задача: Настроечная БД вычислителя (мультиприборность)
 - **Статус**: Завершена
 - **Описание**: Реализовать фичу «Настроечная БД вычислителя» — JSON-шаблоны параметров для ТВ7, СПТ-941.20, ЭСКО-Терра М; модель CalculatorConfig в БД; сервис автозаполнения из ТУ; CRUD API; UI в админке; экспорт PDF
