@@ -552,7 +552,7 @@ def send_kp_request_notification(
         "<p>Технические условия приложены к письму.</p>"
         "</body></html>"
     )
-    subject = f"Запрос КП — {escape(organization)}"
+    subject = f"Запрос КП — {organization}"
 
     msg = MIMEMultipart("mixed")
     msg["From"] = formataddr((settings.smtp_from_name, settings.smtp_from))

@@ -62,6 +62,7 @@ class PartnershipRequest(BaseModel):
     phone: str = Field(..., min_length=5, max_length=50)
 
 
+# Справочная схема для документации — в эндпоинте используются Form() параметры напрямую
 class KpRequest(BaseModel):
     organization: str = Field(..., min_length=2, max_length=255)
     responsible_name: str = Field(..., min_length=2, max_length=255)
@@ -168,7 +169,7 @@ async def kp_request(
     organization: str = Form(..., min_length=2, max_length=255),
     responsible_name: str = Form(..., min_length=2, max_length=255),
     phone: str = Form(..., min_length=5, max_length=50),
-    email: str = Form(...),
+    email: EmailStr = Form(...),
     tu_file: UploadFile = File(...),
 ):
     """Сценарий D: Запрос коммерческого предложения.
@@ -178,7 +179,12 @@ async def kp_request(
     """
     from app.services.email_service import send_kp_request_notification
 
-    tu_bytes = await tu_file.read()
+    _MAX_TU_SIZE = 20 * 1024 * 1024  # 20 МБ
+
+    tu_bytes = await tu_file.read(_MAX_TU_SIZE + 1)
+    if len(tu_bytes) > _MAX_TU_SIZE:
+        raise HTTPException(status_code=413, detail="Файл слишком большой (максимум 20 МБ)")
+
     tu_filename = tu_file.filename or "tu.pdf"
 
     send_kp_request_notification(
