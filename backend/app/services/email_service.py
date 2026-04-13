@@ -532,6 +532,62 @@ def send_partnership_request(
     )
 
 
+def send_kp_request_notification(
+    organization: str,
+    responsible_name: str,
+    phone: str,
+    email: str,
+    tu_filename: str,
+    tu_bytes: bytes,
+) -> bool:
+    """Переслать запрос КП инженеру с файлом ТУ во вложении."""
+    html_body = (
+        "<html><body style='font-family:sans-serif'>"
+        "<h2 style='color:#263238'>Запрос коммерческого предложения</h2>"
+        f"<p><b>Организация:</b> {organization}</p>"
+        f"<p><b>ФИО ответственного:</b> {responsible_name}</p>"
+        f"<p><b>Телефон:</b> {phone}</p>"
+        f"<p><b>Email:</b> {email}</p>"
+        "<p>Технические условия приложены к письму.</p>"
+        "</body></html>"
+    )
+    subject = f"Запрос КП — {organization}"
+
+    msg = MIMEMultipart("mixed")
+    msg["From"] = formataddr((settings.smtp_from_name, settings.smtp_from))
+    msg["To"] = settings.admin_email
+    msg["Subject"] = subject
+    msg["Date"] = formatdate(localtime=True)
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    part = MIMEApplication(tu_bytes, Name=tu_filename)
+    part.add_header("Content-Disposition", "attachment", filename=tu_filename)
+    msg.attach(part)
+
+    try:
+        if settings.smtp_use_ssl:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(
+                settings.smtp_host, settings.smtp_port, context=context, timeout=30
+            ) as server:
+                server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(
+                settings.smtp_host, settings.smtp_port, timeout=30
+            ) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+        logger.info("Запрос КП отправлен инженеру: %s", organization)
+        return True
+    except Exception as e:
+        logger.error("Ошибка отправки запроса КП: %s", e, exc_info=True)
+        return False
+
+
 def send_survey_reminder(session: Session, order: Order) -> bool:
     """Отправить клиенту письмо с напоминанием заполнить опросный лист (только для custom-заказов)."""
     env = _get_jinja()
