@@ -13,6 +13,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr, formatdate
+from html import escape
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -544,20 +545,21 @@ def send_kp_request_notification(
     html_body = (
         "<html><body style='font-family:sans-serif'>"
         "<h2 style='color:#263238'>Запрос коммерческого предложения</h2>"
-        f"<p><b>Организация:</b> {organization}</p>"
-        f"<p><b>ФИО ответственного:</b> {responsible_name}</p>"
-        f"<p><b>Телефон:</b> {phone}</p>"
-        f"<p><b>Email:</b> {email}</p>"
+        f"<p><b>Организация:</b> {escape(organization)}</p>"
+        f"<p><b>ФИО ответственного:</b> {escape(responsible_name)}</p>"
+        f"<p><b>Телефон:</b> {escape(phone)}</p>"
+        f"<p><b>Email:</b> {escape(email)}</p>"
         "<p>Технические условия приложены к письму.</p>"
         "</body></html>"
     )
-    subject = f"Запрос КП — {organization}"
+    subject = f"Запрос КП — {escape(organization)}"
 
     msg = MIMEMultipart("mixed")
     msg["From"] = formataddr((settings.smtp_from_name, settings.smtp_from))
     msg["To"] = settings.admin_email
     msg["Subject"] = subject
     msg["Date"] = formatdate(localtime=True)
+    msg["Reply-To"] = email
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     part = MIMEApplication(tu_bytes, Name=tu_filename)
