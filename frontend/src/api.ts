@@ -66,3 +66,16 @@ export async function sendPartnershipRequest(data: {
   }
   return resp.json();
 }
+
+export async function sendKpRequest(formData: FormData): Promise<SimpleResponse> {
+  const resp = await fetch(`${API_BASE}/landing/kp-request`, {
+    method: 'POST',
+    body: formData,
+    // Content-Type не указываем — браузер сам ставит multipart/form-data с boundary
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: 'Ошибка сервера' }));
+    throw new Error(err.detail || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
