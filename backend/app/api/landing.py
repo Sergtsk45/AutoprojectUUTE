@@ -5,7 +5,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,6 +60,13 @@ class PartnershipRequest(BaseModel):
     company: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
     phone: str = Field(..., min_length=5, max_length=50)
+
+
+class KpRequest(BaseModel):
+    organization: str = Field(..., min_length=2, max_length=255)
+    responsible_name: str = Field(..., min_length=2, max_length=255)
+    phone: str = Field(..., min_length=5, max_length=50)
+    email: EmailStr
 
 
 class SimpleResponse(BaseModel):
@@ -153,6 +160,39 @@ async def partnership_request(data: PartnershipRequest):
     return SimpleResponse(
         success=True,
         message="Заявка на партнёрство отправлена",
+    )
+
+
+@router.post("/kp-request", response_model=SimpleResponse)
+async def kp_request(
+    organization: str = Form(..., min_length=2, max_length=255),
+    responsible_name: str = Form(..., min_length=2, max_length=255),
+    phone: str = Form(..., min_length=5, max_length=50),
+    email: str = Form(...),
+    tu_file: UploadFile = File(...),
+):
+    """Сценарий D: Запрос коммерческого предложения.
+
+    Принимает контактные данные и файл ТУ, отправляет письмо инженеру.
+    Заявка в БД не создаётся.
+    """
+    from app.services.email_service import send_kp_request_notification
+
+    tu_bytes = await tu_file.read()
+    tu_filename = tu_file.filename or "tu.pdf"
+
+    send_kp_request_notification(
+        organization=organization,
+        responsible_name=responsible_name,
+        phone=phone,
+        email=email,
+        tu_filename=tu_filename,
+        tu_bytes=tu_bytes,
+    )
+
+    return SimpleResponse(
+        success=True,
+        message="Запрос КП принят. Мы свяжемся с вами в ближайшее время.",
     )
 
 
