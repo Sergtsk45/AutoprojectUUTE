@@ -9,11 +9,11 @@ const CalculatorSection: React.FC = () => {
 
   useEffect(() => {
     const prices: Record<number, number> = {
-      1: 22500,
-      2: 35000,
-      3: 50000,
+      1: 30000,
+      2: 45000,
+      3: 60000,
     };
-    setPrice(prices[circuits] || 22500);
+    setPrice(prices[circuits] || 30000);
   }, [circuits]);
 
   const formatPrice = (p: number) => new Intl.NumberFormat('ru-RU').format(p);
