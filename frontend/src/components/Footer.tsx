@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SITE_CONTACT, SITE_REQUISITES } from '../constants/siteLegal';
+import PrivacyPolicyModal from './PrivacyPolicyModal';
 
 const Footer: React.FC = () => {
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   return (
     <footer className="bg-[#263238] text-white py-12">
       <div className="container mx-auto px-4">
@@ -54,7 +56,11 @@ const Footer: React.FC = () => {
         <div className="pt-6 border-t border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <a href="#" className="text-gray-300 hover:text-[#E53935] transition-colors mr-6">
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); setIsPrivacyOpen(true); }}
+                className="text-gray-300 hover:text-[#E53935] transition-colors mr-6 cursor-pointer"
+              >
                 Политика конфиденциальности
               </a>
               <a href="#" className="text-gray-300 hover:text-[#E53935] transition-colors">
@@ -95,6 +101,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
       </div>
+      <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
     </footer>
   );
 };
