@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import PrivacyPolicyModal from './PrivacyPolicyModal';
 import { requestSample, createOrder, sendPartnershipRequest } from '../api';
 
 interface EmailModalProps {
@@ -14,6 +15,7 @@ interface EmailModalProps {
 }
 
 const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, orderDefaults, orderType }) => {
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
@@ -221,7 +223,14 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
               </div>
 
               <p className="mt-4 text-xs text-gray-500">
-                Нажимая на кнопку, вы соглашаетесь с нашей политикой конфиденциальности
+                Нажимая на кнопку, вы соглашаетесь с нашей{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsPrivacyOpen(true)}
+                  className="underline hover:text-[#E53935] transition-colors"
+                >
+                  политикой конфиденциальности
+                </button>
               </p>
             </form>
           </>
@@ -254,6 +263,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
           </div>
         )}
       </div>
+      <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
     </div>
   );
 };
