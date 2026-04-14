@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileText, Clock3, FileCheck } from 'lucide-react';
+import KpRequestModal from './KpRequestModal';
 
 /** Источник: `docs/opros_list_form.pdf`; копия в `frontend/public/downloads/` для прод-сборки. */
 const SURVEY_FORM_PDF_HREF = '/downloads/opros_list_form.pdf';
@@ -12,6 +13,8 @@ type StepAction = {
 };
 
 const ProcessSection: React.FC = () => {
+  const [kpModalOpen, setKpModalOpen] = useState(false);
+
   const steps: Array<{
     icon: React.ReactNode;
     title: string;
@@ -81,13 +84,22 @@ const ProcessSection: React.FC = () => {
                 {step.description}
               </p>
               
-              <a 
-                href={step.action.link}
-                {...(step.action.download ? { download: step.action.download } : {})}
-                className="inline-block text-[#E53935] font-medium hover:text-red-700 transition-colors"
-              >
-                {step.action.text}
-              </a>
+              {index === 1 ? (
+                <button
+                  onClick={() => setKpModalOpen(true)}
+                  className="inline-block text-[#E53935] font-medium hover:text-red-700 transition-colors"
+                >
+                  {step.action.text}
+                </button>
+              ) : (
+                <a
+                  href={step.action.link}
+                  {...(step.action.download ? { download: step.action.download } : {})}
+                  className="inline-block text-[#E53935] font-medium hover:text-red-700 transition-colors"
+                >
+                  {step.action.text}
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -124,6 +136,8 @@ const ProcessSection: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <KpRequestModal isOpen={kpModalOpen} onClose={() => setKpModalOpen(false)} />
       </div>
     </section>
   );
