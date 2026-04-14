@@ -18,7 +18,9 @@ const CalculatorSection: React.FC = () => {
 
   const formatPrice = (p: number) => new Intl.NumberFormat('ru-RU').format(p);
 
-  const discountPrice = Math.round(price * 0.5);
+  /** Тариф «Экспресс» (1 контур) — фиксированная цена в калькуляторе и в заявке. */
+  const EXPRESS_PRICE = 20000;
+  const expressPrice = circuits === 1 ? EXPRESS_PRICE : price;
 
   const handleOrder = (type: 'express' | 'custom') => {
     setOrderType(type);
@@ -81,7 +83,7 @@ const CalculatorSection: React.FC = () => {
                   </div>
                   <p className="text-xs text-gray-500 mb-3">На базе электромагнитных расходомеров Эско 3Э · 3 рабочих дня</p>
                   <div className="mb-1">
-                    <span className="text-xl font-bold text-green-600">{formatPrice(discountPrice)} ₽</span>
+                    <span className="text-xl font-bold text-green-600">{formatPrice(expressPrice)} ₽</span>
                   </div>
                   <p className="text-xs text-gray-400 line-through mb-4">{formatPrice(price)} ₽</p>
                   <button
@@ -118,7 +120,7 @@ const CalculatorSection: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         purpose="order"
-        orderDefaults={{ circuits, price: orderType === 'express' ? discountPrice : price }}
+        orderDefaults={{ circuits, price: orderType === 'express' ? expressPrice : price }}
         orderType={orderType}
       />
     </section>

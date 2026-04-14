@@ -1,9 +1,10 @@
 # Changelog
 
-## [2026-04-14] — FAQ: цена со скидкой
+## [2026-04-14] — Калькулятор: тариф «Экспресс» 20 000 ₽
 
 ### Изменено
-- В [`frontend/src/components/FAQSection.tsx`](../frontend/src/components/FAQSection.tsx): в ответе о стоимости указана базовая цена от 30 000 ₽ и цена со скидкой от 20 000 ₽
+- В [`frontend/src/components/CalculatorSection.tsx`](../frontend/src/components/CalculatorSection.tsx): для варианта «Экспресс» (1 контур) отображается и в заявку уходит фиксированная цена 20 000 ₽ вместо 50% от базового тарифа контура
+- В [`frontend/src/components/FAQSection.tsx`](../frontend/src/components/FAQSection.tsx): убрана отдельная строка про цену со скидкой в ответе о стоимости (актуальная цена экспресса — в калькуляторе)
 
 ## [2026-04-14] — Модальное окно "Запросить КП" (Шаг 2)
 
