@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.models import EmailType, FileCategory, OrderStatus, OrderType
+from app.models.models import EmailType, FileCategory, OrderStatus, OrderType, PaymentMethod
 
 if TYPE_CHECKING:
     from app.models.models import Order as OrderModel
@@ -51,6 +51,13 @@ class OrderResponse(BaseModel):
     survey_data: dict | None
     retry_count: int
     reviewer_comment: str | None
+    payment_method: PaymentMethod | None = None
+    payment_amount: int | None = None
+    advance_amount: int | None = None
+    advance_paid_at: datetime | None = None
+    final_paid_at: datetime | None = None
+    company_requisites: dict | None = None
+    contract_number: str | None = None
     created_at: datetime
     updated_at: datetime
     files: list["FileResponse"]
@@ -73,6 +80,8 @@ class OrderListItem(BaseModel):
     client_email: str
     object_address: str | None
     object_city: str | None
+    payment_method: PaymentMethod | None = None
+    payment_amount: int | None = None
     created_at: datetime
     updated_at: datetime
 

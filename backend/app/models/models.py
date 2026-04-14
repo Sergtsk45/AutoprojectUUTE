@@ -23,16 +23,20 @@ from app.core.database import Base
 class OrderStatus(str, enum.Enum):
     """Конечный автомат заявки.
 
-    new                  → клиент загрузил ТУ, заявка создана
-    tu_parsing           → ТУ отправлены на парсинг (модуль 1)
-    tu_parsed            → параметры извлечены, проверяется полнота
-    waiting_client_info  → клиенту отправлен запрос на доп. информацию
-    client_info_received → клиент прислал ответ, идёт анализ
-    data_complete        → все данные собраны
-    generating_project   → Excel заполнен, T-FLEX генерирует проект
-    review               → проект готов, ждёт проверки инженером
-    completed            → проект отправлен клиенту
-    error                → ошибка на любом этапе
+    new                    → клиент загрузил ТУ, заявка создана
+    tu_parsing             → ТУ отправлены на парсинг (модуль 1)
+    tu_parsed              → параметры извлечены, проверяется полнота
+    waiting_client_info    → клиенту отправлен запрос на доп. информацию
+    client_info_received   → клиент прислал ответ, идёт анализ
+    data_complete          → все данные собраны
+    generating_project     → Excel заполнен, T-FLEX генерирует проект
+    review                 → проект готов, ждёт проверки инженером
+    awaiting_contract      → инженер одобрил, ждём реквизиты от клиента
+    contract_sent          → договор и счёт на 50% отправлены, ждём аванс
+    advance_paid           → аванс получен, проект отправлен клиенту
+    awaiting_final_payment → ждём скан РСО или оплату остатка 50%
+    completed              → проект отправлен клиенту
+    error                  → ошибка на любом этапе
     """
 
     NEW = "new"
@@ -43,6 +47,10 @@ class OrderStatus(str, enum.Enum):
     DATA_COMPLETE = "data_complete"
     GENERATING_PROJECT = "generating_project"
     REVIEW = "review"
+    AWAITING_CONTRACT = "awaiting_contract"
+    CONTRACT_SENT = "contract_sent"
+    ADVANCE_PAID = "advance_paid"
+    AWAITING_FINAL_PAYMENT = "awaiting_final_payment"
     COMPLETED = "completed"
     ERROR = "error"
 
@@ -70,10 +78,42 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     ],
     OrderStatus.DATA_COMPLETE: [OrderStatus.GENERATING_PROJECT, OrderStatus.COMPLETED, OrderStatus.ERROR],
     OrderStatus.GENERATING_PROJECT: [OrderStatus.REVIEW, OrderStatus.COMPLETED, OrderStatus.ERROR],
-    OrderStatus.REVIEW: [OrderStatus.COMPLETED, OrderStatus.GENERATING_PROJECT, OrderStatus.ERROR],
+    OrderStatus.REVIEW: [
+        OrderStatus.AWAITING_CONTRACT,     # основной путь: запуск оплаты
+        OrderStatus.COMPLETED,             # ручной override инженером
+        OrderStatus.GENERATING_PROJECT,    # возврат на перегенерацию
+        OrderStatus.ERROR,
+    ],
+    OrderStatus.AWAITING_CONTRACT: [
+        OrderStatus.CONTRACT_SENT,         # реквизиты получены, договор отправлен
+        OrderStatus.COMPLETED,             # override
+        OrderStatus.ERROR,
+    ],
+    OrderStatus.CONTRACT_SENT: [
+        OrderStatus.ADVANCE_PAID,          # аванс получен
+        OrderStatus.AWAITING_CONTRACT,     # клиент обновил реквизиты — пересоздать договор
+        OrderStatus.COMPLETED,             # override
+        OrderStatus.ERROR,
+    ],
+    OrderStatus.ADVANCE_PAID: [
+        OrderStatus.AWAITING_FINAL_PAYMENT,  # проект отправлен, ждём остаток
+        OrderStatus.COMPLETED,               # override (инженер решил закрыть)
+        OrderStatus.ERROR,
+    ],
+    OrderStatus.AWAITING_FINAL_PAYMENT: [
+        OrderStatus.COMPLETED,             # остаток получен или скан загружен
+        OrderStatus.ERROR,
+    ],
     OrderStatus.COMPLETED: [],
     OrderStatus.ERROR: [OrderStatus.NEW],  # перезапуск заявки
 }
+
+
+# ─── Метод оплаты ────────────────────────────────────────────────────────────
+
+class PaymentMethod(str, enum.Enum):
+    BANK_TRANSFER = "bank_transfer"  # Безналичная оплата (юрлица, ИП)
+    ONLINE_CARD = "online_card"      # Онлайн картой (YooKassa)
 
 
 # ─── Тип заявки ──────────────────────────────────────────────────────────────
@@ -100,6 +140,10 @@ class FileCategory(str, enum.Enum):
     GENERATED_EXCEL = "generated_excel"
     GENERATED_PROJECT = "generated_project"
     OTHER = "other"
+    COMPANY_CARD = "company_card"      # Карточка предприятия (загружает клиент)
+    CONTRACT = "contract"              # Сгенерированный договор (DOCX)
+    INVOICE = "invoice"                # Счёт на оплату (DOCX)
+    RSO_SCAN = "rso_scan"              # Скан письма с входящим номером РСО
 
 
 # ─── Типы email ──────────────────────────────────────────────────────────────
@@ -114,6 +158,11 @@ class EmailType(str, enum.Enum):
     CLIENT_DOCUMENTS_RECEIVED = "client_documents_received"  # Клиент нажал «Готово» на загрузке
     PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
     SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
+    PROJECT_READY_PAYMENT = "project_ready_payment"          # Проект готов, ожидается оплата
+    CONTRACT_DELIVERY = "contract_delivery"                  # Договор и счёт отправлены клиенту
+    ADVANCE_RECEIVED = "advance_received"                    # Аванс получен, проект отправлен
+    FINAL_PAYMENT_REQUEST = "final_payment_request"          # Запрос финального платежа / скана РСО
+    FINAL_PAYMENT_RECEIVED = "final_payment_received"        # Финальный платёж получен
 
 
 def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
@@ -182,6 +231,19 @@ class Order(Base):
 
     # Комментарий инженера (для этапа review)
     reviewer_comment = Column(Text, nullable=True)
+
+    # ── Оплата ────────────────────────────────────────────
+    payment_method = Column(
+        Enum(PaymentMethod, name="payment_method",
+             values_callable=_enum_db_values),
+        nullable=True,
+    )
+    payment_amount = Column(Integer, nullable=True)
+    advance_amount = Column(Integer, nullable=True)
+    advance_paid_at = Column(DateTime(timezone=True), nullable=True)
+    final_paid_at = Column(DateTime(timezone=True), nullable=True)
+    company_requisites = Column(JSONB, nullable=True)
+    contract_number = Column(String(100), nullable=True)
 
     # Временные метки
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
