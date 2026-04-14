@@ -37,7 +37,7 @@ const ProcessSection: React.FC = () => {
       description: 'Получите коммерческое предложение за 15 минут',
       action: {
         text: 'Запросить КП',
-        link: '#calculator'
+        link: '#'
       }
     },
     {
