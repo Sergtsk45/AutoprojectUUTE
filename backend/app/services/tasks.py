@@ -541,6 +541,78 @@ def send_completed_project(self, order_id: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Задачи платёжного флоу
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def parse_company_card_task(self, order_id: str):
+    """Парсинг карточки предприятия — извлечение реквизитов.
+
+    Вызывается после загрузки клиентом файла категории COMPANY_CARD
+    на странице /payment/{order_id}.
+    Результат сохраняется в order.company_requisites (JSONB).
+    Статус НЕ меняет — это делает вызывающий код (эндпоинт).
+    """
+    from app.services.company_parser import parse_company_card
+
+    oid = uuid.UUID(order_id)
+    logger.info("parse_company_card_task: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            logger.error("parse_company_card_task: заявка не найдена: %s", oid)
+            return
+
+        # Найти файл карточки предприятия (берём последний загруженный)
+        card_files = [
+            f for f in order.files
+            if f.category.value == "company_card"
+        ]
+        if not card_files:
+            logger.error(
+                "parse_company_card_task: нет файла company_card для order=%s", oid
+            )
+            return
+
+        card_file = sorted(card_files, key=lambda f: f.created_at)[-1]
+        file_path = settings.upload_dir / card_file.storage_path
+
+        if not file_path.exists():
+            logger.error(
+                "parse_company_card_task: файл не найден на диске: %s", file_path
+            )
+            return
+
+        try:
+            requisites = parse_company_card(str(file_path))
+        except Exception as e:
+            logger.exception(
+                "parse_company_card_task: ошибка парсинга: order=%s, error=%s", oid, e
+            )
+            # Сохраняем ошибку для отображения на странице
+            order.company_requisites = {
+                "error": str(e),
+                "parse_confidence": 0.0,
+            }
+            session.commit()
+            raise self.retry(exc=e)
+
+        order.company_requisites = requisites.model_dump(mode="json")
+        session.commit()
+
+        logger.info(
+            "parse_company_card_task: реквизиты извлечены: order=%s, inn=%s, "
+            "confidence=%.2f, warnings=%d",
+            oid,
+            (requisites.inn[:4] + "...") if requisites.inn else "N/A",
+            requisites.parse_confidence,
+            len(requisites.warnings),
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Периодические задачи
 # ═══════════════════════════════════════════════════════════════════════════════
 
