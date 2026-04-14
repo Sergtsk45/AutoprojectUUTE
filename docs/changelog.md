@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-14] — Модальное окно "Запросить КП" (Шаг 2)
+
+### Добавлено
+- В [`frontend/src/components/KpRequestModal.tsx`](../frontend/src/components/KpRequestModal.tsx): модальный компонент с 5 обязательными полями (организация, ФИО, телефон, email, файл ТУ), FormData-отправка, состояния submitting/success/error
+- В [`frontend/src/api.ts`](../frontend/src/api.ts): функция `sendKpRequest(formData: FormData)` для отправки multipart/form-data
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): эндпоинт `POST /api/v1/landing/kp-request` с валидацией EmailStr, ограничением 20 МБ, проверкой результата отправки
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): функция `send_kp_request_notification` — письмо инженеру с файлом ТУ во вложении, HTML-экранирование пользовательских полей, Reply-To header
+
+### Изменено
+- В [`frontend/src/components/ProcessSection.tsx`](../frontend/src/components/ProcessSection.tsx): кнопка "Запросить КП" в шаге 2 теперь открывает модальное окно (вместо ссылки на `#calculator`)
+
 ## [2026-04-14] — Настроечная БД Эско-Терра в express-пайплайне
 
 ### Добавлено
