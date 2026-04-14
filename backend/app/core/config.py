@@ -34,6 +34,18 @@ class Settings(BaseSettings):
     app_base_url: str = "http://localhost:8000"
     max_retry_count: int = 3
 
+    # Реквизиты компании (для договоров и счетов)
+    company_full_name: str = "ИП Иванов Иван Иванович"
+    company_inn: str = ""
+    company_ogrn: str = ""
+    company_address: str = ""
+    company_bank_name: str = ""
+    company_bik: str = ""
+    company_corr_account: str = ""
+    company_settlement_account: str = ""
+    company_director_name: str = ""
+    company_director_position: str = "Индивидуальный предприниматель"
+
     # Templates
     templates_dir: Path = Path(__file__).parent.parent.parent / "templates"
 
