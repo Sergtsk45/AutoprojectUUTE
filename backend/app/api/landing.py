@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.models import FileCategory, OrderStatus, OrderType
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
+from app.services.email_service import send_kp_request_notification
 from app.services.tasks import start_tu_parsing
 from app.schemas import FileResponse, OrderCreate, PipelineResponse, UploadPageInfo
 
@@ -177,8 +178,6 @@ async def kp_request(
     Принимает контактные данные и файл ТУ, отправляет письмо инженеру.
     Заявка в БД не создаётся.
     """
-    from app.services.email_service import send_kp_request_notification
-
     _MAX_TU_SIZE = 20 * 1024 * 1024  # 20 МБ
 
     tu_bytes = await tu_file.read(_MAX_TU_SIZE + 1)
