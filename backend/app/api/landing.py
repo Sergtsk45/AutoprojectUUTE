@@ -30,6 +30,8 @@ _SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
     }
 )
 
+_MAX_TU_SIZE = 20 * 1024 * 1024  # 20 МБ — максимальный размер файла ТУ
+
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -178,15 +180,13 @@ async def kp_request(
     Принимает контактные данные и файл ТУ, отправляет письмо инженеру.
     Заявка в БД не создаётся.
     """
-    _MAX_TU_SIZE = 20 * 1024 * 1024  # 20 МБ
-
     tu_bytes = await tu_file.read(_MAX_TU_SIZE + 1)
     if len(tu_bytes) > _MAX_TU_SIZE:
         raise HTTPException(status_code=413, detail="Файл слишком большой (максимум 20 МБ)")
 
     tu_filename = tu_file.filename or "tu.pdf"
 
-    send_kp_request_notification(
+    ok = send_kp_request_notification(
         organization=organization,
         responsible_name=responsible_name,
         phone=phone,
@@ -194,6 +194,8 @@ async def kp_request(
         tu_filename=tu_filename,
         tu_bytes=tu_bytes,
     )
+    if not ok:
+        raise HTTPException(status_code=500, detail="Не удалось отправить запрос. Попробуйте позже.")
 
     return SimpleResponse(
         success=True,
