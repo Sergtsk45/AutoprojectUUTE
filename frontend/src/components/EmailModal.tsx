@@ -75,6 +75,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
     setIsSubmitted(false);
     setError('');
     setRedirectUrl('');
+    setIsPrivacyOpen(false);
     onClose();
   };
 
