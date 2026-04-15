@@ -66,6 +66,36 @@ def _order_context(order: Order) -> dict:
     }
 
 
+def _format_rub(amount: int | None) -> str:
+    """Форматирование суммы в рублях для писем (пробел как разделитель тысяч)."""
+    if amount is None:
+        return "—"
+    return f"{amount:,}".replace(",", " ")
+
+
+def _final_amount_rub(order: Order) -> int | None:
+    if order.payment_amount is None or order.advance_amount is None:
+        return None
+    return order.payment_amount - order.advance_amount
+
+
+def _contract_number_display(order: Order) -> str:
+    oid = str(order.id)
+    return (order.contract_number or oid[:8]).strip()
+
+
+def _executor_bank_context() -> dict:
+    """Реквизиты получателя платежа (исполнитель) из настроек — для писем со счётом."""
+    return {
+        "company_full_name": settings.company_full_name,
+        "company_inn": settings.company_inn or "—",
+        "company_settlement_account": settings.company_settlement_account or "—",
+        "company_bank_name": settings.company_bank_name or "—",
+        "company_bik": settings.company_bik or "—",
+        "company_corr_account": settings.company_corr_account or "—",
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Рендеринг писем
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -147,6 +177,112 @@ def render_project_delivery(
     subject = f"Проект УУТЭ готов — {order.object_address or 'заявка'}"
     html_body = template.render(ctx)
     return subject, html_body, attachments
+
+
+def render_project_ready_payment(order: Order) -> tuple[str, str, list[str]]:
+    """Письмо клиенту: проект готов, переход к оформлению оплаты."""
+    env = _get_jinja()
+    template = env.get_template("emails/project_ready_payment.html")
+    ctx = {
+        **_order_context(order),
+        "header_title": "Проект готов",
+        "payment_url": f"{settings.app_base_url}/payment/{order.id}",
+        "payment_amount_formatted": _format_rub(order.payment_amount),
+        "advance_amount_formatted": _format_rub(order.advance_amount),
+        "final_amount_formatted": _format_rub(_final_amount_rub(order)),
+    }
+    subject = (
+        f"Проект УУТЭ готов — оформление оплаты — {order.object_address or 'заявка'}"
+    )
+    return subject, template.render(ctx), []
+
+
+def render_contract_delivery(
+    order: Order,
+    attachment_paths: list[str],
+) -> tuple[str, str, list[str]]:
+    """Письмо клиенту: договор и счёт на аванс (вложения — пути к файлам)."""
+    env = _get_jinja()
+    template = env.get_template("emails/contract_delivery.html")
+    attachments = list(attachment_paths)
+    cn = _contract_number_display(order)
+    ctx = {
+        **_order_context(order),
+        **_executor_bank_context(),
+        "header_title": "Договор и счёт на аванс",
+        "payment_url": f"{settings.app_base_url}/payment/{order.id}",
+        "contract_number": cn,
+        "advance_amount_formatted": _format_rub(order.advance_amount),
+        "has_attachments": len(attachments) > 0,
+    }
+    subject = f"Договор №{cn} и счёт на оплату — УУТЭ"
+    return subject, template.render(ctx), attachments
+
+
+def render_advance_received(
+    order: Order,
+    project_documents: list[str] | None = None,
+    attachment_paths: list[str] | None = None,
+) -> tuple[str, str, list[str]]:
+    """Письмо клиенту: аванс получен, проект во вложениях."""
+    env = _get_jinja()
+    template = env.get_template("emails/advance_received.html")
+    attachments = list(attachment_paths or [])
+    docs = project_documents or [
+        "Пояснительная записка",
+        "Чертежи (PDF)",
+        "Сопроводительное письмо в РСО",
+    ]
+    cn = _contract_number_display(order)
+    ctx = {
+        **_order_context(order),
+        "header_title": "Аванс получен",
+        "payment_url": f"{settings.app_base_url}/payment/{order.id}",
+        "contract_number": cn,
+        "advance_amount_formatted": _format_rub(order.advance_amount),
+        "final_amount_formatted": _format_rub(_final_amount_rub(order)),
+        "project_documents": docs,
+        "has_attachments": len(attachments) > 0,
+    }
+    subject = f"Аванс получен — проект УУТЭ — {order.object_address or 'заявка'}"
+    return subject, template.render(ctx), attachments
+
+
+def render_final_payment_request(
+    order: Order,
+    retry_count: int = 0,
+) -> tuple[str, str, list[str]]:
+    """Напоминание клиенту об остатке оплаты / скане РСО."""
+    env = _get_jinja()
+    template = env.get_template("emails/final_payment_request.html")
+    cn = _contract_number_display(order)
+    ctx = {
+        **_order_context(order),
+        "header_title": "Напоминание об оплате",
+        "payment_url": f"{settings.app_base_url}/payment/{order.id}",
+        "contract_number": cn,
+        "final_amount_formatted": _format_rub(_final_amount_rub(order)),
+        "retry_count": retry_count,
+    }
+    subject = f"Напоминание: остаток оплаты — договор №{cn}"
+    return subject, template.render(ctx), []
+
+
+def render_final_payment_received(order: Order) -> tuple[str, str, list[str]]:
+    """Письмо клиенту: оплата завершена."""
+    env = _get_jinja()
+    template = env.get_template("emails/final_payment_received.html")
+    cn = _contract_number_display(order)
+    base = settings.app_base_url.rstrip("/")
+    ctx = {
+        **_order_context(order),
+        "header_title": "Оплата завершена",
+        "contract_number": cn,
+        "payment_amount_formatted": _format_rub(order.payment_amount),
+        "site_url": f"{base}/",
+    }
+    subject = f"Оплата завершена — договор №{cn} — УУТЭ"
+    return subject, template.render(ctx), []
 
 
 def render_error_notification(
@@ -336,6 +472,27 @@ def send_reminder(session: Session, order: Order) -> bool:
     return success
 
 
+def send_project_ready_payment(session: Session, order: Order) -> bool:
+    """Отправить клиенту письмо «проект готов — оформите оплату»."""
+    subject, html_body, attachments = render_project_ready_payment(order)
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachments,
+    )
+    _log_email(
+        session,
+        order,
+        EmailType.PROJECT_READY_PAYMENT,
+        subject,
+        html_body,
+        success,
+        error_msg=None if success else "SMTP delivery failed",
+    )
+    return success
+
+
 def send_project(
     session: Session,
     order: Order,
@@ -370,31 +527,97 @@ def send_contract_delivery_to_client(
     attachment_paths: list[str],
 ) -> bool:
     """Отправить клиенту договор и счёт (вложения — пути к .docx)."""
-    contract_no = order.contract_number or str(order.id)[:8]
-    subject = f"Договор №{contract_no} и счёт на оплату — УУТЭ"
-    pay_url = f"{settings.app_base_url}/payment/{order.id}"
-    cn = escape(contract_no)
-    client = escape(order.client_name)
-    html_body = f"""<!DOCTYPE html>
-<html><body style="font-family:sans-serif;line-height:1.55">
-<p>Здравствуйте, {client}!</p>
-<p>Во вложении — проект договора и счёт на оплату аванса по заявке на проектирование УУТЭ.</p>
-<p>Номер договора: <strong>{cn}</strong></p>
-<p>Статус и дальнейшие шаги: <a href="{escape(pay_url)}">{escape(pay_url)}</a></p>
-<p>С уважением,<br/>{escape(_COMMON_CONTEXT["company_name"])}</p>
-</body></html>"""
-
+    subject, html_body, attachments = render_contract_delivery(
+        order, attachment_paths
+    )
     success = send_email(
         recipient=order.client_email,
         subject=subject,
         html_body=html_body,
-        attachment_paths=attachment_paths,
+        attachment_paths=attachments,
     )
-
     _log_email(
         session,
         order,
         EmailType.CONTRACT_DELIVERY,
+        subject,
+        html_body,
+        success,
+        error_msg=None if success else "SMTP delivery failed",
+    )
+    return success
+
+
+def send_advance_received(
+    session: Session,
+    order: Order,
+    attachment_paths: list[str],
+    project_documents: list[str] | None = None,
+) -> bool:
+    """Отправить клиенту письмо «аванс получен» с проектом во вложениях."""
+    subject, html_body, attachments = render_advance_received(
+        order,
+        project_documents=project_documents,
+        attachment_paths=attachment_paths,
+    )
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachments,
+    )
+    _log_email(
+        session,
+        order,
+        EmailType.ADVANCE_RECEIVED,
+        subject,
+        html_body,
+        success,
+        error_msg=None if success else "SMTP delivery failed",
+    )
+    return success
+
+
+def send_final_payment_request(
+    session: Session,
+    order: Order,
+    retry_count: int = 0,
+) -> bool:
+    """Напоминание об остатке оплаты (Celery Beat или вручную)."""
+    subject, html_body, attachments = render_final_payment_request(
+        order, retry_count=retry_count
+    )
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachments,
+    )
+    _log_email(
+        session,
+        order,
+        EmailType.FINAL_PAYMENT_REQUEST,
+        subject,
+        html_body,
+        success,
+        error_msg=None if success else "SMTP delivery failed",
+    )
+    return success
+
+
+def send_final_payment_received(session: Session, order: Order) -> bool:
+    """Письмо клиенту после полной оплаты."""
+    subject, html_body, attachments = render_final_payment_received(order)
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachments,
+    )
+    _log_email(
+        session,
+        order,
+        EmailType.FINAL_PAYMENT_RECEIVED,
         subject,
         html_body,
         success,

@@ -1,0 +1,31 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>Проект узла учёта тепловой энергии по адресу
+<strong>{{ object_address or "—" }}</strong> готов
+и прошёл проверку инженером.</p>
+
+<h2>Стоимость и условия оплаты</h2>
+
+<div class="list-block">
+  <ul>
+    <li>Стоимость проекта: <strong>{{ payment_amount_formatted }} &#8381;</strong></li>
+    <li>Аванс (50%): <strong>{{ advance_amount_formatted }} &#8381;</strong> — до отправки проекта</li>
+    <li>Остаток (50%): <strong>{{ final_amount_formatted }} &#8381;</strong> — после согласования в РСО</li>
+  </ul>
+</div>
+
+<p>Для получения проекта оформите договор и оплатите аванс:</p>
+
+<div class="btn-center">
+  <a href="{{ payment_url }}" class="btn">Перейти к оформлению</a>
+</div>
+
+<div class="note">
+  На странице оформления вам потребуется загрузить карточку предприятия
+  (документ с реквизитами вашей организации) — мы автоматически подготовим
+  договор и счёт на аванс.
+</div>
+{% endblock %}

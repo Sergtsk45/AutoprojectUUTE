@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>Напоминаем об остатке оплаты по договору №{{ contract_number }}
+за проект узла учёта тепловой энергии по адресу
+<strong>{{ object_address or "—" }}</strong>.</p>
+
+<div class="list-block">
+  <ul>
+    <li>Сумма остатка: <strong>{{ final_amount_formatted }} &#8381;</strong></li>
+    <li>Договор: №{{ contract_number }}</li>
+  </ul>
+</div>
+
+<p>Загрузите скан сопроводительного письма с входящим номером РСО
+или оплатите остаток:</p>
+
+<div class="btn-center">
+  <a href="{{ payment_url }}" class="btn">Загрузить скан / Оплатить</a>
+</div>
+
+{% if retry_count >= 2 %}
+<div class="note">
+  Это повторное напоминание. Если у вас возникли сложности с оплатой
+  или согласованием — свяжитесь с нами, обсудим варианты.
+</div>
+{% endif %}
+{% endblock %}

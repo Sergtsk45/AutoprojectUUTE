@@ -1,0 +1,46 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>Договор и счёт на аванс по проекту узла учёта тепловой энергии
+по адресу <strong>{{ object_address or "—" }}</strong> подготовлены.</p>
+
+<h2>Документы</h2>
+
+<div class="list-block">
+  <ul>
+    <li>Договор №{{ contract_number }} на выполнение проектных работ</li>
+    <li>Счёт на аванс — {{ advance_amount_formatted }} &#8381;</li>
+  </ul>
+</div>
+
+{% if has_attachments %}
+<p>Документы приложены к этому письму.</p>
+{% endif %}
+
+<h2>Реквизиты для оплаты</h2>
+
+<div class="list-block">
+  <ul>
+    <li>Получатель: {{ company_full_name }}</li>
+    <li>ИНН: {{ company_inn }}</li>
+    <li>Р/с: {{ company_settlement_account }}</li>
+    <li>Банк: {{ company_bank_name }}</li>
+    <li>БИК: {{ company_bik }}</li>
+    <li>К/с: {{ company_corr_account }}</li>
+  </ul>
+</div>
+
+<p>Просим оплатить аванс <strong>{{ advance_amount_formatted }} &#8381;</strong>
+в течение 5 рабочих дней. После получения аванса проект будет
+автоматически отправлен на вашу почту.</p>
+
+<div class="btn-center">
+  <a href="{{ payment_url }}" class="btn">Статус оплаты</a>
+</div>
+
+<div class="note">
+  В назначении платежа укажите: «Аванс по договору №{{ contract_number }}».
+</div>
+{% endblock %}

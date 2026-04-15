@@ -1,0 +1,48 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>Аванс <strong>{{ advance_amount_formatted }} &#8381;</strong> по договору №{{ contract_number }} получен. Спасибо!</p>
+
+<p>Проект узла учёта тепловой энергии по адресу
+<strong>{{ object_address or "—" }}</strong> прикреплён к этому письму.</p>
+
+<h2>Состав проекта</h2>
+<div class="list-block">
+  <ul>
+  {% for doc in project_documents %}
+    <li>{{ doc }}</li>
+  {% endfor %}
+  </ul>
+</div>
+
+{% if has_attachments %}
+<p>Проектная документация и сопроводительное письмо в РСО приложены к этому письму.</p>
+{% endif %}
+
+<h2>Дальнейшие действия</h2>
+
+<div class="list-block">
+  <ul>
+    <li>Распечатайте сопроводительное письмо, подпишите и поставьте печать.</li>
+    <li>Передайте проект вместе с письмом в РСО для согласования.</li>
+    <li>Получите отметку о принятии (входящий номер).</li>
+  </ul>
+</div>
+
+<div class="note" style="background:#fff8e1; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0;">
+  <strong>Завершение оплаты:</strong> в течение 5 рабочих дней просим
+  загрузить скан письма с входящим номером РСО <strong>или</strong>
+  оплатить остаток {{ final_amount_formatted }} &#8381; по договору №{{ contract_number }}.
+</div>
+
+<div class="btn-center">
+  <a href="{{ payment_url }}" class="btn">Загрузить скан / Оплатить остаток</a>
+</div>
+
+<div class="note">
+  Проект выполнен в соответствии с Приказом Минстроя России
+  №1036/пр (Правила коммерческого учёта тепловой энергии).
+</div>
+{% endblock %}

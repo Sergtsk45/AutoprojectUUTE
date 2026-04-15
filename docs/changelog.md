@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-15] — Письма по авансовой оплате (шаблоны + send/render)
+
+### Добавлено
+- В [`backend/templates/emails/`](../backend/templates/emails/): `project_ready_payment.html`, `contract_delivery.html`, `advance_received.html`, `final_payment_request.html`, `final_payment_received.html` (наследуют `base.html`, суммы и кнопки на `/payment/{id}`)
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): хелперы `_format_rub`, `_final_amount_rub`, `_contract_number_display`, `_executor_bank_context`; пары `render_*` / `send_*` для `PROJECT_READY_PAYMENT`, `CONTRACT_DELIVERY`, `ADVANCE_RECEIVED`, `FINAL_PAYMENT_REQUEST`, `FINAL_PAYMENT_RECEIVED`
+
+### Изменено
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): `send_contract_delivery_to_client` использует шаблон `contract_delivery.html` вместо inline HTML
+
 ## [2026-04-15] — Публичная страница оплаты /payment/{id}
 
 ### Добавлено

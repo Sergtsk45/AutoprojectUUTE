@@ -1,0 +1,25 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<p>{{ client_name }}, здравствуйте!</p>
+
+<p>Оплата по договору №{{ contract_number }} за проект узла учёта
+тепловой энергии по адресу <strong>{{ object_address or "—" }}</strong>
+получена полностью. Спасибо!</p>
+
+<h2>Итого</h2>
+
+<div class="list-block">
+  <ul>
+    <li>Полная стоимость работ: <strong>{{ payment_amount_formatted }} &#8381;</strong></li>
+    <li>Договор №{{ contract_number }}</li>
+    <li>Объект: <strong>{{ object_address or "—" }}</strong></li>
+  </ul>
+</div>
+
+<p>Работы по данной заявке завершены. Если понадобится сопровождение или дополнительные материалы — напишите нам на почту или воспользуйтесь формой на сайте.</p>
+
+<div class="btn-center">
+  <a href="{{ site_url }}" class="btn">Перейти на сайт</a>
+</div>
+{% endblock %}
