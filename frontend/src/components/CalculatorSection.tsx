@@ -9,17 +9,17 @@ const CalculatorSection: React.FC = () => {
 
   useEffect(() => {
     const prices: Record<number, number> = {
-      1: 30000,
-      2: 45000,
-      3: 60000,
+      1: 22500,
+      2: 35000,
+      3: 50000,
     };
-    setPrice(prices[circuits] || 30000);
+    setPrice(prices[circuits] || 22500);
   }, [circuits]);
 
   const formatPrice = (p: number) => new Intl.NumberFormat('ru-RU').format(p);
 
-  /** Тариф «Экспресс» (1 контур) — фиксированная цена в калькуляторе и в заявке. */
-  const EXPRESS_PRICE = 20000;
+  /** Тариф «Экспресс» / ЭСКО (1 контур) — фиксированная цена в калькуляторе и в заявке. */
+  const EXPRESS_PRICE = 11250;
   const expressPrice = circuits === 1 ? EXPRESS_PRICE : price;
 
   const handleOrder = (type: 'express' | 'custom') => {
