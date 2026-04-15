@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-04-15] — Celery: оркестрация авансовой оплаты
+
+### Добавлено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `_collect_project_attachments`, `_resolve_initial_payment_amount`; задачи `initiate_payment_flow`, `process_advance_payment`, `process_final_payment`
+
+### Изменено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `send_completed_project` собирает вложения через `_collect_project_attachments`; `process_company_card_and_send_contract` — сохранение договора/счёта в БД и на диск до отправки письма, повторная отправка при уже сохранённых файлах, `max_retries=2` / `delay=60`
+
 ## [2026-04-15] — Письма по авансовой оплате (шаблоны + send/render)
 
 ### Добавлено

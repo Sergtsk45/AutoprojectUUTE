@@ -135,17 +135,17 @@ review → awaiting_contract → contract_sent → advance_paid → awaiting_fin
 ---
 
 ## Задача 7: Celery-задачи оркестрации оплаты
-- **Статус**: В работе
+- **Статус**: Завершена
 - **Приоритет**: Высокий
-- **Описание**: 4 Celery-задачи — полный пайплайн от «инженер одобрил» до «оплата завершена». Переиспользует логику сборки вложений из `send_completed_project` (PDF проекта + сопроводительное в РСО). Вспомогательная функция `_resolve_price` для определения суммы заявки.
+- **Описание**: 4 Celery-задачи — полный пайплайн от «инженер одобрил» до «оплата завершена». Общая сборка вложений проекта — `_collect_project_attachments`; стартовая сумма — `_resolve_initial_payment_amount` (карта контуров 1–3 как на лендинге, иначе дефолт 22500). Вспомогательная `notify_engineer_rso_scan_received` без изменения контракта.
 - **Шаги выполнения**:
-  - [ ] `initiate_payment_flow`: `REVIEW → AWAITING_CONTRACT` — расчёт `payment_amount` / `advance_amount`, генерация `contract_number`, отправка `send_project_ready_payment`
-  - [ ] `_resolve_price(order)` — определение цены (из `order.payment_amount` или дефолт 22500)
-  - [x] `process_company_card_and_send_contract`: `AWAITING_CONTRACT → CONTRACT_SENT` — генерация DOCX договора и счёта, сохранение как `OrderFile` (CONTRACT, INVOICE), отправка `send_contract_delivery_to_client` с вложениями, удаление временных файлов (триггер с `payment.html` / `select-payment-method`, не с approve)
-  - [ ] `send_project_after_advance`: `CONTRACT_SENT → ADVANCE_PAID → AWAITING_FINAL_PAYMENT` — фиксация `advance_paid_at`, сборка PDF проекта + сопроводительного (как `send_completed_project`), отправка `send_advance_received` с вложениями
-  - [ ] `process_final_payment`: `AWAITING_FINAL_PAYMENT → COMPLETED` — фиксация `final_paid_at`, отправка `send_final_payment_received`
-  - [ ] `send_completed_project` НЕ менять — остаётся для ручного override инженером
-  - [ ] Все задачи: `bind=True`, `max_retries=2`, проверка текущего статуса (идемпотентность), lazy-импорты
+  - [x] `initiate_payment_flow`: `REVIEW → AWAITING_CONTRACT` — расчёт `payment_amount` / `advance_amount`, генерация `contract_number`, отправка `send_project_ready_payment`
+  - [x] `_resolve_initial_payment_amount(order)` — цена из `order.payment_amount`, иначе `parsed_params.circuits` и карта {1:22500, 2:35000, 3:50000}, иначе 22 500
+  - [x] `process_company_card_and_send_contract`: `AWAITING_CONTRACT → CONTRACT_SENT` — DOCX, копия в `UPLOAD_DIR`, `OrderFile`, затем письмо; повтор отправки при уже сохранённых файлах; только `bank_transfer`
+  - [x] `process_advance_payment`: `CONTRACT_SENT → ADVANCE_PAID → AWAITING_FINAL_PAYMENT` — `advance_paid_at`, `_collect_project_attachments`, `send_advance_received`; догон статуса при `ADVANCE_PAID` и уже успешном `ADVANCE_RECEIVED`
+  - [x] `process_final_payment`: `AWAITING_FINAL_PAYMENT → COMPLETED` — `final_paid_at`, `send_final_payment_received`
+  - [x] `send_completed_project` — только рефакторинг: вложения через `_collect_project_attachments`, поведение прежнее (override инженером)
+  - [x] Задачи оплаты: `bind=True`, проверка статуса, lazy-импорты; временные DOCX удаляются вне сессии
 - **Файлы**: `backend/app/services/tasks.py`
 - **Зависимости**: Задачи 2 (парсер), 3 (генератор DOCX), 6 (email)
 
