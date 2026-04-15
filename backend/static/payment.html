@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оплата проекта УУТЭ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-bg: #f3f4f6;
+      --c-card: #ffffff;
+      --primary: #1976d2;
+      --c-primary: #1976d2;
+      --c-primary-hover: #1565c0;
+      --success: #4caf50;
+      --c-success: #4caf50;
+      --c-success-bg: #e8f5e9;
+      --warning: #ff9800;
+      --c-warn: #ff9800;
+      --c-warn-bg: #fff8e1;
+      --error: #f44336;
+      --c-error: #f44336;
+      --c-error-bg: #ffebee;
+      --c-text: #212121;
+      --c-text-secondary: #616161;
+      --c-border: #e0e0e0;
+      --c-drop-bg: #e3f2fd;
+      --c-drop-border: #90caf9;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Golos Text', sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 12px;
+      background: var(--c-drop-bg);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--c-primary);
+      font-weight: 500;
+    }
+
+    #greeting {
+      font-size: 15px;
+      color: var(--c-text-secondary);
+      margin-bottom: 16px;
+    }
+    #greeting strong { color: var(--c-text); }
+
+    .card {
+      background: var(--c-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .banner {
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      margin-bottom: 20px;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .banner.visible { display: flex; }
+    .banner.success { background: var(--c-success-bg); color: #1b5e20; border: 1px solid #a5d6a7; }
+    .banner.error { background: var(--c-error-bg); color: #b71c1c; border: 1px solid #ef9a9a; }
+    .banner.info { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--c-primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--c-primary-hover);
+      box-shadow: var(--shadow-lg);
+    }
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #fff;
+      color: var(--c-primary);
+      border: 2px solid var(--c-primary);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .btn-secondary:hover { background: var(--c-drop-bg); }
+
+    .dropzone {
+      border: 2px dashed var(--c-border);
+      border-radius: var(--radius);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--c-drop-border);
+      background: var(--c-drop-bg);
+    }
+
+    .upload-queue { margin-top: 14px; }
+    .upload-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #fafafa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .upload-item .filename {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .upload-item .size { color: var(--c-text-secondary); font-size: 13px; flex-shrink: 0; }
+    .upload-item .progress-bar {
+      width: 80px;
+      height: 4px;
+      background: var(--c-border);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .upload-item .progress-bar .fill {
+      height: 100%;
+      background: var(--c-primary);
+      border-radius: 2px;
+      transition: width 0.25s;
+    }
+    .upload-item.success .progress-bar .fill { background: var(--c-success); }
+    .upload-item.error .progress-bar .fill { background: var(--c-error); }
+    .upload-item .status-text { font-size: 12px; flex-shrink: 0; width: 72px; text-align: right; }
+    .upload-item .status-text.ok { color: var(--c-success); }
+    .upload-item .status-text.err { color: var(--c-error); }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      vertical-align: middle;
+    }
+    .spinner-dark {
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .payment-methods {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .payment-option {
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .payment-option:hover { border-color: #90caf9; }
+    .payment-option.selected {
+      border-color: #1976d2;
+      background: #e3f2fd;
+    }
+    .payment-option-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+    .payment-option-desc { font-size: 13px; color: #666; }
+
+    .requisites-table { width: 100%; border-collapse: collapse; }
+    .requisites-table td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+    .requisites-table .req-label { color: #888; width: 180px; white-space: nowrap; }
+
+    .info-block {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 20px 16px 48px; }
+      .card { padding: 20px; }
+      .payment-methods { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge" id="badge"></div>
+    <p id="greeting"></p>
+    <div id="banner" class="banner" role="status"></div>
+
+    <div id="contractCard" class="card" style="display:none;">
+      <h2>Оформление договора</h2>
+      <p>Для подготовки договора загрузите карточку предприятия
+         (PDF, DOC или изображение с реквизитами вашей организации).</p>
+
+      <div id="companyUploadBlock">
+        <div class="dropzone" id="dropzone" tabindex="0">
+          <p>Перетащите файл сюда или нажмите для выбора</p>
+          <input type="file" id="fileInput"
+                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden>
+        </div>
+        <div id="uploadQueue" class="upload-queue"></div>
+      </div>
+
+      <div id="parsingSpinner" style="display:none; text-align:center; padding:20px;">
+        <div class="spinner spinner-dark" style="margin:0 auto 12px;display:block;width:28px;height:28px;"></div>
+        <p>Извлекаем реквизиты из документа...</p>
+      </div>
+
+      <div id="requisitesCard" style="display:none;">
+        <h3>Проверьте реквизиты</h3>
+        <table id="requisitesTable" class="requisites-table"></table>
+
+        <h3 style="margin-top:24px;">Выберите способ оплаты</h3>
+        <div class="payment-methods">
+          <div class="payment-option" id="optBankTransfer" role="button" tabindex="0">
+            <div class="payment-option-title">Безналичная оплата</div>
+            <div class="payment-option-desc">Для юрлиц и ИП. Оплата по счёту.</div>
+          </div>
+          <div class="payment-option" id="optOnlineCard" role="button" tabindex="0">
+            <div class="payment-option-title">Оплата картой</div>
+            <div class="payment-option-desc">Моментальная оплата онлайн.</div>
+          </div>
+        </div>
+
+        <button type="button" id="confirmPaymentBtn" class="btn btn-primary" style="width:100%;margin-top:16px;" disabled>
+          Продолжить
+        </button>
+      </div>
+    </div>
+
+    <div id="contractSentCard" class="card" style="display:none;">
+      <h2>Договор и счёт отправлены</h2>
+      <p>Документы отправлены на <strong id="sentEmail"></strong>.</p>
+      <div class="info-block">
+        <p>Договор №<strong id="contractNum"></strong></p>
+        <p>Сумма аванса: <strong id="advanceSum"></strong> руб.</p>
+      </div>
+      <p>После получения аванса проект будет автоматически отправлен на вашу почту.</p>
+      <button type="button" id="payOnlineBtn" class="btn btn-primary" style="display:none;margin-top:16px;">
+        Оплатить <span id="payOnlineSum"></span> руб.
+      </button>
+    </div>
+
+    <div id="advancePaidCard" class="card" style="display:none;">
+      <h2>Аванс получен — проект отправлен!</h2>
+      <p>Проект и сопроводительное письмо в РСО отправлены на
+         <strong id="projectEmail"></strong>.</p>
+
+      <div class="info-block" style="margin:16px 0;">
+        <h3>Дальнейшие действия</h3>
+        <p>1. Распечатайте сопроводительное письмо, подпишите и поставьте печать.</p>
+        <p>2. Передайте проект вместе с письмом в РСО.</p>
+        <p>3. Получите отметку о принятии (входящий номер).</p>
+        <p>4. Загрузите скан письма с входящим номером ниже
+           <strong>или</strong> оплатите остаток.</p>
+      </div>
+
+      <h3>Загрузить скан из РСО</h3>
+      <div class="dropzone" id="rsoDropzone" tabindex="0">
+        <p>Перетащите скан письма с входящим номером</p>
+        <input type="file" id="rsoFileInput"
+               accept=".pdf,.jpg,.jpeg,.png" hidden>
+      </div>
+      <div id="rsoUploadQueue" class="upload-queue"></div>
+
+      <div style="text-align:center; margin:16px 0; color:#666;">или</div>
+
+      <button type="button" id="payFinalBtn" class="btn btn-secondary">
+        Оплатить остаток <span id="finalSum"></span> руб.
+      </button>
+    </div>
+
+    <div id="awaitingFinalCard" class="card" style="display:none;">
+      <h2>Ожидание подтверждения</h2>
+      <p>Скан загружен или платёж обрабатывается.
+         Мы свяжемся с вами после подтверждения.</p>
+    </div>
+
+    <div id="completedCard" class="card" style="display:none;">
+      <h2>Спасибо!</h2>
+      <p>Все документы получены, оплата завершена.</p>
+      <p>Если у вас возникнут вопросы — напишите нам.</p>
+      <div style="margin-top:20px;">
+        <a class="btn btn-secondary" href="/">Вернуться на сайт</a>
+      </div>
+    </div>
+
+    <div id="notReadyCard" class="card" style="display:none;">
+      <h2>Проект в работе</h2>
+      <p>Ваша заявка обрабатывается. Когда проект будет готов,
+         вы получите письмо со ссылкой на оплату.</p>
+      <div style="margin-top:20px;">
+        <a class="btn btn-secondary" href="/">Вернуться на сайт</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin + '/api/v1';
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const ORDER_ID = pathParts[pathParts.length - 1] || '';
+
+    const MAX_FILE_BYTES = 25 * 1024 * 1024;
+    const REQUISITES_POLL_MS = 3000;
+    const REQUISITES_POLL_MAX = 60;
+    const STATUS_POLL_MS = 5000;
+    const STATUS_POLL_MAX = 120;
+
+    let orderData = null;
+    let selectedPaymentMethod = null;
+    let parsingPollTimer = null;
+    let statusPollTimer = null;
+
+    const SCREENS = {
+      awaiting_contract: 'contractCard',
+      contract_sent: 'contractSentCard',
+      advance_paid: 'advancePaidCard',
+      awaiting_final_payment: 'awaitingFinalCard',
+      completed: 'completedCard',
+    };
+
+    const PRE_PAYMENT_STATUSES = new Set([
+      'new', 'tu_parsing', 'tu_parsed', 'waiting_client_info',
+      'client_info_received', 'data_complete', 'generating_project', 'review',
+    ]);
+
+    const META_REQ_KEYS = new Set(['error', 'parse_confidence', 'warnings']);
+
+    function formatHttpDetail(detail) {
+      if (detail == null) return '';
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        return detail.map(function (x) {
+          if (x && typeof x === 'object') return x.msg || JSON.stringify(x);
+          return String(x);
+        }).join('; ');
+      }
+      return String(detail);
+    }
+
+    function hideAllScreens() {
+      Object.values(SCREENS).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      var nr = document.getElementById('notReadyCard');
+      if (nr) nr.style.display = 'none';
+    }
+
+    function showScreen(status) {
+      hideAllScreens();
+      if (PRE_PAYMENT_STATUSES.has(status) || status === 'error') {
+        document.getElementById('notReadyCard').style.display = 'block';
+        return;
+      }
+      var screenId = SCREENS[status];
+      if (screenId) {
+        document.getElementById(screenId).style.display = 'block';
+      } else {
+        document.getElementById('notReadyCard').style.display = 'block';
+      }
+    }
+
+    function showBanner(type, msg, duration) {
+      var el = document.getElementById('banner');
+      var ms = typeof duration === 'number' ? duration : 7000;
+      el.className = 'banner visible ' + type;
+      el.textContent = msg;
+      clearTimeout(showBanner._t);
+      showBanner._t = setTimeout(function () {
+        el.classList.remove('visible');
+        el.className = 'banner';
+      el.textContent = '';
+      }, ms);
+    }
+
+    function formatPrice(n) {
+      if (n == null || n === '') return '—';
+      return new Intl.NumberFormat('ru-RU').format(n);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' Б';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' КБ';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
+    }
+
+    function hasCompanyCardFile(data) {
+      var files = data.files_uploaded || [];
+      return files.some(function (f) { return f.category === 'company_card'; });
+    }
+
+    function requisitesReady(req) {
+      if (!req || typeof req !== 'object') return false;
+      if (req.error) return true;
+      return Object.keys(req).some(function (k) {
+        return !META_REQ_KEYS.has(k) && req[k];
+      });
+    }
+
+    function stopParsingPoll() {
+      if (parsingPollTimer) {
+        clearInterval(parsingPollTimer);
+        parsingPollTimer = null;
+      }
+    }
+
+    function stopStatusPoll() {
+      if (statusPollTimer) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+      }
+    }
+
+    function startRequisitesPoll() {
+      stopParsingPoll();
+      var attempts = 0;
+      document.getElementById('parsingSpinner').style.display = 'block';
+      var tick = async function () {
+        attempts++;
+        if (attempts > REQUISITES_POLL_MAX) {
+          stopParsingPoll();
+          document.getElementById('parsingSpinner').style.display = 'none';
+          showBanner('error', 'Не удалось распознать реквизиты за отведённое время. Обновите страницу или загрузите другой файл.');
+          return;
+        }
+        try {
+          var resp = await fetch(API_BASE + '/landing/orders/' + ORDER_ID + '/payment-page');
+          if (!resp.ok) return;
+          var data = await resp.json();
+          orderData = data;
+          if (data.company_requisites && data.company_requisites.error) {
+            stopParsingPoll();
+            document.getElementById('parsingSpinner').style.display = 'none';
+            showBanner('error', 'Ошибка распознавания: ' + data.company_requisites.error);
+            return;
+          }
+          if (requisitesReady(data.company_requisites)) {
+            stopParsingPoll();
+            document.getElementById('parsingSpinner').style.display = 'none';
+            document.getElementById('companyUploadBlock').style.display = 'none';
+            renderRequisites(data.company_requisites);
+            document.getElementById('requisitesCard').style.display = 'block';
+          }
+        } catch (e) {
+          console.error('requisites poll', e);
+        }
+      };
+      tick();
+      parsingPollTimer = setInterval(tick, REQUISITES_POLL_MS);
+    }
+
+    function startStatusPoll(targetStatus) {
+      stopStatusPoll();
+      var attempts = 0;
+      var tick = async function () {
+        attempts++;
+        if (attempts > STATUS_POLL_MAX) {
+          stopStatusPoll();
+          showBanner('info', 'Обработка занимает больше времени. Обновите страницу через несколько минут.');
+          return;
+        }
+        try {
+          var resp = await fetch(API_BASE + '/landing/orders/' + ORDER_ID + '/payment-page');
+          if (!resp.ok) return;
+          var data = await resp.json();
+          orderData = data;
+          if (data.order_status === targetStatus) {
+            stopStatusPoll();
+            fillScreenData(data);
+            showScreen(data.order_status);
+            showBanner('success', 'Статус обновлён.');
+          }
+        } catch (e) {
+          console.error('status poll', e);
+        }
+      };
+      tick();
+      statusPollTimer = setInterval(tick, STATUS_POLL_MS);
+    }
+
+    function renderRequisites(req) {
+      var labels = {
+        full_name: 'Наименование',
+        short_name: 'Краткое наименование',
+        inn: 'ИНН',
+        kpp: 'КПП',
+        ogrn: 'ОГРН',
+        legal_address: 'Юридический адрес',
+        actual_address: 'Фактический адрес',
+        bank_name: 'Банк',
+        bik: 'БИК',
+        settlement_account: 'Р/с',
+        corr_account: 'К/с',
+        director_name: 'Руководитель',
+        director_position: 'Должность',
+        phone: 'Телефон',
+        email: 'Email',
+      };
+      var $table = document.getElementById('requisitesTable');
+      $table.innerHTML = Object.keys(labels)
+        .filter(function (k) {
+          if (META_REQ_KEYS.has(k)) return false;
+          var v = req[k];
+          return v != null && String(v).trim() !== '';
+        })
+        .map(function (k) {
+          return '<tr><td class="req-label">' + labels[k] + '</td><td>' + escapeHtml(String(req[k])) + '</td></tr>';
+        }).join('');
+    }
+
+    function escapeHtml(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function setupDropzone(dropzone, fileInput, queue, postUrl) {
+      dropzone.addEventListener('click', function () { fileInput.click(); });
+      dropzone.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+      });
+      dropzone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+      dropzone.addEventListener('dragleave', function () {
+        dropzone.classList.remove('dragover');
+      });
+      dropzone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        handleUploadList(e.dataTransfer.files, queue, postUrl);
+      });
+      fileInput.addEventListener('change', function () {
+        handleUploadList(fileInput.files, queue, postUrl);
+        fileInput.value = '';
+      });
+    }
+
+    function handleUploadList(fileList, queue, postUrl) {
+      for (var i = 0; i < fileList.length; i++) {
+        var file = fileList[i];
+        if (file.size > MAX_FILE_BYTES) {
+          showBanner('error', 'Файл «' + file.name + '» превышает 25 МБ');
+          continue;
+        }
+        uploadFileXhr(file, queue, postUrl);
+      }
+    }
+
+    function uploadFileXhr(file, queueEl, postUrl) {
+      var item = document.createElement('div');
+      item.className = 'upload-item';
+      item.innerHTML = '<span class="filename"></span><span class="size"></span>' +
+        '<div class="progress-bar"><div class="fill" style="width:0%"></div></div>' +
+        '<span class="status-text">0%</span>';
+      item.querySelector('.filename').textContent = file.name;
+      item.querySelector('.size').textContent = formatSize(file.size);
+      queueEl.appendChild(item);
+
+      var fill = item.querySelector('.fill');
+      var statusText = item.querySelector('.status-text');
+      var formData = new FormData();
+      formData.append('file', file);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', postUrl);
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          var pct = Math.round((e.loaded / e.total) * 100);
+          fill.style.width = pct + '%';
+          statusText.textContent = pct + '%';
+        }
+      };
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          item.classList.add('success');
+          fill.style.width = '100%';
+          statusText.className = 'status-text ok';
+          statusText.textContent = '\u2713';
+          if (postUrl.indexOf('upload-company-card') !== -1) {
+            document.getElementById('parsingSpinner').style.display = 'block';
+            startRequisitesPoll();
+          }
+          if (postUrl.indexOf('upload-rso-scan') !== -1) {
+            showBanner('success', 'Скан загружен. Спасибо!');
+          }
+        } else {
+          var msg = 'HTTP ' + xhr.status;
+          try {
+            var j = JSON.parse(xhr.responseText);
+            msg = formatHttpDetail(j.detail) || msg;
+          } catch (x) {}
+          item.classList.add('error');
+          fill.style.width = '100%';
+          statusText.className = 'status-text err';
+          statusText.textContent = 'Ошибка';
+          showBanner('error', msg);
+        }
+      };
+      xhr.onerror = function () {
+        item.classList.add('error');
+        statusText.className = 'status-text err';
+        statusText.textContent = 'Ошибка';
+        showBanner('error', 'Ошибка сети');
+      };
+      xhr.send(formData);
+    }
+
+    function fillScreenData(data) {
+      var sentEmail = document.getElementById('sentEmail');
+      var projectEmail = document.getElementById('projectEmail');
+      if (sentEmail) sentEmail.textContent = data.client_email || '';
+      if (projectEmail) projectEmail.textContent = data.client_email || '';
+
+      var cnum = document.getElementById('contractNum');
+      if (cnum) cnum.textContent = data.contract_number || '—';
+
+      if (data.advance_amount != null) {
+        var adv = document.getElementById('advanceSum');
+        var payOn = document.getElementById('payOnlineSum');
+        if (adv) adv.textContent = formatPrice(data.advance_amount);
+        if (payOn) payOn.textContent = formatPrice(data.advance_amount);
+      }
+      if (data.payment_amount != null && data.advance_amount != null) {
+        var fin = document.getElementById('finalSum');
+        if (fin) fin.textContent = formatPrice(data.payment_amount - data.advance_amount);
+      }
+
+      if (data.payment_method === 'online_card' && data.order_status === 'contract_sent') {
+        var b = document.getElementById('payOnlineBtn');
+        if (b) b.style.display = 'inline-flex';
+      }
+
+      if (data.order_status === 'awaiting_contract') {
+        var spin = document.getElementById('parsingSpinner');
+        var reqCard = document.getElementById('requisitesCard');
+        var uploadBlock = document.getElementById('companyUploadBlock');
+        if (data.company_requisites && data.company_requisites.error) {
+          if (spin) spin.style.display = 'none';
+          if (uploadBlock) uploadBlock.style.display = 'block';
+          showBanner('error', 'Ошибка распознавания: ' + data.company_requisites.error);
+        } else if (requisitesReady(data.company_requisites)) {
+          if (spin) spin.style.display = 'none';
+          if (uploadBlock) uploadBlock.style.display = 'none';
+          renderRequisites(data.company_requisites);
+          if (reqCard) reqCard.style.display = 'block';
+        } else if (hasCompanyCardFile(data)) {
+          if (uploadBlock) uploadBlock.style.display = 'block';
+          if (spin) spin.style.display = 'block';
+          startRequisitesPoll();
+        }
+      }
+    }
+
+    document.getElementById('optBankTransfer').addEventListener('click', function () {
+      selectedPaymentMethod = 'bank_transfer';
+      document.getElementById('optBankTransfer').classList.add('selected');
+      document.getElementById('optOnlineCard').classList.remove('selected');
+      document.getElementById('confirmPaymentBtn').disabled = false;
+    });
+    document.getElementById('optOnlineCard').addEventListener('click', function () {
+      selectedPaymentMethod = 'online_card';
+      document.getElementById('optOnlineCard').classList.add('selected');
+      document.getElementById('optBankTransfer').classList.remove('selected');
+      document.getElementById('confirmPaymentBtn').disabled = false;
+    });
+
+    document.getElementById('confirmPaymentBtn').addEventListener('click', async function () {
+      var btn = document.getElementById('confirmPaymentBtn');
+      if (!selectedPaymentMethod) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Обработка…';
+      try {
+        var resp = await fetch(
+          API_BASE + '/landing/orders/' + ORDER_ID + '/select-payment-method',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_method: selectedPaymentMethod }),
+          }
+        );
+        var payload = await resp.json().catch(function () { return {}; });
+        if (!resp.ok) {
+          throw new Error(formatHttpDetail(payload.detail) || ('HTTP ' + resp.status));
+        }
+        showBanner('success', payload.message || 'Готово');
+        if (selectedPaymentMethod === 'bank_transfer') {
+          startStatusPoll('contract_sent');
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Продолжить';
+        }
+      } catch (err) {
+        showBanner('error', 'Ошибка: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Продолжить';
+      }
+    });
+
+    document.getElementById('payFinalBtn').addEventListener('click', function () {
+      showBanner('info', 'Онлайн-оплата остатка будет доступна в ближайшее время. Свяжитесь с нами при необходимости.');
+    });
+
+    setupDropzone(
+      document.getElementById('dropzone'),
+      document.getElementById('fileInput'),
+      document.getElementById('uploadQueue'),
+      API_BASE + '/landing/orders/' + ORDER_ID + '/upload-company-card'
+    );
+    setupDropzone(
+      document.getElementById('rsoDropzone'),
+      document.getElementById('rsoFileInput'),
+      document.getElementById('rsoUploadQueue'),
+      API_BASE + '/landing/orders/' + ORDER_ID + '/upload-rso-scan'
+    );
+
+    async function init() {
+      var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!ORDER_ID || !uuidRe.test(ORDER_ID)) {
+        showBanner('error', 'Некорректная ссылка на страницу оплаты');
+        return;
+      }
+      try {
+        var resp = await fetch(API_BASE + '/landing/orders/' + ORDER_ID + '/payment-page');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        orderData = await resp.json();
+
+        document.getElementById('badge').textContent = 'Заявка №' + ORDER_ID.slice(0, 8);
+        document.getElementById('greeting').innerHTML =
+          '<strong>' + escapeHtml(orderData.client_name) + '</strong>, здравствуйте!';
+
+        fillScreenData(orderData);
+        showScreen(orderData.order_status);
+      } catch (err) {
+        showBanner('error', 'Не удалось загрузить данные заявки');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

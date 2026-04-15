@@ -13,6 +13,7 @@
 
 import logging
 import uuid
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -22,8 +23,11 @@ from app.core.config import settings
 from app.services.param_labels import compute_client_document_missing
 from app.models.models import (
     ALLOWED_TRANSITIONS,
+    FileCategory,
     Order,
+    OrderFile,
     OrderStatus,
+    PaymentMethod,
     EmailType,
 )
 
@@ -611,6 +615,217 @@ def parse_company_card_task(self, order_id: str):
             len(requisites.warnings),
         )
 
+
+def _normalize_client_requisites(raw: dict, fallback_name: str) -> dict:
+    """Приводит JSON реквизитов к виду, ожидаемому generate_contract / generate_invoice."""
+
+    def g(key: str, default: str = "—") -> str:
+        v = raw.get(key)
+        if v is None:
+            return default
+        s = str(v).strip()
+        return s if s else default
+
+    full_name = g("full_name", "") or fallback_name
+    return {
+        "full_name": full_name,
+        "inn": g("inn", "—"),
+        "kpp": g("kpp", "—") if raw.get("kpp") else "—",
+        "ogrn": g("ogrn", "—") if raw.get("ogrn") else "—",
+        "legal_address": g("legal_address", "—"),
+        "bank_name": g("bank_name", "—"),
+        "bik": g("bik", "—"),
+        "corr_account": g("corr_account", "—"),
+        "settlement_account": g("settlement_account", "—"),
+        "director_name": g("director_name", "—"),
+        "director_position": g("director_position", "Генеральный директор"),
+        "email": raw.get("email"),
+    }
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
+def process_company_card_and_send_contract(self, order_id: str):
+    """Безнал после выбора на payment.html: договор + счёт, письмо клиенту, CONTRACT_SENT."""
+    import shutil
+
+    from app.services.contract_generator import (
+        generate_contract,
+        generate_contract_number,
+        generate_invoice,
+    )
+    from app.services.email_service import send_contract_delivery_to_client
+
+    oid = uuid.UUID(order_id)
+    logger.info("process_company_card_and_send_contract: order=%s", oid)
+
+    tmp_contract: Path | None = None
+    tmp_invoice: Path | None = None
+
+    try:
+        with SyncSession() as session:
+            order = _get_order(session, oid)
+            if order is None:
+                logger.error(
+                    "process_company_card_and_send_contract: заявка не найдена: %s", oid
+                )
+                return
+
+            if order.status != OrderStatus.AWAITING_CONTRACT:
+                logger.warning(
+                    "process_company_card_and_send_contract: пропуск, статус %s",
+                    order.status.value,
+                )
+                return
+
+            if order.payment_method != PaymentMethod.BANK_TRANSFER:
+                logger.info(
+                    "process_company_card_and_send_contract: не bank_transfer — пропуск"
+                )
+                return
+
+            raw_req = order.company_requisites
+            if (
+                not raw_req
+                or not isinstance(raw_req, dict)
+                or raw_req.get("error")
+            ):
+                logger.error(
+                    "process_company_card_and_send_contract: нет валидных реквизитов %s",
+                    oid,
+                )
+                return
+
+            if order.payment_amount is None or order.advance_amount is None:
+                logger.error(
+                    "process_company_card_and_send_contract: не заданы суммы order=%s",
+                    oid,
+                )
+                return
+
+            contract_number = order.contract_number or generate_contract_number(
+                str(order.id)
+            )
+            order_id_short = str(order.id)[:8]
+            req = _normalize_client_requisites(raw_req, order.client_name)
+
+            tmp_contract = generate_contract(
+                order_id_short,
+                contract_number,
+                order.object_address or "—",
+                order.client_name,
+                order.payment_amount,
+                order.advance_amount,
+                req,
+            )
+            tmp_invoice = generate_invoice(
+                order_id_short,
+                contract_number,
+                order.object_address or "—",
+                order.payment_amount,
+                order.advance_amount,
+                req,
+                is_advance=True,
+            )
+
+            ok = send_contract_delivery_to_client(
+                session,
+                order,
+                [str(tmp_contract), str(tmp_invoice)],
+            )
+            if not ok:
+                raise RuntimeError("Не удалось отправить договор и счёт клиенту")
+
+            session.refresh(order)
+            order.contract_number = contract_number
+
+            doc_mime = (
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            )
+            for category, src, orig_name in (
+                (FileCategory.CONTRACT, tmp_contract, f"Договор_{contract_number}.docx"),
+                (
+                    FileCategory.INVOICE,
+                    tmp_invoice,
+                    f"Счёт_аванс_{contract_number}.docx",
+                ),
+            ):
+                file_uuid = uuid.uuid4().hex[:12]
+                relative_path = f"{order.id}/{category.value}/{file_uuid}_{orig_name}"
+                dest = settings.upload_dir / relative_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
+                sz = dest.stat().st_size
+                session.add(
+                    OrderFile(
+                        order_id=order.id,
+                        category=category,
+                        original_filename=orig_name,
+                        storage_path=relative_path,
+                        content_type=doc_mime,
+                        file_size=sz,
+                    )
+                )
+
+            _transition(session, order, OrderStatus.CONTRACT_SENT)
+            logger.info(
+                "process_company_card_and_send_contract: готово order=%s", oid
+            )
+    except Exception as e:
+        logger.exception(
+            "process_company_card_and_send_contract: ошибка order=%s: %s", oid, e
+        )
+        try:
+            self.retry(exc=e)
+        except self.MaxRetriesExceededError:
+            logger.error(
+                "process_company_card_and_send_contract: исчерпаны попытки order=%s",
+                oid,
+            )
+    finally:
+        for p in (tmp_contract, tmp_invoice):
+            if p is not None:
+                try:
+                    p.unlink(missing_ok=True)
+                except OSError as err:
+                    logger.warning(
+                        "Не удалось удалить временный файл %s: %s", p, err
+                    )
+
+
+@celery_app.task
+def notify_engineer_rso_scan_received(order_id: str):
+    """Уведомление инженеру: клиент загрузил скан РСО."""
+    from html import escape
+
+    from app.services.email_service import send_email
+
+    oid = uuid.UUID(order_id)
+    logger.info("notify_engineer_rso_scan_received: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            logger.error("notify_engineer_rso_scan_received: заявка не найдена %s", oid)
+            return
+
+        order_id_short = str(order.id)[:8]
+        subject = f"Клиент загрузил скан РСО — заявка №{order_id_short}"
+        admin_url = f"{settings.app_base_url}/admin?order={order.id}"
+        html_body = f"""<!DOCTYPE html>
+<html><body style="font-family:sans-serif;line-height:1.55">
+<p>Клиент <strong>{escape(order.client_name)}</strong> загрузил скан письма с входящим номером РСО.</p>
+<p><a href="{escape(admin_url)}">Открыть заявку в админке</a></p>
+</body></html>"""
+        ok = send_email(
+            recipient=settings.admin_email,
+            subject=subject,
+            html_body=html_body,
+        )
+        if not ok:
+            logger.error(
+                "notify_engineer_rso_scan_received: не удалось отправить письмо %s", oid
+            )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Периодические задачи

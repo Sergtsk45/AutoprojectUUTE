@@ -364,6 +364,45 @@ def send_project(
     return success
 
 
+def send_contract_delivery_to_client(
+    session: Session,
+    order: Order,
+    attachment_paths: list[str],
+) -> bool:
+    """Отправить клиенту договор и счёт (вложения — пути к .docx)."""
+    contract_no = order.contract_number or str(order.id)[:8]
+    subject = f"Договор №{contract_no} и счёт на оплату — УУТЭ"
+    pay_url = f"{settings.app_base_url}/payment/{order.id}"
+    cn = escape(contract_no)
+    client = escape(order.client_name)
+    html_body = f"""<!DOCTYPE html>
+<html><body style="font-family:sans-serif;line-height:1.55">
+<p>Здравствуйте, {client}!</p>
+<p>Во вложении — проект договора и счёт на оплату аванса по заявке на проектирование УУТЭ.</p>
+<p>Номер договора: <strong>{cn}</strong></p>
+<p>Статус и дальнейшие шаги: <a href="{escape(pay_url)}">{escape(pay_url)}</a></p>
+<p>С уважением,<br/>{escape(_COMMON_CONTEXT["company_name"])}</p>
+</body></html>"""
+
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachment_paths,
+    )
+
+    _log_email(
+        session,
+        order,
+        EmailType.CONTRACT_DELIVERY,
+        subject,
+        html_body,
+        success,
+        error_msg=None if success else "SMTP delivery failed",
+    )
+    return success
+
+
 def send_error_notification(
     session: Session,
     order: Order,

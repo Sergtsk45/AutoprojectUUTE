@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-04-15] — Публичная страница оплаты /payment/{id}
+
+### Добавлено
+- В [`backend/static/payment.html`](../backend/static/payment.html): клиентская страница оплаты (экраны по статусу, drag-and-drop с прогрессом, polling парсинга реквизитов и смены статуса)
+- В [`backend/app/main.py`](../backend/app/main.py): маршрут `GET /payment/{order_id}` → `payment.html`
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): схема `PaymentPageInfo`
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): публичные эндпоинты `GET .../payment-page`, `POST .../upload-company-card`, `POST .../select-payment-method`, `POST .../upload-rso-scan`
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): `send_contract_delivery_to_client` — письмо с договором и счётом
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `process_company_card_and_send_contract`, `notify_engineer_rso_scan_received`
+
 ## [2026-04-14] — Калькулятор: тариф «Индивидуальный»
 
 ### Изменено

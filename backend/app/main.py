@@ -88,6 +88,16 @@ async def admin_page():
     return FileResponse(STATIC_DIR / "admin.html", media_type="text/html")
 
 
+@app.get("/payment/{order_id}")
+async def payment_page(order_id: str):
+    """Страница оплаты для клиента.
+
+    Клиент получает ссылку в письме:
+    https://yourdomain.ru/payment/<order_id>
+    """
+    return FileResponse(STATIC_DIR / "payment.html", media_type="text/html")
+
+
 # Статика (JS, CSS если понадобятся)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 

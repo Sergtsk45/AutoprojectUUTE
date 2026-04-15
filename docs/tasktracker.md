@@ -1,5 +1,14 @@
 # Task tracker
 
+## Задача: Публичная страница оплаты /payment/{id}
+- **Статус**: Завершена
+- **Описание**: Статическая `payment.html`, роут в `main.py`, публичные эндпоинты в `landing.py`, Celery: генерация и отправка договора/счёта (безнал), уведомление инженеру о скане РСО.
+- **Шаги выполнения**:
+  - [x] `PaymentPageInfo`, API payment-page / upload-company-card / select-payment-method / upload-rso-scan
+  - [x] `process_company_card_and_send_contract`, `notify_engineer_rso_scan_received`, `send_contract_delivery_to_client`
+  - [x] `payment.html` (экраны, XHR, polling, лимит 25 МБ)
+- **Зависимости**: статусы оплаты и `FileCategory` в модели (задача 1 в payment-advance-tasktracker)
+
 ## Задача: Модалка «Политика конфиденциальности»
 - **Статус**: Завершена
 - **Описание**: Добавить прокручиваемую модалку с текстом политики конфиденциальности (152-ФЗ), открываемую из футера и из формы заказа (EmailModal).

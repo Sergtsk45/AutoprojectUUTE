@@ -143,6 +143,23 @@ class UploadPageInfo(BaseModel):
     files_uploaded: list[FileResponse]
 
 
+class PaymentPageInfo(BaseModel):
+    """Информация для страницы оплаты клиентом."""
+
+    order_id: UUID
+    client_name: str
+    client_email: str
+    object_address: str | None
+    order_status: str
+    order_type: str | None = None
+    payment_method: str | None = None
+    payment_amount: int | None = None
+    advance_amount: int | None = None
+    company_requisites: dict | None = None
+    contract_number: str | None = None
+    files_uploaded: list[FileResponse]
+
+
 class PipelineResponse(BaseModel):
     """Ответ эндпоинтов пайплайна и публичного submit на лендинге."""
 

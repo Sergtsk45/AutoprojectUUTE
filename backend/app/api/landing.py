@@ -10,12 +10,18 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models import FileCategory, OrderStatus, OrderType
+from app.models import FileCategory, OrderStatus, OrderType, PaymentMethod
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.email_service import send_kp_request_notification
 from app.services.tasks import start_tu_parsing
-from app.schemas import FileResponse, OrderCreate, PipelineResponse, UploadPageInfo
+from app.schemas import (
+    FileResponse,
+    OrderCreate,
+    PaymentPageInfo,
+    PipelineResponse,
+    UploadPageInfo,
+)
 
 router = APIRouter(prefix="/landing", tags=["landing"])
 
@@ -351,3 +357,166 @@ async def save_survey(
     await db.commit()
 
     return SimpleResponse(success=True, message="Опросный лист сохранён")
+
+
+# ── Страница оплаты (публичная) ───────────────────────────────────────────────
+
+
+class PaymentMethodRequest(BaseModel):
+    payment_method: str = Field(..., pattern="^(bank_transfer|online_card)$")
+
+
+@router.get("/orders/{order_id}/payment-page", response_model=PaymentPageInfo)
+async def get_payment_page_info(
+    order_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Информация для страницы оплаты клиентом."""
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    all_files = await svc.get_files_by_order(order_id)
+    payment_categories = {
+        FileCategory.COMPANY_CARD.value,
+        FileCategory.CONTRACT.value,
+        FileCategory.INVOICE.value,
+        FileCategory.RSO_SCAN.value,
+    }
+    payment_files = [f for f in all_files if f.category.value in payment_categories]
+
+    return PaymentPageInfo(
+        order_id=order.id,
+        client_name=order.client_name,
+        client_email=order.client_email,
+        object_address=order.object_address,
+        order_status=order.status.value,
+        order_type=order.order_type.value if order.order_type else None,
+        payment_method=order.payment_method.value if order.payment_method else None,
+        payment_amount=order.payment_amount,
+        advance_amount=order.advance_amount,
+        company_requisites=order.company_requisites,
+        contract_number=order.contract_number,
+        files_uploaded=payment_files,
+    )
+
+
+@router.post(
+    "/orders/{order_id}/upload-company-card",
+    response_model=FileResponse,
+    status_code=201,
+)
+async def client_upload_company_card(
+    order_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Загрузка карточки предприятия клиентом (страница payment.html).
+
+    Принимает PDF, DOC, DOCX, JPG, PNG. Запускает парсинг реквизитов.
+    """
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.AWAITING_CONTRACT:
+        raise HTTPException(
+            status_code=400,
+            detail="Загрузка карточки доступна только на этапе оформления договора",
+        )
+
+    try:
+        order_file = await svc.upload_file(order_id, FileCategory.COMPANY_CARD, file)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    from app.services.tasks import parse_company_card_task
+
+    parse_company_card_task.delay(str(order_id))
+
+    return order_file
+
+
+@router.post("/orders/{order_id}/select-payment-method", response_model=SimpleResponse)
+async def select_payment_method(
+    order_id: uuid.UUID,
+    data: PaymentMethodRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Клиент выбрал метод оплаты.
+
+    Для bank_transfer: сохраняет метод, запускает генерацию договора и счёта.
+    Для online_card: сохраняет метод, создаёт платёж в YooKassa.
+    """
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.AWAITING_CONTRACT:
+        raise HTTPException(
+            status_code=400,
+            detail="Выбор метода оплаты доступен только на этапе оформления",
+        )
+
+    if not order.company_requisites or order.company_requisites.get("error"):
+        raise HTTPException(
+            status_code=400,
+            detail="Сначала загрузите карточку предприятия",
+        )
+
+    order.payment_method = PaymentMethod(data.payment_method)
+    await db.commit()
+
+    if data.payment_method == "bank_transfer":
+        from app.services.tasks import process_company_card_and_send_contract
+
+        process_company_card_and_send_contract.delay(str(order_id))
+        return SimpleResponse(
+            success=True,
+            message="Договор и счёт будут отправлены на email",
+        )
+
+    return SimpleResponse(
+        success=True,
+        message="Онлайн-оплата будет доступна позже",
+    )
+
+
+@router.post(
+    "/orders/{order_id}/upload-rso-scan",
+    response_model=FileResponse,
+    status_code=201,
+)
+async def client_upload_rso_scan(
+    order_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Загрузка скана письма с входящим номером РСО."""
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status not in (
+        OrderStatus.ADVANCE_PAID,
+        OrderStatus.AWAITING_FINAL_PAYMENT,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Загрузка скана доступна только после получения проекта",
+        )
+
+    try:
+        order_file = await svc.upload_file(order_id, FileCategory.RSO_SCAN, file)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    from app.services.tasks import notify_engineer_rso_scan_received
+
+    notify_engineer_rso_scan_received.delay(str(order_id))
+
+    return order_file
