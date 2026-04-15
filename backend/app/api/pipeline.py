@@ -14,7 +14,9 @@ from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services.tasks import (
     start_tu_parsing,
     process_client_response,
-    send_completed_project,
+    initiate_payment_flow,
+    process_advance_payment,
+    process_final_payment,
     notify_engineer_client_documents_received,
 )
 
@@ -155,9 +157,10 @@ async def approve_project(
     svc: OrderService = Depends(get_service),
     _key: str = Depends(verify_admin_key),
 ):
-    """Инженер одобрил проект — отправить клиенту.
+    """Инженер одобрил проект — запуск оплаты (уведомление клиенту, статус awaiting_contract).
 
     Доступно на любом статусе, кроме new, tu_parsing и completed.
+    Требуется загруженный PDF проекта (generated_project) для последующей отправки после аванса.
     """
     _APPROVE_BLOCKED = {OrderStatus.NEW, OrderStatus.TU_PARSING, OrderStatus.COMPLETED}
 
@@ -183,10 +186,70 @@ async def approve_project(
             ),
         )
 
-    task = send_completed_project.delay(str(order_id))
+    task = initiate_payment_flow.delay(str(order_id))
 
     return PipelineResponse(
-        message="Проект одобрен, отправляется клиенту",
+        message="Проект одобрен, клиенту отправлено уведомление об оплате",
+        order_id=order_id,
+        task_id=task.id,
+    )
+
+
+@router.post("/{order_id}/confirm-advance", response_model=PipelineResponse)
+async def confirm_advance_payment(
+    order_id: uuid.UUID,
+    svc: OrderService = Depends(get_service),
+    _key: str = Depends(verify_admin_key),
+):
+    """Инженер подтверждает получение аванса (безналичная оплата).
+
+    Доступно только в статусе contract_sent.
+    Запускает process_advance_payment — отправка проекта клиенту.
+    """
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.CONTRACT_SENT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Подтверждение аванса недоступно в статусе «{order.status.value}»",
+        )
+
+    task = process_advance_payment.delay(str(order_id))
+
+    return PipelineResponse(
+        message="Аванс подтверждён, проект отправляется клиенту",
+        order_id=order_id,
+        task_id=task.id,
+    )
+
+
+@router.post("/{order_id}/confirm-final", response_model=PipelineResponse)
+async def confirm_final_payment(
+    order_id: uuid.UUID,
+    svc: OrderService = Depends(get_service),
+    _key: str = Depends(verify_admin_key),
+):
+    """Инженер подтверждает получение остатка оплаты.
+
+    Доступно только в статусе awaiting_final_payment.
+    Переводит заявку в completed.
+    """
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Подтверждение остатка недоступно в статусе «{order.status.value}»",
+        )
+
+    task = process_final_payment.delay(str(order_id))
+
+    return PipelineResponse(
+        message="Оплата подтверждена, заявка завершается",
         order_id=order_id,
         task_id=task.id,
     )

@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-04-15] — Approve → оплата; админка: оплата и подтверждения
+
+### Добавлено
+- В [`backend/app/api/pipeline.py`](../backend/app/api/pipeline.py): `POST .../confirm-advance`, `POST .../confirm-final` (admin key) — запуск `process_advance_payment` / `process_final_payment`
+- В [`backend/static/admin.html`](../backend/static/admin.html): статусы оплаты в степпере и легенде, карточка «Оплата», кнопки подтверждения аванса и остатка, `startPaymentFlowPoll`, подписи типов писем оплаты
+
+### Изменено
+- В [`backend/app/api/pipeline.py`](../backend/app/api/pipeline.py): `approve_project` ставит в очередь `initiate_payment_flow` вместо `send_completed_project`
+- В [`backend/static/admin.html`](../backend/static/admin.html): текст подтверждения одобрения и опрос после approve (ожидание ухода из `review`)
+
 ## [2026-04-15] — Celery: оркестрация авансовой оплаты
 
 ### Добавлено

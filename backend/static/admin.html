@@ -959,6 +959,10 @@
       data_complete: 'Данные собраны',
       generating_project: 'Генерация проекта',
       review: 'На проверке',
+      awaiting_contract: 'Ожидание реквизитов',
+      contract_sent: 'Договор отправлен',
+      advance_paid: 'Аванс получен',
+      awaiting_final_payment: 'Ожидание остатка',
       completed: 'Завершена',
       error: 'Ошибка',
     };
@@ -972,18 +976,25 @@
       data_complete: '#66bb6a',
       generating_project: '#7e57c2',
       review: '#f9a825',
+      awaiting_contract: '#ff9800',
+      contract_sent: '#f57c00',
+      advance_paid: '#66bb6a',
+      awaiting_final_payment: '#42a5f5',
       completed: '#4caf50',
       error: '#f44336',
     };
 
     const STATUS_ORDER = [
       'new','tu_parsing','tu_parsed','waiting_client_info',
-      'client_info_received','data_complete','generating_project','review','completed'
+      'client_info_received','data_complete','generating_project','review',
+      'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
+      'completed'
     ];
 
     const POST_PARSE_STATUSES = new Set([
       'tu_parsed', 'waiting_client_info', 'client_info_received',
       'data_complete', 'generating_project', 'review', 'completed',
+      'awaiting_contract', 'contract_sent', 'advance_paid', 'awaiting_final_payment',
     ]);
 
     // Parsing poll state
@@ -1048,15 +1059,31 @@
       }, 5000); // каждые 5 сек
     }
 
+    function startPaymentFlowPoll() {
+      stopSendingProjectPoll();
+      sendingProjectPollTimer = setInterval(async () => {
+        try {
+          const order = await apiJSON(`/orders/${currentOrderId}`);
+          if (order.status !== 'review') {
+            clearInterval(sendingProjectPollTimer);
+            sendingProjectPollTimer = null;
+            renderOrder(order);
+          }
+        } catch (e) {
+          console.error('paymentFlowPoll:', e);
+        }
+      }, 5000);
+    }
+
     async function approveProject(orderId) {
-      if (!confirm('Одобрить проект и отправить клиенту?')) return;
+      if (!confirm('Одобрить проект и отправить клиенту уведомление об оплате?')) return;
       const actionBtns = document.querySelectorAll('[id^="action_btn_"]');
       actionBtns.forEach(b => { b.disabled = true; });
       showOrderAlert('info', 'Выполняется…');
       try {
         await apiJSON(`/pipeline/${orderId}/approve`, { method: 'POST' });
-        showOrderAlert('success', 'Проект одобрен — отправляется клиенту. Страница обновится автоматически.');
-        startSendingProjectPoll();
+        showOrderAlert('success', 'Проект одобрен — клиенту отправлено уведомление. Страница обновится.');
+        startPaymentFlowPoll();
       } catch (e) {
         showOrderAlert('error', 'Ошибка: ' + e.message);
         actionBtns.forEach(b => { b.disabled = false; });
@@ -1762,6 +1789,92 @@
       }
     }
 
+    function formatNum(n) {
+      return new Intl.NumberFormat('ru-RU').format(n);
+    }
+
+    function renderPaymentCard(order) {
+      let card = document.getElementById('paymentCard');
+      if (!card) {
+        const emailCard = document.getElementById('emailLog').closest('.card');
+        card = document.createElement('div');
+        card.className = 'card';
+        card.id = 'paymentCard';
+        card.innerHTML = `
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+              <line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+            Оплата
+          </div>
+          <div id="paymentContent"></div>
+        `;
+        emailCard.after(card);
+      }
+
+      const content = document.getElementById('paymentContent');
+
+      if (!order.payment_amount && !order.contract_number) {
+        card.style.display = 'none';
+        return;
+      }
+      card.style.display = 'block';
+
+      const pm = order.payment_method;
+      const pmLabel = {
+        bank_transfer: 'Безналичная',
+        online_card: 'Онлайн картой',
+      }[pm] || '—';
+
+      const advanceStatus = order.advance_paid_at
+        ? `<span style="color:#16a34a;">✓ Получен ${formatDate(order.advance_paid_at)}</span>`
+        : '<span style="color:#f57c00;">Ожидание</span>';
+
+      const finalAmount = (order.payment_amount || 0) - (order.advance_amount || 0);
+      const finalStatus = order.final_paid_at
+        ? `<span style="color:#16a34a;">✓ Получен ${formatDate(order.final_paid_at)}</span>`
+        : '<span style="color:#f57c00;">Ожидание</span>';
+
+      const rub = '₽';
+      let html = `
+        <dl class="detail-grid">
+          <dt>Договор</dt><dd>${esc(order.contract_number || '—')}</dd>
+          <dt>Метод оплаты</dt><dd>${pmLabel}</dd>
+          <dt>Полная сумма</dt><dd>${order.payment_amount ? formatNum(order.payment_amount) + ' ' + rub : '—'}</dd>
+          <dt>Аванс (50%)</dt><dd>${order.advance_amount ? formatNum(order.advance_amount) + ' ' + rub : '—'} — ${advanceStatus}</dd>
+          <dt>Остаток (50%)</dt><dd>${finalAmount ? formatNum(finalAmount) + ' ' + rub : '—'} — ${finalStatus}</dd>
+        </dl>
+      `;
+
+
+      const r = order.company_requisites;
+      if (r && typeof r === 'object' && !r.error) {
+        const reqLabels = {
+          full_name: 'Наименование', inn: 'ИНН', kpp: 'КПП',
+          legal_address: 'Юр. адрес', bank_name: 'Банк',
+          bik: 'БИК', settlement_account: 'Р/с',
+          director_name: 'Руководитель',
+        };
+        html += `<details style="margin-top:12px;"><summary style="cursor:pointer; font-weight:600; font-size:13px;">Реквизиты клиента</summary>
+          <dl class="detail-grid" style="margin-top:8px;">
+            ${Object.entries(reqLabels)
+              .filter(([k]) => r[k])
+              .map(([k, label]) => `<dt>${label}</dt><dd>${esc(String(r[k]))}</dd>`)
+              .join('')}
+          </dl>
+        </details>`;
+      }
+
+      html += `<div style="margin-top:12px; font-size:13px;">
+        <a href="/payment/${order.id}" target="_blank" style="color:var(--c-primary);">
+          Страница оплаты клиента \u2197
+        </a>
+      </div>`;
+
+      content.innerHTML = html;
+    }
+
     function renderOrder(order) {
       // ID badge
       document.getElementById('orderIdBadge').textContent = 'Заявка №' + order.id.slice(0,8);
@@ -1819,11 +1932,13 @@
         document.getElementById('calcConfigCard').style.display = 'none';
       }
 
-      // Actions
-      renderActions(order);
-
       // Email log
       renderEmailLog(order.emails || []);
+
+      renderPaymentCard(order);
+
+      // Actions
+      renderActions(order);
 
       // Start polling if parsing in progress
       if (order.status === 'tu_parsing') {
@@ -2217,7 +2332,10 @@
         });
       }
 
-      const approveAllowed = !['new','tu_parsing','completed','error'].includes(status);
+      const approveAllowed = ![
+        'new','tu_parsing','completed','error',
+        'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
+      ].includes(status);
       if (approveAllowed) {
         const hasProjectPdf = (order.files || []).some(
           f => f.category === 'generated_project'
@@ -2248,6 +2366,46 @@
             }
           },
         });
+      }
+
+
+      if (status === 'awaiting_contract') {
+        noteText = 'Клиенту отправлено уведомление. Ожидаем загрузку реквизитов и выбор метода оплаты.';
+      }
+
+      if (status === 'contract_sent') {
+        buttons.push({
+          label: '\uD83D\uDCB0 Аванс получен',
+          cls: 'btn-success',
+          action: () => {
+            if (confirm('Подтвердить получение аванса? Проект будет отправлен клиенту.')) {
+              runAction(`/pipeline/${order.id}/confirm-advance`, 'POST', 'Аванс подтверждён — проект отправляется клиенту');
+            }
+          },
+        });
+        noteText = 'Ожидаем оплату аванса от клиента. После получения — нажмите «Аванс получен».';
+      }
+
+      if (status === 'advance_paid') {
+        noteText = 'Проект отправлен клиенту. Ожидаем скан из РСО или оплату остатка.';
+      }
+
+      if (status === 'awaiting_final_payment') {
+        buttons.push({
+          label: '\uD83D\uDCB0 Остаток получен',
+          cls: 'btn-success',
+          action: () => {
+            if (confirm('Подтвердить получение остатка? Заявка будет завершена.')) {
+              runAction(`/pipeline/${order.id}/confirm-final`, 'POST', 'Оплата подтверждена — заявка завершена');
+            }
+          },
+        });
+        const hasRsoScan = (order.files || []).some(f => f.category === 'rso_scan');
+        if (hasRsoScan) {
+          noteText = 'Клиент загрузил скан из РСО. Проверьте и подтвердите остаток.';
+        } else {
+          noteText = 'Ожидаем скан из РСО или оплату остатка от клиента.';
+        }
       }
 
       if (status === 'waiting_client_info' && !infoSent && order.info_request_earliest_auto_at) {
@@ -2427,6 +2585,11 @@
         client_documents_received: 'Документы от клиента (инженеру)',
         partnership_request: 'Запрос партнёрства',
         survey_reminder: 'Напоминание об опросе (клиенту)',
+        project_ready_payment: 'Проект готов (оплата)',
+        contract_delivery: 'Договор и счёт',
+        advance_received: 'Аванс получен (проект)',
+        final_payment_request: 'Напоминание об оплате',
+        final_payment_received: 'Оплата завершена',
       };
 
       el.innerHTML = `

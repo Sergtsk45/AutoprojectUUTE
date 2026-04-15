@@ -152,18 +152,18 @@ review → awaiting_contract → contract_sent → advance_paid → awaiting_fin
 ---
 
 ## Задача 8: Переработка approve + управление оплатой в админке
-- **Статус**: Не начата
+- **Статус**: Завершена
 - **Приоритет**: Высокий
 - **Описание**: Кнопка «Одобрить» вызывает `initiate_payment_flow` вместо `send_completed_project`. Два новых эндпоинта: `confirm-advance` и `confirm-final`. В `admin.html`: 4 новых статуса в степпере, карточка «Оплата» с реквизитами и кнопками подтверждения.
 - **Шаги выполнения**:
-  - [ ] В `pipeline.py` → `approve_project`: заменить `send_completed_project.delay()` на `initiate_payment_flow.delay()`
-  - [ ] Новый `POST /pipeline/{id}/confirm-advance` (admin key) — для безнала инженер подтверждает аванс → `send_project_after_advance.delay()`
-  - [ ] Новый `POST /pipeline/{id}/confirm-final` (admin key) — инженер подтверждает остаток → `process_final_payment.delay()`
-  - [ ] В `admin.html` → `STATUS_LABELS` и `STATUS_COLORS`: добавить 4 новых статуса
-  - [ ] В `admin.html` → `STATUS_ORDER`: вставить 4 статуса между `review` и `completed`
-  - [ ] В `admin.html` → `renderOrder()`: карточка `paymentCard` — метод оплаты, суммы, даты, реквизиты клиента, ссылка на `/payment/{id}`
-  - [ ] Кнопки по статусам: `contract_sent` → «Аванс получен», `awaiting_final_payment` → «Остаток получен»
-  - [ ] Блокировка кнопок на время запроса (как `approveProject`)
+  - [x] В `pipeline.py` → `approve_project`: заменить `send_completed_project.delay()` на `initiate_payment_flow.delay()`
+  - [x] Новый `POST /pipeline/{id}/confirm-advance` (admin key) — инженер подтверждает аванс → `process_advance_payment.delay()`
+  - [x] Новый `POST /pipeline/{id}/confirm-final` (admin key) — инженер подтверждает остаток → `process_final_payment.delay()`
+  - [x] В `admin.html` → `STATUS_LABELS` и `STATUS_COLORS`: добавить 4 новых статуса
+  - [x] В `admin.html` → `STATUS_ORDER`: вставить 4 статуса между `review` и `completed`
+  - [x] В `admin.html` → `renderOrder()`: карточка `paymentCard` — метод оплаты, суммы, даты, реквизиты клиента, ссылка на `/payment/{id}`
+  - [x] Кнопки по статусам: `contract_sent` → «Аванс получен», `awaiting_final_payment` → «Остаток получен`
+  - [x] Блокировка кнопок на время запроса через `runAction` / `approveProject`; «Одобрить» скрыта в статусах пайплайна оплаты
 - **Файлы**: `backend/app/api/pipeline.py`, `backend/static/admin.html`
 - **Зависимости**: Задача 7 (Celery-задачи)
 
