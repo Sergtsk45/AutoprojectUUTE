@@ -712,10 +712,15 @@
                   <option value="generated_project">Готовый проект (PDF)</option>
                   <option value="generated_excel">Excel с расчётами</option>
                   <option value="tu">Технические условия</option>
-                  <option value="balance_act">Акт разграничения балансовой принадлежности</option>
-                  <option value="connection_plan">План подключения потребителя к тепловой сети</option>
+                  <option value="BALANCE_ACT">Акт разграничения балансовой принадлежности</option>
+                  <option value="CONNECTION_PLAN">План подключения потребителя к тепловой сети</option>
                   <option value="heat_point_plan">План теплового пункта (УУТЭ, ШУ)</option>
                   <option value="heat_scheme">Принципиальная схема теплового пункта с УУТЭ</option>
+                  <option value="company_card">Карточка организации (реквизиты)</option>
+                  <option value="contract">Договор</option>
+                  <option value="invoice">Счёт</option>
+                  <option value="signed_contract">Подписанный договор</option>
+                  <option value="rso_scan">Скан письма в РСО</option>
                   <option value="other">Другое</option>
                 </select>
               </div>
@@ -730,7 +735,7 @@
               <div id="adminUploadProgressLabel" style="font-size:12px; color:var(--c-text-secondary); margin-top:6px;">0%</div>
             </div>
             <p style="margin-top:12px; font-size:12px; color:var(--c-text-secondary); line-height:1.5;">
-              Для отправки проекта клиенту: выберите категорию «Готовый проект (PDF)», выберите файл, нажмите «Загрузить», затем нажмите «Одобрить и отправить клиенту» в разделе действий.
+              Для отправки проекта клиенту: подтвердите аванс, загрузите «Готовый проект (PDF)», затем нажмите «Отправить готовый проект» в разделе действий.
             </p>
           </div>
         </div>
@@ -986,8 +991,7 @@
 
     const STATUS_ORDER = [
       'new','tu_parsing','tu_parsed','waiting_client_info',
-      'client_info_received','data_complete','generating_project','review',
-      'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
+      'client_info_received','contract_sent','advance_paid','awaiting_final_payment',
       'completed'
     ];
 
@@ -1005,7 +1009,7 @@
     // Waiting-for-email poll state (обновляем карточку пока авто-письмо ещё не ушло)
     let waitingEmailPollTimer = null;
 
-    // Sending-project poll state (ждём смены статуса review → completed после одобрения)
+    // Sending-project poll state (ждём смены статуса advance_paid → completed после отправки проекта)
     let sendingProjectPollTimer = null;
 
     // ─────────────────────────────────────────────────────────────────────
@@ -1048,23 +1052,23 @@
       sendingProjectPollTimer = setInterval(async () => {
         try {
           const order = await apiJSON(`/orders/${currentOrderId}`);
-          if (order.status !== 'review') {
+          if (order.status !== 'advance_paid') {
             stopSendingProjectPoll();
             renderOrder(order);
           }
-          // пока статус ещё review — не перерисовываем: кнопки остаются заблокированы
+          // пока статус ещё advance_paid — не перерисовываем: кнопки остаются заблокированы
         } catch (e) {
           console.error('sendingProjectPoll:', e);
         }
       }, 5000); // каждые 5 сек
     }
 
-    function startPaymentFlowPoll() {
+    function startPaymentFlowPoll(fromStatus) {
       stopSendingProjectPoll();
       sendingProjectPollTimer = setInterval(async () => {
         try {
           const order = await apiJSON(`/orders/${currentOrderId}`);
-          if (order.status !== 'review') {
+          if (order.status !== fromStatus) {
             clearInterval(sendingProjectPollTimer);
             sendingProjectPollTimer = null;
             renderOrder(order);
@@ -1075,15 +1079,22 @@
       }, 5000);
     }
 
-    async function approveProject(orderId) {
-      if (!confirm('Одобрить проект и отправить клиенту уведомление об оплате?')) return;
+    async function approveProject(orderId, currentStatus) {
+      const isLegacyReview = currentStatus === 'review';
+      const confirmText = isLegacyReview
+        ? 'Одобрить проект и запустить оплату для клиента?'
+        : 'Отправить клиенту готовый проект? Действие доступно только после подтверждения аванса.';
+      if (!confirm(confirmText)) return;
       const actionBtns = document.querySelectorAll('[id^="action_btn_"]');
       actionBtns.forEach(b => { b.disabled = true; });
       showOrderAlert('info', 'Выполняется…');
       try {
         await apiJSON(`/pipeline/${orderId}/approve`, { method: 'POST' });
-        showOrderAlert('success', 'Проект одобрен — клиенту отправлено уведомление. Страница обновится.');
-        startPaymentFlowPoll();
+        const successText = isLegacyReview
+          ? 'Проект одобрен. Клиенту отправлено уведомление об оплате.'
+          : 'Готовый проект отправлен клиенту. Ожидаем перехода в следующий статус.';
+        showOrderAlert('success', successText);
+        startPaymentFlowPoll(currentStatus);
       } catch (e) {
         showOrderAlert('error', 'Ошибка: ' + e.message);
         actionBtns.forEach(b => { b.disabled = false; });
@@ -1958,12 +1969,18 @@
     function renderProgress(currentStatus) {
       const steps = document.getElementById('progressSteps');
       const isError = currentStatus === 'error';
+      const LEGACY_STATUS_ORDER = [
+        'new','tu_parsing','tu_parsed','waiting_client_info',
+        'client_info_received','data_complete','generating_project','review',
+        'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
+        'completed'
+      ];
+      const progressOrder = STATUS_ORDER.includes(currentStatus) ? STATUS_ORDER : LEGACY_STATUS_ORDER;
+      const curIdx = progressOrder.indexOf(currentStatus);
 
-      steps.innerHTML = STATUS_ORDER.map(s => {
-        const idx = STATUS_ORDER.indexOf(s);
-        const curIdx = STATUS_ORDER.indexOf(currentStatus);
+      steps.innerHTML = progressOrder.map((s, idx) => {
         let cls = '';
-        if (isError) cls = idx <= curIdx ? 'error-step' : '';
+        if (isError) cls = curIdx >= 0 && idx <= curIdx ? 'error-step' : '';
         else if (idx < curIdx) cls = 'done';
         else if (idx === curIdx) cls = 'active';
         return `<div class="step ${cls}"><div class="step-label">${STATUS_LABELS[s]}</div></div>`;
@@ -1979,10 +1996,15 @@
 
       const catLabels = {
         tu: 'Технические условия',
+        company_card: 'Карточка организации (реквизиты)',
         BALANCE_ACT: 'Акт разграничения балансовой принадлежности',
         CONNECTION_PLAN: 'План подключения потребителя к тепловой сети',
         heat_point_plan: 'План теплового пункта (УУТЭ, ШУ)',
         heat_scheme: 'Принципиальная схема теплового пункта с УУТЭ',
+        contract: 'Договор',
+        invoice: 'Счёт',
+        signed_contract: 'Подписанный договор',
+        rso_scan: 'Скан письма в РСО',
         generated_excel: 'Excel (расчёты)',
         generated_project: 'Готовый проект',
         other: 'Другое',
@@ -2332,27 +2354,25 @@
         });
       }
 
-      const approveAllowed = ![
-        'new','tu_parsing','completed','error',
-        'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
-      ].includes(status);
+      const approveAllowed = status === 'advance_paid' || status === 'review';
       if (approveAllowed) {
         const hasProjectPdf = (order.files || []).some(
           f => f.category === 'generated_project'
         );
+        const isLegacyReview = status === 'review';
         buttons.push({
-          label: '✓ Одобрить и отправить клиенту',
+          label: isLegacyReview ? '✓ Одобрить и запустить оплату' : '✓ Отправить готовый проект',
           cls: 'btn-success',
           disabled: !hasProjectPdf,
           title: hasProjectPdf
             ? ''
             : 'Сначала загрузите готовый проект (PDF) в блоке файлов ниже',
-          action: () => approveProject(order.id),
+          action: () => approveProject(order.id, status),
         });
         if (!hasProjectPdf) {
           noteText = noteText
-            ? noteText + ' Загрузите файл проекта (категория «Готовый проект»), затем нажмите «Одобрить».'
-            : 'Загрузите файл проекта (категория «Готовый проект»), затем нажмите «Одобрить».';
+            ? noteText + ' Загрузите файл проекта (категория «Готовый проект»), затем нажмите кнопку одобрения.'
+            : 'Загрузите файл проекта (категория «Готовый проект»), затем нажмите кнопку одобрения.';
         }
       }
 
@@ -2374,20 +2394,26 @@
       }
 
       if (status === 'contract_sent') {
+        const hasSignedContract = (order.files || []).some(f => f.category === 'signed_contract');
+        const signedContractLine = hasSignedContract
+          ? 'Подписанный договор: загружен.'
+          : 'Подписанный договор: не загружен.';
         buttons.push({
           label: '\uD83D\uDCB0 Аванс получен',
           cls: 'btn-success',
+          disabled: !hasSignedContract,
+          title: hasSignedContract ? '' : 'Сначала должен быть загружен подписанный договор',
           action: () => {
-            if (confirm('Подтвердить получение аванса? Проект будет отправлен клиенту.')) {
-              runAction(`/pipeline/${order.id}/confirm-advance`, 'POST', 'Аванс подтверждён — проект отправляется клиенту');
+            if (confirm('Подтвердить получение аванса?')) {
+              runAction(`/pipeline/${order.id}/confirm-advance`, 'POST', 'Аванс подтверждён');
             }
           },
         });
-        noteText = 'Ожидаем оплату аванса от клиента. После получения — нажмите «Аванс получен».';
+        noteText = 'Ожидаем оплату аванса от клиента. После получения — нажмите «Аванс получен». ' + signedContractLine;
       }
 
       if (status === 'advance_paid') {
-        noteText = 'Проект отправлен клиенту. Ожидаем скан из РСО или оплату остатка.';
+        noteText = 'Проект в работе. Срок: 3 рабочих дня. Загрузите файл проекта и нажмите «Отправить готовый проект».';
       }
 
       if (status === 'awaiting_final_payment') {

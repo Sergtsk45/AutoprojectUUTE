@@ -139,6 +139,10 @@ class UploadPageInfo(BaseModel):
     order_type: str | None = None
     parsed_params: dict | None = None
     survey_data: dict | None = None
+    contract_number: str | None = None
+    payment_amount: int | None = None
+    advance_amount: int | None = None
+    company_requisites: dict | None = None
     missing_params: list[str]
     files_uploaded: list[FileResponse]
 

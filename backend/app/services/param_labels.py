@@ -13,6 +13,7 @@ CLIENT_DOCUMENT_PARAM_CODES: tuple[str, ...] = (
     "CONNECTION_PLAN",
     "heat_point_plan",
     "heat_scheme",
+    "company_card",
 )
 
 
@@ -57,6 +58,10 @@ MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
     "heat_scheme": {
         "label": "Принципиальная схема теплового пункта с узлом учёта",
         "hint": "",
+    },
+    "company_card": {
+        "label": "Карточка предприятия (реквизиты организации)",
+        "hint": "PDF или фото с ИНН, КПП, расчётным счётом, БИК и адресом",
     },
     "pipe_diameters": {
         "label": "Диаметры трубопроводов на вводе",

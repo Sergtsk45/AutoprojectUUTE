@@ -200,6 +200,7 @@ def render_project_ready_payment(order: Order) -> tuple[str, str, list[str]]:
 def render_contract_delivery(
     order: Order,
     attachment_paths: list[str],
+    upload_url: str,
 ) -> tuple[str, str, list[str]]:
     """Письмо клиенту: договор и счёт на аванс (вложения — пути к файлам)."""
     env = _get_jinja()
@@ -210,7 +211,7 @@ def render_contract_delivery(
         **_order_context(order),
         **_executor_bank_context(),
         "header_title": "Договор и счёт на аванс",
-        "payment_url": f"{settings.app_base_url}/payment/{order.id}",
+        "upload_url": upload_url,
         "contract_number": cn,
         "advance_amount_formatted": _format_rub(order.advance_amount),
         "has_attachments": len(attachments) > 0,
@@ -527,8 +528,9 @@ def send_contract_delivery_to_client(
     attachment_paths: list[str],
 ) -> bool:
     """Отправить клиенту договор и счёт (вложения — пути к .docx)."""
+    upload_url = f"{settings.app_base_url}/upload/{order.id}"
     subject, html_body, attachments = render_contract_delivery(
-        order, attachment_paths
+        order, attachment_paths, upload_url=upload_url
     )
     success = send_email(
         recipient=order.client_email,
@@ -545,6 +547,44 @@ def send_contract_delivery_to_client(
         success,
         error_msg=None if success else "SMTP delivery failed",
     )
+    return success
+
+
+def render_signed_contract_notification(order: Order) -> tuple[str, str]:
+    """Письмо инженеру: клиент загрузил подписанный договор."""
+    order_id_str = str(order.id)
+    admin_url = f"{settings.app_base_url}/admin?order={order.id}"
+    subject = f"Клиент загрузил подписанный договор — заявка №{order_id_str[:8]}"
+    html_body = (
+        "<!DOCTYPE html>"
+        "<html><body style='font-family:sans-serif;line-height:1.55'>"
+        f"<p>Клиент <strong>{escape(order.client_name)}</strong> загрузил подписанный договор.</p>"
+        f"<p>Заявка: <strong>№{order_id_str[:8]}</strong></p>"
+        f"<p><a href='{escape(admin_url)}'>Открыть заявку в админке</a></p>"
+        "</body></html>"
+    )
+    return subject, html_body
+
+
+def send_signed_contract_notification(session: Session, order: Order) -> bool:
+    """Отправить инженеру уведомление о загрузке signed_contract и записать лог."""
+    subject, html_body = render_signed_contract_notification(order)
+    success = send_email(
+        recipient=settings.admin_email,
+        subject=subject,
+        html_body=html_body,
+    )
+    log = EmailLog(
+        order_id=order.id,
+        email_type=EmailType.SIGNED_CONTRACT_NOTIFICATION,
+        recipient=settings.admin_email,
+        subject=subject,
+        body_text=html_body[:5000],
+        sent_at=datetime.now(timezone.utc) if success else None,
+        error_message=None if success else "SMTP delivery failed",
+    )
+    session.add(log)
+    session.commit()
     return success
 
 

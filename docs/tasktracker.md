@@ -1,5 +1,16 @@
 # Task tracker
 
+## Задача: Unified upload contract flow (upload/admin)
+- **Статус**: Завершена
+- **Описание**: Привести frontend-статику и админ-панель к новому потоку `contract_sent/advance_paid`: отдельный клиентский экран загрузки подписанного договора, обновлённый stepper и действия инженера.
+- **Шаги выполнения**:
+  - [x] `upload.html`: добавить `company_card` в подписи, выделить его в чеклисте для `waiting_client_info`, реализовать отдельный сценарий `contract_sent` с upload в `upload-signed-contract` и сообщением благодарности
+  - [x] `admin.html`: обновить основной `STATUS_ORDER`, сохранить legacy-статусы в `STATUS_LABELS`
+  - [x] `admin.html`: ограничить approve до `advance_paid`, обновить тексты/confirm/success, скорректировать polling после approve
+  - [x] `admin.html`: добавить индикатор `signed_contract` в `contract_sent`, обновить подписи категорий файлов и options селекта
+  - [x] Обновить `docs/changelog.md`, `docs/project.md`, выполнить `python3 -m compileall backend/app`
+- **Зависимости**: backend-эндпоинт `POST /api/v1/landing/orders/{id}/upload-signed-contract` и статусы оплаты в пайплайне
+
 ## Задача: Публичная страница оплаты /payment/{id}
 - **Статус**: Завершена
 - **Описание**: Статическая `payment.html`, роут в `main.py`, публичные эндпоинты в `landing.py`, Celery: генерация и отправка договора/счёта (безнал), уведомление инженеру о скане РСО.

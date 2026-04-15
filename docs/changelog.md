@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-04-16] — Unified upload + contract flow (frontend/admin/API)
+
+### Добавлено
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): публичный `POST /landing/orders/{id}/upload-signed-contract` (только `contract_sent`, лимит 25 МБ, PDF/JPG/JPEG/PNG, уведомление инженеру).
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): новая Celery-цепочка `process_card_and_contract`, уведомление `notify_engineer_signed_contract`, упрощённый `process_advance_payment` (только `contract_sent → advance_paid`).
+- В [`backend/alembic/versions/20260416_uute_signed_contract_enums.py`](../backend/alembic/versions/20260416_uute_signed_contract_enums.py): миграция enum-значений `SIGNED_CONTRACT` и `SIGNED_CONTRACT_NOTIFICATION`.
+- В [`backend/static/upload.html`](../backend/static/upload.html): отдельный сценарий `contract_sent` с карточкой «Подпишите договор и загрузите скан», отображением `contract_number` / `payment_amount` / `advance_amount`, отдельным dropzone и загрузкой в `POST /api/v1/landing/orders/{id}/upload-signed-contract` (форматы: PDF/JPG/JPEG/PNG).
+- В [`backend/static/admin.html`](../backend/static/admin.html): индикатор наличия файла `signed_contract` в действиях для статуса `contract_sent`; в селект категорий добавлены `company_card`, `contract`, `invoice`, `signed_contract`, `rso_scan`.
+
+### Изменено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): расширены `FileCategory`/`EmailType`, обновлены переходы стейт-машины для нового шага `client_info_received → contract_sent`.
+- В [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py): `company_card` добавлен в обязательные клиентские документы и подписи.
+- В [`backend/app/api/pipeline.py`](../backend/app/api/pipeline.py): `approve` для нового потока отправляет проект из `advance_paid`, `confirm-advance` требует загруженный подписанный договор; legacy-ветка `review` сохранена.
+- В [`backend/app/services/order_service.py`](../backend/app/services/order_service.py): защита от path traversal при сохранении имени загружаемого файла.
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): `contract_delivery` обновлён под загрузку подписанного договора, добавлено письмо инженеру `SIGNED_CONTRACT_NOTIFICATION`.
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): `UploadPageInfo` расширен контрактными полями (`contract_number`, суммы, реквизиты).
+- В [`backend/static/upload.html`](../backend/static/upload.html): в `PARAM_LABELS` добавлен `company_card`; для `waiting_client_info`/`client_info_received` карточка `company_card` выделяется отдельным визуальным блоком рядом с техдокументами.
+- В [`backend/static/admin.html`](../backend/static/admin.html): основной stepper приведён к новому потоку `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`; legacy-статусы сохранены в совместимых словарях.
+- В [`backend/static/admin.html`](../backend/static/admin.html): кнопка approve перенесена на `advance_paid` для основного потока (legacy `review` сохранён), обновлены текст/подтверждение/успешное сообщение; polling после approve ждёт выход из исходного статуса.
+
 ## [2026-04-16] — Калькулятор: обновление цен
 
 ### Изменено

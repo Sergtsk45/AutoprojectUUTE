@@ -7,17 +7,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
-from app.models import OrderStatus, FileCategory, OrderType
+from app.models import OrderStatus, FileCategory
 from app.schemas import FileResponse, PipelineResponse
 from app.services import OrderService
-from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services.tasks import (
     start_tu_parsing,
     process_client_response,
     initiate_payment_flow,
+    send_completed_project,
     process_advance_payment,
     process_final_payment,
-    notify_engineer_client_documents_received,
 )
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
@@ -126,21 +125,6 @@ async def client_upload_done(
 
     task = process_client_response.delay(str(order_id))
 
-    # Уведомляем инженера о полученных документах.
-    # Экспресс: уведомляем при любых загруженных файлах.
-    # Custom: только если загружены документы из обязательного списка
-    #   (BALANCE_ACT, CONNECTION_PLAN, heat_point_plan, heat_scheme);
-    #   если загружены только ТУ — инженер не получает письмо и сам
-    #   инициирует запрос с образцами.
-    all_files = await svc.get_files_by_order(order_id)
-    uploaded_categories = {f.category.value for f in all_files}
-    if order.order_type == OrderType.EXPRESS:
-        should_notify = len(uploaded_categories) > 0
-    else:
-        should_notify = any(c in uploaded_categories for c in CLIENT_DOCUMENT_PARAM_CODES)
-    if should_notify:
-        notify_engineer_client_documents_received.delay(str(order_id))
-
     return PipelineResponse(
         message="Файлы приняты, идёт проверка",
         order_id=order_id,
@@ -157,18 +141,16 @@ async def approve_project(
     svc: OrderService = Depends(get_service),
     _key: str = Depends(verify_admin_key),
 ):
-    """Инженер одобрил проект — запуск оплаты (уведомление клиенту, статус awaiting_contract).
+    """Инженерский approve.
 
-    Доступно на любом статусе, кроме new, tu_parsing и completed.
-    Требуется загруженный PDF проекта (generated_project) для последующей отправки после аванса.
+    Новый поток: advance_paid → отправка проекта клиенту.
+    Legacy-совместимость: review → запуск старого платёжного флоу.
     """
-    _APPROVE_BLOCKED = {OrderStatus.NEW, OrderStatus.TU_PARSING, OrderStatus.COMPLETED}
-
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    if order.status in _APPROVE_BLOCKED:
+    if order.status not in (OrderStatus.ADVANCE_PAID, OrderStatus.REVIEW):
         raise HTTPException(
             status_code=400,
             detail=f"Одобрение недоступно в статусе «{order.status.value}»",
@@ -186,8 +168,16 @@ async def approve_project(
             ),
         )
 
-    task = initiate_payment_flow.delay(str(order_id))
+    if order.status == OrderStatus.ADVANCE_PAID:
+        task = send_completed_project.delay(str(order_id))
+        return PipelineResponse(
+            message="Проект отправляется клиенту",
+            order_id=order_id,
+            task_id=task.id,
+        )
 
+    # Legacy-ветка старых заявок.
+    task = initiate_payment_flow.delay(str(order_id))
     return PipelineResponse(
         message="Проект одобрен, клиенту отправлено уведомление об оплате",
         order_id=order_id,
@@ -201,10 +191,10 @@ async def confirm_advance_payment(
     svc: OrderService = Depends(get_service),
     _key: str = Depends(verify_admin_key),
 ):
-    """Инженер подтверждает получение аванса (безналичная оплата).
+    """Инженер подтверждает получение аванса.
 
     Доступно только в статусе contract_sent.
-    Запускает process_advance_payment — отправка проекта клиенту.
+    Запускает process_advance_payment — перевод в advance_paid.
     """
     order = await svc.get_order(order_id)
     if order is None:
@@ -216,10 +206,22 @@ async def confirm_advance_payment(
             detail=f"Подтверждение аванса недоступно в статусе «{order.status.value}»",
         )
 
+    signed_contract_files = await svc.get_files_by_order(
+        order_id, category=FileCategory.SIGNED_CONTRACT
+    )
+    if not signed_contract_files:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Сначала дождитесь загрузки подписанного договора клиентом "
+                "(категория «Подписанный договор»)."
+            ),
+        )
+
     task = process_advance_payment.delay(str(order_id))
 
     return PipelineResponse(
-        message="Аванс подтверждён, проект отправляется клиенту",
+        message="Аванс подтверждён",
         order_id=order_id,
         task_id=task.id,
     )

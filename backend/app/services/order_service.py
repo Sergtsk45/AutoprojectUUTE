@@ -122,7 +122,11 @@ class OrderService:
 
         # Формируем путь: uploads/<order_id>/<category>/<uuid>_<filename>
         file_uuid = uuid.uuid4().hex[:12]
-        safe_filename = file.filename or "unnamed"
+        # Защита от path traversal: берём только basename и вычищаем разделители.
+        raw_name = file.filename or "unnamed"
+        safe_filename = Path(raw_name).name.replace("/", "_").replace("\\", "_")
+        if not safe_filename:
+            safe_filename = "unnamed"
         relative_path = f"{order_id}/{category.value}/{file_uuid}_{safe_filename}"
         full_path = settings.upload_dir / relative_path
 

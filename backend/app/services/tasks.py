@@ -264,12 +264,10 @@ def start_tu_parsing(self, order_id: str):
 
 @celery_app.task(bind=True)
 def check_data_completeness(self, order_id: str):
-    """TU_PARSED / CLIENT_INFO_RECEIVED → DATA_COMPLETE или WAITING_CLIENT_INFO.
+    """TU_PARSED / CLIENT_INFO_RECEIVED: пересчёт missing и переход в WAITING_CLIENT_INFO.
 
-    Если missing_params пуст — данные полные, двигаем дальше.
-    Если нет — переход в WAITING_CLIENT_INFO; первый info_request уходит не раньше чем через 24 ч:
-    отложенная задача Celery (таймер) + резерв — process_due_info_requests в Beat.
-    Раньше 24 ч инженер может отправить запрос вручную из админки.
+    Для новых заявок всегда используем путь через WAITING_CLIENT_INFO.
+    Если задача вызвана повторно в CLIENT_INFO_RECEIVED, обратный переход не делаем.
     """
     from datetime import datetime, timezone
 
@@ -281,29 +279,41 @@ def check_data_completeness(self, order_id: str):
         if order is None:
             return
 
-        missing = order.missing_params or []
+        uploaded_categories = {f.category.value for f in order.files}
+        missing = compute_client_document_missing(uploaded_categories)
+        if (
+            FileCategory.COMPANY_CARD.value not in uploaded_categories
+            and FileCategory.COMPANY_CARD.value not in missing
+        ):
+            missing.append(FileCategory.COMPANY_CARD.value)
+        order.missing_params = missing
+        session.commit()
 
-        if len(missing) == 0:
-            _transition(session, order, OrderStatus.DATA_COMPLETE)
-            logger.info("Все данные собраны для order=%s", oid)
-            fill_excel.delay(order_id)
-        else:
-            order.waiting_client_info_at = datetime.now(timezone.utc)
+        if order.status == OrderStatus.CLIENT_INFO_RECEIVED:
+            logger.info(
+                "check_data_completeness: order=%s уже в client_info_received, обратный переход не выполняем",
+                oid,
+            )
+            return
+
+        order.waiting_client_info_at = datetime.now(timezone.utc)
+        session.commit()
+        if order.status != OrderStatus.WAITING_CLIENT_INFO:
             _transition(session, order, OrderStatus.WAITING_CLIENT_INFO)
-            logger.info(
-                "Не хватает данных для order=%s: %s; запланирован info_request через 24 ч",
-                oid,
-                missing,
-            )
-            send_info_request_email.apply_async(
-                args=[order_id],
-                countdown=INFO_REQUEST_AUTO_DELAY_SECONDS,
-            )
-            logger.info(
-                "check_data_completeness: send_info_request_email с задержкой %s с, order=%s",
-                INFO_REQUEST_AUTO_DELAY_SECONDS,
-                oid,
-            )
+        logger.info(
+            "check_data_completeness: order=%s → waiting_client_info, missing=%s",
+            oid,
+            missing,
+        )
+        send_info_request_email.apply_async(
+            args=[order_id],
+            countdown=INFO_REQUEST_AUTO_DELAY_SECONDS,
+        )
+        logger.info(
+            "check_data_completeness: send_info_request_email с задержкой %s с, order=%s",
+            INFO_REQUEST_AUTO_DELAY_SECONDS,
+            oid,
+        )
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
@@ -456,17 +466,200 @@ def process_client_response(self, order_id: str):
     oid = uuid.UUID(order_id)
     logger.info("process_client_response: order=%s", oid)
 
+    from datetime import datetime, timezone
+
     with SyncSession() as session:
         order = _get_order(session, oid)
         if order is None:
             return
+        if order.status not in (
+            OrderStatus.CLIENT_INFO_RECEIVED,
+            OrderStatus.WAITING_CLIENT_INFO,
+        ):
+            logger.warning(
+                "process_client_response: order=%s в статусе %s, пропускаем",
+                oid,
+                order.status.value,
+            )
+            return
 
         uploaded_categories = {f.category.value for f in order.files}
-        order.missing_params = compute_client_document_missing(uploaded_categories)
+        missing = compute_client_document_missing(uploaded_categories)
+        if (
+            FileCategory.COMPANY_CARD.value not in uploaded_categories
+            and FileCategory.COMPANY_CARD.value not in missing
+        ):
+            missing.append(FileCategory.COMPANY_CARD.value)
+        order.missing_params = missing
         session.commit()
 
-    # Повторная проверка полноты
-    check_data_completeness.delay(order_id)
+        if FileCategory.COMPANY_CARD.value not in uploaded_categories:
+            order.waiting_client_info_at = datetime.now(timezone.utc)
+            session.commit()
+            if order.status != OrderStatus.WAITING_CLIENT_INFO:
+                _transition(session, order, OrderStatus.WAITING_CLIENT_INFO)
+            logger.info(
+                "process_client_response: company_card не загружен, order=%s возвращён в waiting_client_info",
+                oid,
+            )
+            return
+
+    process_card_and_contract.delay(order_id)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def process_card_and_contract(self, order_id: str):
+    """CLIENT_INFO_RECEIVED → CONTRACT_SENT: парсинг реквизитов, генерация и отправка договора/счёта."""
+    import shutil
+    from datetime import datetime, timezone
+
+    from app.services.company_parser import parse_company_card
+    from app.services.contract_generator import (
+        generate_contract,
+        generate_contract_number,
+        generate_invoice,
+    )
+    from app.services.email_service import send_contract_delivery_to_client
+
+    oid = uuid.UUID(order_id)
+    order_id_short = order_id[:8]
+    logger.info("process_card_and_contract: order=%s", oid)
+
+    contract_path: Path | None = None
+    invoice_path: Path | None = None
+
+    try:
+        with SyncSession() as session:
+            order = _get_order(session, oid)
+            if order is None:
+                return
+
+            if order.status == OrderStatus.CONTRACT_SENT:
+                logger.info("process_card_and_contract: order=%s уже в contract_sent", oid)
+                return
+
+            if order.status != OrderStatus.CLIENT_INFO_RECEIVED:
+                logger.warning(
+                    "process_card_and_contract: order=%s статус %s, пропускаем",
+                    oid,
+                    order.status.value,
+                )
+                return
+
+            card_files = sorted(
+                [f for f in order.files if f.category == FileCategory.COMPANY_CARD],
+                key=lambda f: f.created_at,
+            )
+            if not card_files:
+                order.waiting_client_info_at = datetime.now(timezone.utc)
+                session.commit()
+                _transition(session, order, OrderStatus.WAITING_CLIENT_INFO)
+                logger.warning(
+                    "process_card_and_contract: нет company_card, order=%s → waiting_client_info",
+                    oid,
+                )
+                return
+
+            card_file = card_files[-1]
+            card_path = settings.upload_dir / card_file.storage_path
+            if not card_path.exists():
+                raise FileNotFoundError(f"Файл карточки не найден: {card_path}")
+
+            requisites = parse_company_card(str(card_path))
+            order.company_requisites = requisites.model_dump(mode="json")
+            order.payment_amount = _resolve_initial_payment_amount(order)
+            order.advance_amount = order.payment_amount // 2
+            if not order.contract_number:
+                order.contract_number = generate_contract_number(str(order.id))
+            session.commit()
+
+            contract_existing = sorted(
+                [f for f in order.files if f.category == FileCategory.CONTRACT],
+                key=lambda f: f.created_at,
+            )
+            invoice_existing = sorted(
+                [f for f in order.files if f.category == FileCategory.INVOICE],
+                key=lambda f: f.created_at,
+            )
+
+            attachment_paths: list[str] = []
+            if contract_existing and invoice_existing:
+                existing_contract = settings.upload_dir / contract_existing[-1].storage_path
+                existing_invoice = settings.upload_dir / invoice_existing[-1].storage_path
+                if existing_contract.exists() and existing_invoice.exists():
+                    attachment_paths = [str(existing_contract), str(existing_invoice)]
+
+            if not attachment_paths:
+                req = _normalize_client_requisites(order.company_requisites or {}, order.client_name)
+                contract_path = generate_contract(
+                    order_id_short,
+                    order.contract_number or order_id_short,
+                    order.object_address or "—",
+                    order.client_name,
+                    order.payment_amount or 0,
+                    order.advance_amount or 0,
+                    req,
+                )
+                invoice_path = generate_invoice(
+                    order_id_short,
+                    order.contract_number or order_id_short,
+                    order.object_address or "—",
+                    order.payment_amount or 0,
+                    order.advance_amount or 0,
+                    req,
+                    is_advance=True,
+                )
+
+                doc_mime = (
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                )
+                for src_path, category, prefix in (
+                    (contract_path, FileCategory.CONTRACT, "contract"),
+                    (invoice_path, FileCategory.INVOICE, "invoice"),
+                ):
+                    dest_dir = settings.upload_dir / str(oid) / category.value
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    dest_file = dest_dir / f"{prefix}_{order_id_short}.docx"
+                    shutil.copy2(str(src_path), str(dest_file))
+                    storage_path = f"{oid}/{category.value}/{dest_file.name}"
+                    session.add(
+                        OrderFile(
+                            order_id=oid,
+                            category=category,
+                            original_filename=dest_file.name,
+                            storage_path=storage_path,
+                            content_type=doc_mime,
+                            file_size=dest_file.stat().st_size,
+                        )
+                    )
+                    attachment_paths.append(str(dest_file))
+                session.commit()
+
+            sent = send_contract_delivery_to_client(
+                session,
+                order,
+                attachment_paths=attachment_paths,
+            )
+            if not sent:
+                raise RuntimeError("Не удалось отправить письмо с договором клиенту")
+
+            _transition(session, order, OrderStatus.CONTRACT_SENT)
+            notify_engineer_client_documents_received.delay(order_id)
+            logger.info("process_card_and_contract: order=%s → contract_sent", oid)
+    except Exception as exc:
+        logger.exception("process_card_and_contract: ошибка order=%s: %s", oid, exc)
+        try:
+            self.retry(exc=exc)
+        except self.MaxRetriesExceededError:
+            logger.error("process_card_and_contract: исчерпаны попытки для order=%s", oid)
+    finally:
+        for p in (contract_path, invoice_path):
+            if p is not None:
+                try:
+                    p.unlink(missing_ok=True)
+                except OSError as err:
+                    logger.warning("Не удалось удалить временный файл %s: %s", p, err)
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
@@ -521,11 +714,14 @@ def generate_project(self, order_id: str):
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
 def send_completed_project(self, order_id: str):
-    """REVIEW → COMPLETED: Отправка готового проекта клиенту.
+    """Отправка готового проекта клиенту.
 
     Находит сгенерированный PDF проекта в файлах заявки,
     генерирует DOCX сопроводительного письма в РСО,
     отправляет клиенту письмом с вложениями.
+
+    Новая ветка: ADVANCE_PAID → AWAITING_FINAL_PAYMENT.
+    Legacy-ветка: REVIEW → COMPLETED.
     """
     from app.services.email_service import send_project
 
@@ -537,6 +733,13 @@ def send_completed_project(self, order_id: str):
     with SyncSession() as session:
         order = _get_order(session, oid)
         if order is None:
+            return
+        if order.status not in (OrderStatus.REVIEW, OrderStatus.ADVANCE_PAID):
+            logger.warning(
+                "send_completed_project: order=%s статус %s, пропускаем",
+                oid,
+                order.status.value,
+            )
             return
 
         attachment_paths, cover_letter_path = _collect_project_attachments(
@@ -576,8 +779,16 @@ def send_completed_project(self, order_id: str):
         )
 
         if success:
-            _transition(session, order, OrderStatus.COMPLETED)
-            logger.info("Проект отправлен клиенту: order=%s", oid)
+            if order.status == OrderStatus.ADVANCE_PAID:
+                _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
+                logger.info(
+                    "Проект отправлен клиенту: order=%s → awaiting_final_payment",
+                    oid,
+                )
+            else:
+                # Legacy-сценарий старых заявок.
+                _transition(session, order, OrderStatus.COMPLETED)
+                logger.info("Проект отправлен клиенту: order=%s → completed", oid)
         else:
             logger.error("Не удалось отправить проект для order=%s", oid)
             try:
@@ -646,96 +857,34 @@ def initiate_payment_flow(self, order_id: str):
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
 def process_advance_payment(self, order_id: str):
-    """CONTRACT_SENT → ADVANCE_PAID → AWAITING_FINAL_PAYMENT: аванс получен, проект клиенту."""
+    """CONTRACT_SENT → ADVANCE_PAID: аванс подтверждён, проект отправляется отдельно."""
     from datetime import datetime, timezone
-
-    from app.services.email_service import has_successful_email, send_advance_received
 
     oid = uuid.UUID(order_id)
     logger.info("process_advance_payment: order=%s", oid)
 
-    cover_letter_path: Path | None = None
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            return
 
-    try:
-        with SyncSession() as session:
-            order = _get_order(session, oid)
-            if order is None:
-                return
-
-            if order.status == OrderStatus.CONTRACT_SENT:
+        if order.status == OrderStatus.CONTRACT_SENT:
+            if order.advance_paid_at is None:
                 order.advance_paid_at = datetime.now(timezone.utc)
                 session.commit()
+            _transition(session, order, OrderStatus.ADVANCE_PAID)
+            logger.info("process_advance_payment: order=%s → advance_paid", oid)
+            return
 
-                _transition(session, order, OrderStatus.ADVANCE_PAID)
+        if order.status == OrderStatus.ADVANCE_PAID:
+            logger.info("process_advance_payment: order=%s уже в advance_paid", oid)
+            return
 
-                attachment_paths, cover_letter_path = _collect_project_attachments(
-                    session, order
-                )
-                success = send_advance_received(
-                    session, order, attachment_paths
-                )
-                if success:
-                    _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
-                    logger.info(
-                        "process_advance_payment: проект отправлен, order=%s → awaiting_final_payment",
-                        oid,
-                    )
-                else:
-                    logger.error(
-                        "process_advance_payment: ошибка отправки для order=%s",
-                        oid,
-                    )
-                    try:
-                        self.retry()
-                    except self.MaxRetriesExceededError:
-                        logger.error(
-                            "Исчерпаны попытки process_advance_payment для order=%s",
-                            oid,
-                        )
-
-            elif order.status == OrderStatus.ADVANCE_PAID:
-                if has_successful_email(session, order.id, EmailType.ADVANCE_RECEIVED):
-                    _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
-                    logger.info(
-                        "process_advance_payment: догоняем статус order=%s → awaiting_final_payment",
-                        oid,
-                    )
-                    return
-
-                attachment_paths, cover_letter_path = _collect_project_attachments(
-                    session, order
-                )
-                success = send_advance_received(
-                    session, order, attachment_paths
-                )
-                if success:
-                    _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
-                    logger.info(
-                        "process_advance_payment: повторная отправка ok, order=%s",
-                        oid,
-                    )
-                else:
-                    try:
-                        self.retry()
-                    except self.MaxRetriesExceededError:
-                        logger.error(
-                            "Исчерпаны попытки process_advance_payment для order=%s",
-                            oid,
-                        )
-            else:
-                logger.warning(
-                    "process_advance_payment: order=%s статус %s, пропускаем",
-                    oid,
-                    order.status.value,
-                )
-    finally:
-        if cover_letter_path is not None and cover_letter_path.exists():
-            try:
-                cover_letter_path.unlink()
-            except OSError as e:
-                logger.warning(
-                    "Не удалось удалить временный файл %s: %s", cover_letter_path, e
-                )
+        logger.warning(
+            "process_advance_payment: order=%s статус %s, пропускаем",
+            oid,
+            order.status.value,
+        )
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
@@ -1087,6 +1236,22 @@ def notify_engineer_rso_scan_received(order_id: str):
             logger.error(
                 "notify_engineer_rso_scan_received: не удалось отправить письмо %s", oid
             )
+
+
+@celery_app.task
+def notify_engineer_signed_contract(order_id: str):
+    """Уведомление инженеру: клиент загрузил подписанный договор."""
+    from app.services.email_service import send_signed_contract_notification
+
+    oid = uuid.UUID(order_id)
+    logger.info("notify_engineer_signed_contract: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            logger.error("notify_engineer_signed_contract: заявка не найдена %s", oid)
+            return
+        send_signed_contract_notification(session, order)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Периодические задачи

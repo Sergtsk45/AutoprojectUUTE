@@ -37,6 +37,13 @@ _SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
 )
 
 _MAX_TU_SIZE = 20 * 1024 * 1024  # 20 МБ — максимальный размер файла ТУ
+_MAX_SIGNED_CONTRACT_SIZE = 25 * 1024 * 1024  # 25 МБ
+_SIGNED_CONTRACT_ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
+_SIGNED_CONTRACT_ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+}
 
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
@@ -252,6 +259,10 @@ async def get_upload_page_info(
         client_name=order.client_name,
         order_status=order.status.value,
         order_type=order.order_type.value,
+        contract_number=order.contract_number,
+        payment_amount=order.payment_amount,
+        advance_amount=order.advance_amount,
+        company_requisites=order.company_requisites,
         missing_params=missing,
         files_uploaded=files,
         parsed_params=parsed_params,
@@ -519,4 +530,70 @@ async def client_upload_rso_scan(
 
     notify_engineer_rso_scan_received.delay(str(order_id))
 
+    return order_file
+
+
+@router.post(
+    "/orders/{order_id}/upload-signed-contract",
+    response_model=FileResponse,
+    status_code=201,
+)
+async def client_upload_signed_contract(
+    order_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Публичная загрузка подписанного договора клиентом."""
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.CONTRACT_SENT:
+        raise HTTPException(
+            status_code=400,
+            detail="Загрузка подписанного договора доступна только в статусе contract_sent",
+        )
+
+    existing_signed = await svc.get_files_by_order(
+        order_id, category=FileCategory.SIGNED_CONTRACT
+    )
+    if existing_signed:
+        raise HTTPException(
+            status_code=409,
+            detail="Подписанный договор уже загружен",
+        )
+
+    filename = (file.filename or "").lower()
+    has_allowed_extension = any(
+        filename.endswith(ext) for ext in _SIGNED_CONTRACT_ALLOWED_EXTENSIONS
+    )
+    if not has_allowed_extension:
+        raise HTTPException(
+            status_code=400,
+            detail="Разрешены только PDF, JPG и PNG файлы",
+        )
+    content_type = (file.content_type or "").lower()
+    if content_type and content_type not in _SIGNED_CONTRACT_ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Недопустимый MIME-тип файла",
+        )
+
+    content = await file.read(_MAX_SIGNED_CONTRACT_SIZE + 1)
+    if len(content) > _MAX_SIGNED_CONTRACT_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="Файл слишком большой (максимум 25 МБ)",
+        )
+    await file.seek(0)
+
+    try:
+        order_file = await svc.upload_file(order_id, FileCategory.SIGNED_CONTRACT, file)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    from app.services.tasks import notify_engineer_signed_contract
+
+    notify_engineer_signed_contract.delay(str(order_id))
     return order_file

@@ -71,6 +71,7 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
         OrderStatus.ERROR,
     ],
     OrderStatus.CLIENT_INFO_RECEIVED: [
+        OrderStatus.CONTRACT_SENT,       # новый основной путь: договор отправлен
         OrderStatus.DATA_COMPLETE,        # всё получено
         OrderStatus.WAITING_CLIENT_INFO,  # нужно ещё
         OrderStatus.COMPLETED,            # инженер одобрил вручную
@@ -141,6 +142,7 @@ class FileCategory(str, enum.Enum):
     GENERATED_PROJECT = "generated_project"
     OTHER = "other"
     COMPANY_CARD = "company_card"      # Карточка предприятия (загружает клиент)
+    SIGNED_CONTRACT = "signed_contract"  # Скан подписанного договора от клиента
     CONTRACT = "contract"              # Сгенерированный договор (DOCX)
     INVOICE = "invoice"                # Счёт на оплату (DOCX)
     RSO_SCAN = "rso_scan"              # Скан письма с входящим номером РСО
@@ -160,6 +162,7 @@ class EmailType(str, enum.Enum):
     SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
     PROJECT_READY_PAYMENT = "project_ready_payment"          # Проект готов, ожидается оплата
     CONTRACT_DELIVERY = "contract_delivery"                  # Договор и счёт отправлены клиенту
+    SIGNED_CONTRACT_NOTIFICATION = "signed_contract_notification"  # Уведомление инженеру о подписанном договоре
     ADVANCE_RECEIVED = "advance_received"                    # Аванс получен, проект отправлен
     FINAL_PAYMENT_REQUEST = "final_payment_request"          # Запрос финального платежа / скана РСО
     FINAL_PAYMENT_RECEIVED = "final_payment_received"        # Финальный платёж получен
