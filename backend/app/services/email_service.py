@@ -769,6 +769,45 @@ def send_sample_delivery(recipient_email: str) -> bool:
     )
 
 
+def render_tu_parsed_notification(order: Order) -> tuple[str, str]:
+    """Письмо инженеру: клиент загрузил ТУ, парсинг завершён."""
+    env = _get_jinja()
+    template = env.get_template("emails/tu_parsed_notification.html")
+    order_id_str = str(order.id)
+    ctx = {
+        **_order_context(order),
+        "header_title": "ТУ загружено и распарсено",
+        "admin_url": f"{settings.app_base_url}/admin?order={order.id}",
+        "order_id_short": order_id_str[:8],
+        "status_label": "Ожидаем документы от клиента",
+        "missing_items": get_missing_items(order.missing_params or []),
+    }
+    subject = f"Клиент загрузил ТУ — заявка №{order_id_str[:8]}"
+    return subject, template.render(ctx)
+
+
+def send_tu_parsed_notification(session: Session, order: Order) -> bool:
+    """Уведомить инженера после успешного парсинга ТУ."""
+    subject, html_body = render_tu_parsed_notification(order)
+    success = send_email(
+        recipient=settings.admin_email,
+        subject=subject,
+        html_body=html_body,
+    )
+    log = EmailLog(
+        order_id=order.id,
+        email_type=EmailType.TU_PARSED_NOTIFICATION,
+        recipient=settings.admin_email,
+        subject=subject,
+        body_text=html_body[:5000],
+        sent_at=datetime.now(timezone.utc) if success else None,
+        error_message=None if success else "SMTP delivery failed",
+    )
+    session.add(log)
+    session.commit()
+    return success
+
+
 def render_client_documents_received(order: Order) -> tuple[str, str]:
     """Письмо инженеру: клиент завершил загрузку документов."""
     env = _get_jinja()

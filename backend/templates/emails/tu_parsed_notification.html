@@ -1,0 +1,34 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<h2>Клиент загрузил технические условия</h2>
+
+<p>По заявке <strong>№{{ order_id_short }}</strong> ТУ успешно загружено и распарсено. В админке уже доступны результаты парсинга.</p>
+
+<div class="list-block">
+  <ul>
+    <li><strong>Клиент:</strong> {{ client_name }}</li>
+    <li><strong>Email:</strong> {{ client_email }}</li>
+    {% if object_address %}<li><strong>Объект:</strong> {{ object_address }}</li>{% endif %}
+    <li><strong>Статус:</strong> {{ status_label }}</li>
+  </ul>
+</div>
+
+{% if missing_items %}
+<h2>Что ещё ожидаем от клиента</h2>
+<div class="list-block">
+  <ul>
+    {% for item in missing_items %}
+    <li>
+      <strong>{{ item.label }}</strong>
+      {% if item.hint %}<br>{{ item.hint }}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="btn-center">
+  <a href="{{ admin_url }}" class="btn">Открыть заявку в админке</a>
+</div>
+{% endblock %}

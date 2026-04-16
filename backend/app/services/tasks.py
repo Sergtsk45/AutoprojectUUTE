@@ -433,9 +433,14 @@ def check_data_completeness(self, order_id: str):
             args=[order_id],
             countdown=INFO_REQUEST_AUTO_DELAY_SECONDS,
         )
+        notify_engineer_tu_parsed.delay(order_id)
         logger.info(
             "check_data_completeness: send_info_request_email с задержкой %s с, order=%s",
             INFO_REQUEST_AUTO_DELAY_SECONDS,
+            oid,
+        )
+        logger.info(
+            "check_data_completeness: notify_engineer_tu_parsed поставлена в очередь, order=%s",
             oid,
         )
 
@@ -563,6 +568,21 @@ def process_due_info_requests():
         len(orders),
         queued,
     )
+
+
+@celery_app.task
+def notify_engineer_tu_parsed(order_id: str):
+    """Уведомляет инженера после успешного парсинга загруженного ТУ."""
+    from app.services.email_service import send_tu_parsed_notification
+
+    oid = uuid.UUID(order_id)
+    logger.info("notify_engineer_tu_parsed: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            return
+        send_tu_parsed_notification(session, order)
 
 
 @celery_app.task

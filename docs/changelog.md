@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-04-16] — Fix: письмо инженеру после загрузки и парсинга ТУ
+
+### Добавлено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): новая Celery-задача `notify_engineer_tu_parsed`, которая ставится в очередь из `check_data_completeness` сразу после перехода заявки в `waiting_client_info`.
+- В [`backend/templates/emails/tu_parsed_notification.html`](../backend/templates/emails/tu_parsed_notification.html): отдельный шаблон письма инженеру о том, что клиент загрузил ТУ и парсинг завершён.
+- В [`backend/alembic/versions/20260416_uute_tu_parsed_notification_enum.py`](../backend/alembic/versions/20260416_uute_tu_parsed_notification_enum.py): миграция enum-значения `TU_PARSED_NOTIFICATION` для PostgreSQL-типа `email_type`.
+- В [`backend/tests/test_tu_parsed_engineer_notification.py`](../backend/tests/test_tu_parsed_engineer_notification.py): регрессионный тест на постановку инженерского уведомления после `check_data_completeness`.
+
+### Изменено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): `EmailType` расширен значением `tu_parsed_notification` для отдельного логирования события после парсинга ТУ.
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): добавлены `render_tu_parsed_notification` и `send_tu_parsed_notification` с текстом о статусе `waiting_client_info`, списке недостающих документов и ссылке на админку.
+- В [`docs/project.md`](project.md): актуализировано описание email/Celery-цепочки после загрузки и парсинга ТУ.
+
 ## [2026-04-16] — Fix: безопасная enum-миграция статуса замечаний РСО
 
 ### Исправлено

@@ -1,5 +1,15 @@
 # Task tracker
 
+## Задача: Возврат email-уведомления инженеру после загрузки ТУ (2026-04-16)
+- **Статус**: Завершена
+- **Описание**: Вернуть письмо инженеру после успешной загрузки и парсинга ТУ, чтобы инженер снова получал email в момент, когда в админке уже доступны распарсенные данные и заявка перешла в ожидание документов от клиента.
+- **Шаги выполнения**:
+  - [x] Добавить регрессионный тест на постановку Celery-уведомления из `check_data_completeness`
+  - [x] Добавить отдельную задачу `notify_engineer_tu_parsed` и новый `EmailType` для события парсинга ТУ
+  - [x] Добавить шаблон письма инженеру с `missing_params`, статусом заявки и ссылкой на админку
+  - [x] Обновить `docs/changelog.md`, `docs/project.md`, `docs/tasktracker.md`
+- **Зависимости**: `backend/app/services/tasks.py`, `backend/app/services/email_service.py`, `backend/templates/emails/tu_parsed_notification.html`, `backend/alembic/versions/20260416_uute_tu_parsed_notification_enum.py`
+
 ## Задача: Исправление enum-миграции статуса замечаний РСО (2026-04-16)
 - **Статус**: Завершена
 - **Описание**: Исправить Alembic-миграцию `RSO_REMARKS_RECEIVED` под ограничение PostgreSQL, где новый enum нельзя использовать в той же транзакции, в которой он был добавлен.
