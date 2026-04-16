@@ -56,12 +56,17 @@ class OrderResponse(BaseModel):
     advance_amount: int | None = None
     advance_paid_at: datetime | None = None
     final_paid_at: datetime | None = None
+    rso_scan_received_at: datetime | None = None
     company_requisites: dict | None = None
     contract_number: str | None = None
     created_at: datetime
     updated_at: datetime
     files: list["FileResponse"]
     emails: list["EmailLogResponse"]
+    has_rso_scan: bool = False
+    has_rso_remarks: bool = False
+    awaiting_rso_feedback: bool = False
+    final_invoice_available: bool = False
     info_request_sent: bool = False
     reminder_sent: bool = False
     #: Не ранее этого момента (UTC) уйдёт авто-запрос документов, если инженер не отправил раньше.
@@ -160,7 +165,13 @@ class PaymentPageInfo(BaseModel):
     payment_amount: int | None = None
     advance_amount: int | None = None
     company_requisites: dict | None = None
+    payment_requisites: dict | None = None
     contract_number: str | None = None
+    has_rso_scan: bool = False
+    has_rso_remarks: bool = False
+    awaiting_rso_feedback: bool = False
+    final_invoice_available: bool = False
+    rso_scan_received_at: datetime | None = None
     files_uploaded: list[FileResponse]
 
 
@@ -192,10 +203,34 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
         earliest_auto = order.waiting_client_info_at + timedelta(hours=24)
 
     base = OrderResponse.model_validate(order)
+    post_project_flags = derive_post_project_flags(order.files or [], order.final_paid_at)
     return base.model_copy(
         update={
+            **post_project_flags,
             "info_request_sent": info_request_sent,
             "reminder_sent": reminder_sent,
             "info_request_earliest_auto_at": earliest_auto,
         }
     )
+
+
+def derive_post_project_flags(
+    files: list["FileResponse"] | list[object],
+    final_paid_at: datetime | None,
+) -> dict[str, bool]:
+    """Вычисляет флаги post-project flow из файлов заявки и даты финальной оплаты."""
+    categories = {
+        getattr(file_obj.category, "value", file_obj.category)
+        for file_obj in files
+        if getattr(file_obj, "category", None) is not None
+    }
+    has_rso_scan = FileCategory.RSO_SCAN.value in categories
+    has_rso_remarks = FileCategory.RSO_REMARKS.value in categories
+    final_invoice_available = FileCategory.FINAL_INVOICE.value in categories
+    awaiting_rso_feedback = has_rso_scan and not has_rso_remarks and final_paid_at is None
+    return {
+        "has_rso_scan": has_rso_scan,
+        "has_rso_remarks": has_rso_remarks,
+        "awaiting_rso_feedback": awaiting_rso_feedback,
+        "final_invoice_available": final_invoice_available,
+    }

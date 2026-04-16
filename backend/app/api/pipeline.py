@@ -15,6 +15,7 @@ from app.services.tasks import (
     process_client_response,
     initiate_payment_flow,
     send_completed_project,
+    resend_corrected_project,
     process_advance_payment,
     process_final_payment,
 )
@@ -252,6 +253,60 @@ async def confirm_final_payment(
 
     return PipelineResponse(
         message="Оплата подтверждена, заявка завершается",
+        order_id=order_id,
+        task_id=task.id,
+    )
+
+
+@router.post("/{order_id}/resend-corrected-project", response_model=PipelineResponse)
+async def resend_corrected_project_endpoint(
+    order_id: uuid.UUID,
+    svc: OrderService = Depends(get_service),
+    _key: str = Depends(verify_admin_key),
+):
+    """Инженер повторно отправляет исправленный проект клиенту."""
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Повторная отправка доступна только в статусе «{order.status.value}»",
+        )
+
+    remarks_files = sorted(
+        (f for f in (order.files or []) if f.category == FileCategory.RSO_REMARKS),
+        key=lambda file_obj: file_obj.created_at,
+    )
+    if not remarks_files:
+        raise HTTPException(
+            status_code=422,
+            detail="Сначала дождитесь загрузки замечаний РСО клиентом",
+        )
+
+    project_files = sorted(
+        (f for f in (order.files or []) if f.category == FileCategory.GENERATED_PROJECT),
+        key=lambda file_obj: file_obj.created_at,
+    )
+    if not project_files:
+        raise HTTPException(
+            status_code=422,
+            detail="Сначала загрузите исправленный файл проекта (категория «Готовый проект»)",
+        )
+
+    if project_files[-1].created_at <= remarks_files[-1].created_at:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Сначала загрузите новую версию проекта после замечаний РСО, "
+                "затем повторите отправку."
+            ),
+        )
+
+    task = resend_corrected_project.delay(str(order_id))
+    return PipelineResponse(
+        message="Исправленный проект отправляется клиенту",
         order_id=order_id,
         task_id=task.id,
     )

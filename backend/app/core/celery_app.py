@@ -37,6 +37,11 @@ celery_app.conf.update(
             "schedule": crontab(minute="*/15"),
             "options": {"queue": "default"},
         },
+        "send-final-payment-reminders-after-rso-scan": {
+            "task": "app.services.tasks.send_final_payment_reminders_after_rso_scan",
+            "schedule": crontab(hour=10, minute=15),
+            "options": {"queue": "default"},
+        },
     },
 )
 

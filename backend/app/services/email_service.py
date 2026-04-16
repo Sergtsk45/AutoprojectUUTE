@@ -158,6 +158,7 @@ def render_project_delivery(
     project_documents: list[str] | None = None,
     attachment_paths: list[str] | None = None,
     download_url: str | None = None,
+    is_redelivery: bool = False,
 ) -> tuple[str, str, list[str]]:
     """Рендерит письмо «Проект готов»."""
     env = _get_jinja()
@@ -168,14 +169,18 @@ def render_project_delivery(
 
     ctx = {
         **_order_context(order),
-        "header_title": "Проект готов",
+        "header_title": "Исправленный проект готов" if is_redelivery else "Проект готов",
         "project_documents": docs,
         "has_attachments": len(attachments) > 0,
         "download_url": download_url,
         "payment_url": f"{settings.app_base_url}/payment/{order.id}",
+        "is_redelivery": is_redelivery,
     }
 
-    subject = f"Проект УУТЭ готов — {order.object_address or 'заявка'}"
+    if is_redelivery:
+        subject = f"Исправленный проект УУТЭ — {order.object_address or 'заявка'}"
+    else:
+        subject = f"Проект УУТЭ готов — {order.object_address or 'заявка'}"
     html_body = template.render(ctx)
     return subject, html_body, attachments
 
@@ -254,8 +259,12 @@ def render_final_payment_request(
     order: Order,
     retry_count: int = 0,
     post_rso_scan: bool = False,
+    reminder_kind: str = "default",
 ) -> tuple[str, str, list[str]]:
     """Напоминание клиенту об остатке оплаты / скане РСО."""
+    if post_rso_scan and reminder_kind == "default":
+        reminder_kind = "post_rso_scan"
+
     env = _get_jinja()
     template = env.get_template("emails/final_payment_request.html")
     cn = _contract_number_display(order)
@@ -267,6 +276,7 @@ def render_final_payment_request(
         "final_amount_formatted": _format_rub(_final_amount_rub(order)),
         "retry_count": retry_count,
         "post_rso_scan": post_rso_scan,
+        "reminder_kind": reminder_kind,
     }
     if post_rso_scan:
         subject = f"Дальнейшие шаги по проекту УУТЭ — договор №{cn}"
@@ -528,6 +538,37 @@ def send_project(
     return success
 
 
+def send_project_redelivery(
+    session: Session,
+    order: Order,
+    attachment_paths: list[str] | None = None,
+    download_url: str | None = None,
+) -> bool:
+    """Повторно отправить клиенту исправленный проект."""
+    subject, html_body, attachments = render_project_delivery(
+        order,
+        attachment_paths=attachment_paths,
+        download_url=download_url,
+        is_redelivery=True,
+    )
+    success = send_email(
+        recipient=order.client_email,
+        subject=subject,
+        html_body=html_body,
+        attachment_paths=attachments,
+    )
+    _log_email(
+        session,
+        order,
+        EmailType.PROJECT_DELIVERY,
+        subject,
+        html_body,
+        success,
+        error_msg=None if success else "SMTP delivery failed",
+    )
+    return success
+
+
 def send_contract_delivery_to_client(
     session: Session,
     order: Order,
@@ -629,12 +670,14 @@ def send_final_payment_request(
     order: Order,
     retry_count: int = 0,
     post_rso_scan: bool = False,
+    reminder_kind: str = "default",
 ) -> bool:
     """Напоминание об остатке оплаты (Celery Beat или вручную)."""
     subject, html_body, attachments = render_final_payment_request(
         order,
         retry_count=retry_count,
         post_rso_scan=post_rso_scan,
+        reminder_kind=reminder_kind,
     )
     success = send_email(
         recipient=order.client_email,

@@ -1,9 +1,26 @@
 # Changelog
 
+## [2026-04-16] — Post-project flow: финальный счёт и замечания РСО
+
+### Добавлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): новые категории файлов `final_invoice` и `rso_remarks`, а также поле `rso_scan_received_at` в `Order`.
+- В [`backend/alembic/versions/20260416_uute_final_payment_rso_feedback.py`](../backend/alembic/versions/20260416_uute_final_payment_rso_feedback.py): миграция enum-значений `FINAL_INVOICE` / `RSO_REMARKS` и колонки `orders.rso_scan_received_at`.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): публичный `POST /landing/orders/{id}/upload-rso-remarks`, derived-флаги payment-page (`has_rso_scan`, `has_rso_remarks`, `awaiting_rso_feedback`, `final_invoice_available`) и реквизиты для оплаты по счёту.
+- В [`backend/app/api/pipeline.py`](../backend/app/api/pipeline.py): admin endpoint `POST /pipeline/{id}/resend-corrected-project` для повторной отправки исправленного проекта клиенту.
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): задачи `notify_engineer_rso_remarks_received`, `resend_corrected_project`, ежедневная beat-задача reminder спустя 15 дней после `rso_scan_received_at`.
+
+### Изменено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `send_completed_project` теперь сохраняет счёт на остаток как `OrderFile(final_invoice)` и при повторных отправках переиспользует уже сохранённый документ вместо генерации нового.
+- В [`backend/app/services/email_service.py`](../backend/app/services/email_service.py): добавлена отдельная ветка повторной отправки исправленного проекта; письма `project_delivery` и `final_payment_request` больше не обещают онлайн-эквайринг и ведут на рабочий экран оплаты по счёту / загрузки замечаний РСО.
+- В [`backend/static/payment.html`](../backend/static/payment.html): переработан сценарий `awaiting_final_payment` для варианта A — выбор между загрузкой скана РСО и оплатой по счёту, устойчивое подтверждение приёма скана, upload замечаний РСО, показ реквизитов и статуса счёта.
+- В [`backend/static/admin.html`](../backend/static/admin.html): добавлены отображение `rso_scan_received_at`, файла `rso_remarks`, derived state post-project flow и действие «Отправить исправленный проект».
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): расширены `PaymentPageInfo` и `OrderResponse` вычисляемыми post-project флагами.
+
 ## [2026-04-16] — Доработки UI и email/payment flow
 
 ### Изменено
 - В [`backend/static/admin.html`](../backend/static/admin.html): в блоке «Настроечная БД вычислителя» кнопка «Сохранить» теперь неактивна без pending-изменений, блокируется на время `PATCH` и снова активируется только после новых правок полей.
+- В [`backend/static/admin.html`](../backend/static/admin.html): блок «Настроечная БД вычислителя» сделан сворачиваемым и по умолчанию отображается в свернутом состоянии; группы параметров внутри блока также свёрнуты по умолчанию.
 - В [`backend/templates/emails/info_request.html`](../backend/templates/emails/info_request.html): письмо «Запрос документов» дополнено этапом предварительных расчётов (диаметр расходомера, суточные/месячные расходы) и обновлённой формулировкой продолжения.
 - В [`backend/static/upload.html`](../backend/static/upload.html): в сценарии `contract_sent` после успешной загрузки `signed_contract` добавлена кнопка «Вернуться на сайт».
 - В [`backend/templates/emails/project_delivery.html`](../backend/templates/emails/project_delivery.html): в письмо «Проект готов» добавлена кнопка для загрузки скана сопроводительного письма (`/payment/{id}`).

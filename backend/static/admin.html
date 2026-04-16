@@ -573,6 +573,25 @@
           flex-wrap: wrap;
           margin-top: 12px;
         }
+        #calcConfigDetails > summary {
+          list-style: none;
+          cursor: pointer;
+          user-select: none;
+        }
+        #calcConfigDetails > summary::-webkit-details-marker {
+          display: none;
+        }
+        #calcConfigDetails[open] > summary {
+          margin-bottom: 10px;
+        }
+        .calc-collapse-indicator {
+          margin-left: auto;
+          color: var(--c-text-secondary);
+          transition: transform 0.2s ease;
+        }
+        #calcConfigDetails[open] .calc-collapse-indicator {
+          transform: rotate(90deg);
+        }
   </style>
 </head>
 <body>
@@ -719,8 +738,10 @@
                   <option value="company_card">Карточка организации (реквизиты)</option>
                   <option value="contract">Договор</option>
                   <option value="invoice">Счёт</option>
+                  <option value="final_invoice">Счёт на остаток</option>
                   <option value="signed_contract">Подписанный договор</option>
                   <option value="rso_scan">Скан письма в РСО</option>
+                  <option value="rso_remarks">Замечания РСО</option>
                   <option value="other">Другое</option>
                 </select>
               </div>
@@ -760,11 +781,14 @@
 
         <!-- Calculator config card -->
         <div class="card" id="calcConfigCard" style="display:none;">
-          <div class="card-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            Настроечная БД вычислителя
-          </div>
-          <div id="calcConfigContent"></div>
+          <details id="calcConfigDetails">
+            <summary class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              Настроечная БД вычислителя
+              <span class="calc-collapse-indicator">▶</span>
+            </summary>
+            <div id="calcConfigContent"></div>
+          </details>
         </div>
 
         <!-- Comparison card: parsed ТУ vs опросный лист -->
@@ -1406,7 +1430,7 @@
       if (!template.groups) return '';
       let html = '';
       for (const group of template.groups) {
-        html += `<details open style="margin-bottom:8px;">
+        html += `<details style="margin-bottom:8px;">
           <summary style="cursor:pointer; font-weight:600; font-size:13px; padding:6px 0; color:var(--c-text);">${group.title} ▶</summary>
           <table class="calc-table">
             <thead><tr>
@@ -1892,6 +1916,13 @@
         : '<span style="color:#f57c00;">Ожидание</span>';
 
       const rub = '₽';
+      const postProjectState = order.has_rso_remarks
+        ? '<span style="color:#2563eb;">Замечания РСО получены</span>'
+        : (order.awaiting_rso_feedback
+          ? '<span style="color:#2563eb;">Ожидаем замечания РСО</span>'
+          : (order.has_rso_scan
+            ? '<span style="color:#0f766e;">Скан РСО получен</span>'
+            : '<span style="color:#f57c00;">Ожидаем скан РСО или оплату</span>'));
       let html = `
         <dl class="detail-grid">
           <dt>Договор</dt><dd>${esc(order.contract_number || '—')}</dd>
@@ -1899,6 +1930,9 @@
           <dt>Полная сумма</dt><dd>${order.payment_amount ? formatNum(order.payment_amount) + ' ' + rub : '—'}</dd>
           <dt>Аванс (50%)</dt><dd>${order.advance_amount ? formatNum(order.advance_amount) + ' ' + rub : '—'} — ${advanceStatus}</dd>
           <dt>Остаток (50%)</dt><dd>${finalAmount ? formatNum(finalAmount) + ' ' + rub : '—'} — ${finalStatus}</dd>
+          <dt>Счёт на остаток</dt><dd>${order.final_invoice_available ? '<span style="color:#16a34a;">✓ Сохранён</span>' : '—'}</dd>
+          <dt>Скан РСО получен</dt><dd>${order.rso_scan_received_at ? formatDateFull(order.rso_scan_received_at) : '—'}</dd>
+          <dt>Post-project этап</dt><dd>${postProjectState}</dd>
         </dl>
       `;
 
@@ -2047,8 +2081,10 @@
         heat_scheme: 'Принципиальная схема теплового пункта с УУТЭ',
         contract: 'Договор',
         invoice: 'Счёт',
+        final_invoice: 'Счёт на остаток',
         signed_contract: 'Подписанный договор',
         rso_scan: 'Скан письма в РСО',
+        rso_remarks: 'Замечания РСО',
         generated_excel: 'Excel (расчёты)',
         generated_project: 'Готовый проект',
         other: 'Другое',
@@ -2470,9 +2506,25 @@
             }
           },
         });
-        const hasRsoScan = (order.files || []).some(f => f.category === 'rso_scan');
-        if (hasRsoScan) {
-          noteText = 'Клиент загрузил скан из РСО. Проверьте и подтвердите остаток.';
+        if (order.has_rso_remarks) {
+          buttons.push({
+            label: '\u2709 Отправить исправленный проект',
+            cls: 'btn-primary',
+            action: () => {
+              if (confirm('Отправить клиенту исправленный проект с тем же счётом на остаток?')) {
+                runAction(
+                  `/pipeline/${order.id}/resend-corrected-project`,
+                  'POST',
+                  'Исправленный проект отправлен клиенту'
+                );
+              }
+            },
+          });
+          noteText = 'Замечания РСО загружены клиентом. Проверьте новый PDF проекта и отправьте исправленный комплект либо подтвердите оплату остатка.';
+        } else if (order.awaiting_rso_feedback) {
+          noteText = 'Скан из РСО получен. Ожидаем замечания РСО или оплату остатка.';
+        } else if (order.has_rso_scan) {
+          noteText = 'Клиент загрузил скан из РСО. Проверьте статус согласования и ожидайте замечания или оплату.';
         } else {
           noteText = 'Ожидаем скан из РСО или оплату остатка от клиента.';
         }

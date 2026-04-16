@@ -237,10 +237,38 @@
       margin: 12px 0;
     }
 
+    .status-note {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid #dbeafe;
+      color: #1e3a8a;
+      font-size: 14px;
+    }
+
+    .detail-list {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 8px 12px;
+      margin: 12px 0 0;
+      font-size: 14px;
+    }
+
+    .detail-list dt {
+      color: var(--c-text-secondary);
+    }
+
+    .detail-list dd {
+      margin: 0;
+      word-break: break-word;
+    }
+
     @media (max-width: 600px) {
       .container { padding: 20px 16px 48px; }
       .card { padding: 20px; }
       .payment-methods { grid-template-columns: 1fr; }
+      .detail-list { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -280,8 +308,8 @@
             <div class="payment-option-desc">Для юрлиц и ИП. Оплата по счёту.</div>
           </div>
           <div class="payment-option" id="optOnlineCard" role="button" tabindex="0">
-            <div class="payment-option-title">Оплата картой</div>
-            <div class="payment-option-desc">Моментальная оплата онлайн.</div>
+            <div class="payment-option-title">Альтернативный способ</div>
+            <div class="payment-option-desc">Онлайн-эквайринг пока не подключён. Свяжемся с вами отдельно.</div>
           </div>
         </div>
 
@@ -300,22 +328,22 @@
       </div>
       <p>После получения аванса проект будет автоматически отправлен на вашу почту.</p>
       <button type="button" id="payOnlineBtn" class="btn btn-primary" style="display:none;margin-top:16px;">
-        Оплатить <span id="payOnlineSum"></span> руб.
+        Уточнить альтернативный способ оплаты
       </button>
     </div>
 
     <div id="advancePaidCard" class="card" style="display:none;">
-      <h2>Аванс получен — проект отправлен!</h2>
+      <h2>Проект отправлен — выберите следующий шаг</h2>
       <p>Проект и сопроводительное письмо в РСО отправлены на
          <strong id="projectEmail"></strong>.</p>
 
       <div class="info-block" style="margin:16px 0;">
-        <h3>Дальнейшие действия</h3>
+        <h3>Что можно сделать сейчас</h3>
         <p>1. Распечатайте сопроводительное письмо, подпишите и поставьте печать.</p>
         <p>2. Передайте проект вместе с письмом в РСО.</p>
         <p>3. Получите отметку о принятии (входящий номер).</p>
         <p>4. Загрузите скан письма с входящим номером ниже
-           <strong>или</strong> оплатите остаток.</p>
+           <strong>или</strong> перейдите к оплате по счёту и реквизитам.</p>
       </div>
 
       <h3>Загрузить скан из РСО</h3>
@@ -329,14 +357,42 @@
       <div style="text-align:center; margin:16px 0; color:#666;">или</div>
 
       <button type="button" id="payFinalBtn" class="btn btn-secondary">
-        Оплатить остаток <span id="finalSum"></span> руб.
+        Открыть реквизиты и счёт на <span id="finalSum"></span> руб.
       </button>
     </div>
 
     <div id="awaitingFinalCard" class="card" style="display:none;">
-      <h2>Ожидание подтверждения</h2>
-      <p>Скан загружен или платёж обрабатывается.
-         Мы свяжемся с вами после подтверждения.</p>
+      <h2>Скан принят — ждём замечания РСО или оплату</h2>
+      <p>Скан сопроводительного письма успешно получен. Клиенту уже отправлено письмо с дальнейшими шагами.</p>
+
+      <div class="status-note" id="rsoScanStatusNote"></div>
+
+      <div id="rsoRemarksState" class="info-block" style="display:none;">
+        <h3>Замечания РСО получены</h3>
+        <p>Файл с замечаниями сохранён и передан инженеру. После корректировки проекта мы повторно отправим вам обновлённый комплект.</p>
+      </div>
+
+      <div id="rsoRemarksUploadSection">
+        <h3>Загрузить замечания РСО</h3>
+        <p>Если РСО направит замечания, загрузите их здесь. Мы сразу уведомим инженера.</p>
+        <div class="dropzone" id="rsoRemarksDropzone" tabindex="0">
+          <p>Перетащите файл замечаний РСО или нажмите для выбора</p>
+          <input type="file" id="rsoRemarksInput"
+                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden>
+        </div>
+        <div id="rsoRemarksQueue" class="upload-queue"></div>
+      </div>
+    </div>
+
+    <div id="finalPaymentDetailsCard" class="card" style="display:none;">
+      <h2>Оплата по счёту и реквизитам</h2>
+      <p>Онлайн-эквайринг пока не подключён. Для оплаты используйте счёт из письма и реквизиты ниже.</p>
+      <div class="info-block">
+        <p>Договор №<strong id="finalContractNum">—</strong></p>
+        <p>Сумма остатка: <strong id="finalPaymentAmountText">—</strong></p>
+        <p id="finalInvoiceStatus">Счёт на остаток был отправлен вам на email.</p>
+      </div>
+      <dl id="paymentRequisitesList" class="detail-list"></dl>
     </div>
 
     <div id="completedCard" class="card" style="display:none;">
@@ -406,6 +462,8 @@
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+      var finalPaymentDetails = document.getElementById('finalPaymentDetailsCard');
+      if (finalPaymentDetails) finalPaymentDetails.style.display = 'none';
       var nr = document.getElementById('notReadyCard');
       if (nr) nr.style.display = 'none';
     }
@@ -417,9 +475,10 @@
         return;
       }
       if (status === 'awaiting_final_payment') {
-        var hasRsoScan = hasRsoScanFile(orderData || {});
+        var hasRsoScan = !!(orderData && orderData.has_rso_scan);
         var targetCard = hasRsoScan ? 'awaitingFinalCard' : 'advancePaidCard';
         document.getElementById(targetCard).style.display = 'block';
+        document.getElementById('finalPaymentDetailsCard').style.display = 'block';
         return;
       }
       var screenId = SCREENS[status];
@@ -462,6 +521,40 @@
     function hasRsoScanFile(data) {
       var files = data.files_uploaded || [];
       return files.some(function (f) { return f.category === 'rso_scan'; });
+    }
+
+    function hasRsoRemarksFile(data) {
+      var files = data.files_uploaded || [];
+      return files.some(function (f) { return f.category === 'rso_remarks'; });
+    }
+
+    function formatDateTime(value) {
+      if (!value) return '—';
+      try {
+        return new Date(value).toLocaleString('ru-RU');
+      } catch (e) {
+        return value;
+      }
+    }
+
+    function scrollToFinalPaymentDetails() {
+      var el = document.getElementById('finalPaymentDetailsCard');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    async function refreshPaymentPage(successMessage) {
+      var resp = await fetch(API_BASE + '/landing/orders/' + ORDER_ID + '/payment-page');
+      if (!resp.ok) {
+        throw new Error('HTTP ' + resp.status);
+      }
+      orderData = await resp.json();
+      fillScreenData(orderData);
+      showScreen(orderData.order_status);
+      if (successMessage) {
+        showBanner('success', successMessage);
+      }
     }
 
     function requisitesReady(req) {
@@ -658,7 +751,16 @@
             startRequisitesPoll();
           }
           if (postUrl.indexOf('upload-rso-scan') !== -1) {
-            showBanner('success', 'Скан загружен. Спасибо!');
+            refreshPaymentPage('Скан сопроводительного письма принят. Дальнейшие шаги обновлены на странице.')
+              .catch(function () {
+                showBanner('success', 'Скан сопроводительного письма принят.');
+              });
+          }
+          if (postUrl.indexOf('upload-rso-remarks') !== -1) {
+            refreshPaymentPage('Замечания РСО приняты и переданы инженеру.')
+              .catch(function () {
+                showBanner('success', 'Замечания РСО приняты.');
+              });
           }
         } else {
           var msg = 'HTTP ' + xhr.status;
@@ -701,11 +803,62 @@
         var fin = document.getElementById('finalSum');
         if (fin) fin.textContent = formatPrice(data.payment_amount - data.advance_amount);
       }
+      var finalAmountText = document.getElementById('finalPaymentAmountText');
+      if (finalAmountText) {
+        finalAmountText.textContent = (data.payment_amount != null && data.advance_amount != null)
+          ? (formatPrice(data.payment_amount - data.advance_amount) + ' руб.')
+          : '—';
+      }
+
+      var finalContractNum = document.getElementById('finalContractNum');
+      if (finalContractNum) finalContractNum.textContent = data.contract_number || '—';
+
+      var invoiceStatus = document.getElementById('finalInvoiceStatus');
+      if (invoiceStatus) {
+        invoiceStatus.textContent = data.final_invoice_available
+          ? 'Счёт на остаток уже сформирован и отправлен вам на email вместе с проектом.'
+          : 'Счёт на остаток ещё не найден. Если письмо не дошло, свяжитесь с нами.';
+      }
+
+      var reqList = document.getElementById('paymentRequisitesList');
+      if (reqList) {
+        var requisites = data.payment_requisites || {};
+        var reqLabels = [
+          ['company_full_name', 'Получатель'],
+          ['company_inn', 'ИНН'],
+          ['company_bank_name', 'Банк'],
+          ['company_bik', 'БИК'],
+          ['company_settlement_account', 'Расчётный счёт'],
+          ['company_corr_account', 'Корр. счёт'],
+        ];
+        reqList.innerHTML = reqLabels.map(function (pair) {
+          var key = pair[0];
+          var label = pair[1];
+          return '<dt>' + label + '</dt><dd>' + escapeHtml(String(requisites[key] || '—')) + '</dd>';
+        }).join('');
+      }
 
       if (data.payment_method === 'online_card' && data.order_status === 'contract_sent') {
         var b = document.getElementById('payOnlineBtn');
         if (b) b.style.display = 'inline-flex';
       }
+
+      var hasRsoScan = !!data.has_rso_scan || hasRsoScanFile(data);
+      var hasRsoRemarks = !!data.has_rso_remarks || hasRsoRemarksFile(data);
+      var rsoScanStatusNote = document.getElementById('rsoScanStatusNote');
+      if (rsoScanStatusNote) {
+        if (hasRsoScan) {
+          rsoScanStatusNote.textContent =
+            'Скан зарегистрирован: ' + formatDateTime(data.rso_scan_received_at)
+            + '. Сейчас вы можете либо дождаться ответа РСО, либо оплатить остаток по счёту.';
+        } else {
+          rsoScanStatusNote.textContent = '';
+        }
+      }
+      var remarksState = document.getElementById('rsoRemarksState');
+      var remarksUploadSection = document.getElementById('rsoRemarksUploadSection');
+      if (remarksState) remarksState.style.display = hasRsoRemarks ? 'block' : 'none';
+      if (remarksUploadSection) remarksUploadSection.style.display = hasRsoRemarks ? 'none' : 'block';
 
       if (data.order_status === 'awaiting_contract') {
         var spin = document.getElementById('parsingSpinner');
@@ -774,7 +927,11 @@
     });
 
     document.getElementById('payFinalBtn').addEventListener('click', function () {
-      showBanner('info', 'Онлайн-оплата остатка будет доступна в ближайшее время. Свяжитесь с нами при необходимости.');
+      scrollToFinalPaymentDetails();
+      showBanner('info', 'Используйте счёт из письма и реквизиты ниже для оплаты остатка.');
+    });
+    document.getElementById('payOnlineBtn').addEventListener('click', function () {
+      showBanner('info', 'Онлайн-эквайринг пока не подключён. Если нужен альтернативный способ оплаты, свяжитесь с нами по email из письма.');
     });
 
     setupDropzone(
@@ -788,6 +945,12 @@
       document.getElementById('rsoFileInput'),
       document.getElementById('rsoUploadQueue'),
       API_BASE + '/landing/orders/' + ORDER_ID + '/upload-rso-scan'
+    );
+    setupDropzone(
+      document.getElementById('rsoRemarksDropzone'),
+      document.getElementById('rsoRemarksInput'),
+      document.getElementById('rsoRemarksQueue'),
+      API_BASE + '/landing/orders/' + ORDER_ID + '/upload-rso-remarks'
     );
 
     async function init() {

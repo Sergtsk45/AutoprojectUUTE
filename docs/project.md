@@ -30,7 +30,7 @@
 | `heat_point_plan` | План теплового пункта с указанием мест установки узла учёта и ШУ |
 | `heat_scheme` | Принципиальная схема теплового пункта с узлом учёта |
 
-**Служебные:** `generated_excel`, `generated_project`, `other`.
+**Post-project / служебные:** `generated_excel`, `generated_project`, `invoice`, `final_invoice`, `signed_contract`, `rso_scan`, `rso_remarks`, `other`.
 
 Список того, что ещё нужно от клиента, задаётся в `orders.missing_params` (JSON-массив строк). Коды документов совпадают с `FileCategory` для сопоставления с загруженными файлами в `process_client_response` (сравнение с `OrderFile.category`). Подписи для писем и страницы загрузки — `app/services/param_labels.py`.
 
@@ -49,10 +49,28 @@
 - в `contract_sent` клиент видит отдельный экран подписания: номер договора, суммы (`payment_amount`, `advance_amount`) и отдельную загрузку скана подписанного договора через `POST /api/v1/landing/orders/{id}/upload-signed-contract` (PDF/JPG/JPEG/PNG);
 - после успешной загрузки `signed_contract` показывается подтверждение приёма и сообщение о сроке подготовки проекта (3 рабочих дня после подтверждения аванса).
 
+## Post-project flow (`awaiting_final_payment`)
+
+Статус `awaiting_final_payment` остаётся единственным статусом post-project ветки, а детализация сценария строится на артефактах и derived-флагах:
+
+- `orders.rso_scan_received_at` — когда клиент загрузил скан сопроводительного письма с входящим номером РСО;
+- `order_files.category = final_invoice` — сохранённый счёт на остаток, который повторно отправляется без регенерации;
+- `order_files.category = rso_remarks` — замечания РСО, загруженные клиентом;
+- derived-флаги API: `has_rso_scan`, `has_rso_remarks`, `awaiting_rso_feedback`, `final_invoice_available`.
+
+Страница `/payment/{id}` в этом статусе показывает два реальных сценария варианта A:
+
+- до загрузки скана РСО: клиент может либо загрузить скан письма с входящим номером, либо открыть блок оплаты по счёту и реквизитам;
+- после загрузки скана: UI явно подтверждает приём документа, показывает ожидание замечаний/оплаты и даёт отдельную загрузку `rso_remarks`;
+- после загрузки замечаний: клиент видит устойчивое подтверждение, а инженер получает email-уведомление и кнопку повторной отправки исправленного проекта.
+
 ## Письма и Celery (фрагмент)
 
-- Письмо `project_delivery` (отправка готового проекта) теперь содержит ссылку на страницу `/payment/{order_id}` для загрузки скана сопроводительного письма в РСО и отправляется с тремя вложениями: PDF проекта, DOCX сопроводительного письма и счёт на остаток по договору (`generate_invoice(..., is_advance=False)`).
-- После загрузки клиентом скана сопроводительного через `POST /landing/orders/{id}/upload-rso-scan` запускаются два уведомления: инженеру (`notify_engineer_rso_scan_received`) и клиенту (`notify_client_after_rso_scan`). Клиент получает письмо со сроками по ПП РФ №1034 (п.51 и п.50) и кнопкой «Загрузить замечания от РСО».
+- Письмо `project_delivery` (отправка готового проекта) теперь содержит ссылку на страницу `/payment/{order_id}` для оплаты по счёту / загрузки post-project документов и отправляется с вложениями: PDF проекта, DOCX сопроводительного письма и сохранённый счёт на остаток `final_invoice`.
+- `send_completed_project` при первой отправке сохраняет счёт на остаток как `OrderFile(final_invoice)`; при повторной отправке исправленного проекта (`resend_corrected_project`) переиспользуется тот же файл счёта, а клиент получает новый PDF проекта и обновлённое сопроводительное письмо.
+- После загрузки клиентом скана сопроводительного через `POST /landing/orders/{id}/upload-rso-scan` записывается `rso_scan_received_at` и запускаются два уведомления: инженеру (`notify_engineer_rso_scan_received`) и клиенту (`notify_client_after_rso_scan`). Клиент получает письмо со сроками по ПП РФ №1034 (п.51 и п.50) и кнопкой перехода на страницу замечаний/реквизитов.
+- После загрузки `rso_remarks` через `POST /landing/orders/{id}/upload-rso-remarks` инженер получает отдельное email-уведомление.
+- Напоминание о финальной оплате после РСО отправляется периодической задачей `send_final_payment_reminders_after_rso_scan`: кандидат — заявка в `awaiting_final_payment` со значением `rso_scan_received_at` старше 15 дней и без `final_paid_at`; идемпотентность обеспечивается по `email_log` через тип `final_payment_request` и маркер `reminder_kind:rso_scan_15d`.
 - После `check_data_completeness` при непустых `missing_params` заявка переходит в `waiting_client_info`, в `orders.waiting_client_info_at` пишется UTC; **автоотправка** `info_request` клиенту — не раньше чем через 24 ч: отложенная задача Celery `send_info_request_email` с `countdown` 24 ч плюс резерв `process_due_info_requests` (Beat каждые 15 минут). Ручная отправка из админки возможна сразу; дубликат блокируется по `email_log`. В ответе `GET /orders/{id}` поле `info_request_earliest_auto_at` (UTC) подсказывает момент ближайшей автоотправки, пока запрос ещё не уходил.
 - Напоминание (`reminder`): не чаще одного успешного на заявку; периодика `send_reminders` (ежедневно 10:00 МСК) шлёт только если уже был успешный `info_request` и с его `sent_at` прошло ≥ 3 суток.
 - После `POST /pipeline/{id}/client-upload-done` в очередь ставится `notify_engineer_client_documents_received` — одно письмо на `admin_email` (тип `client_documents_received`, идемпотентность по логу).

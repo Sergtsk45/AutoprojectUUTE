@@ -5,6 +5,7 @@
 
 import logging
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, EmailStr, Field
@@ -12,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.models import FileCategory, OrderStatus, OrderType, PaymentMethod
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
@@ -22,6 +24,7 @@ from app.schemas import (
     OrderCreate,
     PaymentPageInfo,
     PipelineResponse,
+    derive_post_project_flags,
     UploadPageInfo,
 )
 
@@ -396,9 +399,12 @@ async def get_payment_page_info(
         FileCategory.COMPANY_CARD.value,
         FileCategory.CONTRACT.value,
         FileCategory.INVOICE.value,
+        FileCategory.FINAL_INVOICE.value,
         FileCategory.RSO_SCAN.value,
+        FileCategory.RSO_REMARKS.value,
     }
     payment_files = [f for f in all_files if f.category.value in payment_categories]
+    post_project_flags = derive_post_project_flags(all_files, order.final_paid_at)
 
     return PaymentPageInfo(
         order_id=order.id,
@@ -411,7 +417,17 @@ async def get_payment_page_info(
         payment_amount=order.payment_amount,
         advance_amount=order.advance_amount,
         company_requisites=order.company_requisites,
+        payment_requisites={
+            "company_full_name": settings.company_full_name,
+            "company_inn": settings.company_inn,
+            "company_settlement_account": settings.company_settlement_account,
+            "company_bank_name": settings.company_bank_name,
+            "company_bik": settings.company_bik,
+            "company_corr_account": settings.company_corr_account,
+        },
         contract_number=order.contract_number,
+        rso_scan_received_at=order.rso_scan_received_at,
+        **post_project_flags,
         files_uploaded=payment_files,
     )
 
@@ -495,7 +511,7 @@ async def select_payment_method(
 
     return SimpleResponse(
         success=True,
-        message="Онлайн-оплата будет доступна позже",
+        message="Онлайн-эквайринг пока не подключён. Мы свяжемся с вами для согласования альтернативного способа оплаты.",
     )
 
 
@@ -529,6 +545,13 @@ async def client_upload_rso_scan(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
+    if order.rso_scan_received_at is None:
+        order.rso_scan_received_at = datetime.now(timezone.utc)
+    if order.status == OrderStatus.ADVANCE_PAID:
+        order.status = OrderStatus.AWAITING_FINAL_PAYMENT
+    db.add(order)
+    await db.commit()
+
     from app.services.tasks import (
         notify_client_after_rso_scan,
         notify_engineer_rso_scan_received,
@@ -537,6 +560,49 @@ async def client_upload_rso_scan(
     notify_engineer_rso_scan_received.delay(str(order_id))
     notify_client_after_rso_scan.delay(str(order_id))
 
+    return order_file
+
+
+@router.post(
+    "/orders/{order_id}/upload-rso-remarks",
+    response_model=FileResponse,
+    status_code=201,
+)
+async def client_upload_rso_remarks(
+    order_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Загрузка замечаний РСО после получения проекта."""
+    svc = OrderService(db)
+    order = await svc.get_order(order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+        raise HTTPException(
+            status_code=400,
+            detail="Загрузка замечаний РСО доступна только после отправки проекта",
+        )
+
+    has_rso_scan = any(
+        existing_file.category == FileCategory.RSO_SCAN
+        for existing_file in (order.files or [])
+    )
+    if order.rso_scan_received_at is None and not has_rso_scan:
+        raise HTTPException(
+            status_code=409,
+            detail="Сначала загрузите скан сопроводительного письма с входящим номером РСО",
+        )
+
+    try:
+        order_file = await svc.upload_file(order_id, FileCategory.RSO_REMARKS, file)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    from app.services.tasks import notify_engineer_rso_remarks_received
+
+    notify_engineer_rso_remarks_received.delay(str(order_id))
     return order_file
 
 

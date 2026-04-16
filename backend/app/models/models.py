@@ -145,7 +145,9 @@ class FileCategory(str, enum.Enum):
     SIGNED_CONTRACT = "signed_contract"  # Скан подписанного договора от клиента
     CONTRACT = "contract"              # Сгенерированный договор (DOCX)
     INVOICE = "invoice"                # Счёт на оплату (DOCX)
+    FINAL_INVOICE = "final_invoice"    # Счёт на остаток по договору (DOCX)
     RSO_SCAN = "rso_scan"              # Скан письма с входящим номером РСО
+    RSO_REMARKS = "rso_remarks"        # Замечания РСО по согласованию проекта
 
 
 # ─── Типы email ──────────────────────────────────────────────────────────────
@@ -245,6 +247,7 @@ class Order(Base):
     advance_amount = Column(Integer, nullable=True)
     advance_paid_at = Column(DateTime(timezone=True), nullable=True)
     final_paid_at = Column(DateTime(timezone=True), nullable=True)
+    rso_scan_received_at = Column(DateTime(timezone=True), nullable=True)
     company_requisites = Column(JSONB, nullable=True)
     contract_number = Column(String(100), nullable=True)
 
