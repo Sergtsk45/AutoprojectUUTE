@@ -9,6 +9,7 @@
   - [x] `upload.html`: кнопка «Вернуться на сайт» после успешной загрузки signed_contract
   - [x] `tasks.py`: вложение счёта на остаток в `send_completed_project` с cleanup временного файла
   - [x] `landing.py` + `tasks.py` + `final_payment_request.html`: письмо клиенту после `upload-rso-scan` с CTA «Загрузить замечания от РСО»
+  - [x] `payment.html`: в `awaiting_final_payment` показывать форму загрузки скана, пока файл `rso_scan` не загружен
 - **Зависимости**: существующие шаблоны email и endpoint `POST /api/v1/landing/orders/{id}/upload-rso-scan`
 
 ## Задача: Unified upload contract flow (upload/admin)

@@ -15,6 +15,7 @@
 
 ### Исправлено
 - В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): добавлен cleanup временного файла счёта на остаток после отправки письма с готовым проектом.
+- В [`backend/static/payment.html`](../backend/static/payment.html): для статуса `awaiting_final_payment` возвращён экран загрузки скана РСО, если скан ещё не загружен; экран «Ожидание подтверждения» показывается только после фактической загрузки `rso_scan`.
 
 ## [2026-04-16] — Fix: upload-signed-contract HTTP 500
 

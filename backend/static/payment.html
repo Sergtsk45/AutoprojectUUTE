@@ -416,6 +416,12 @@
         document.getElementById('notReadyCard').style.display = 'block';
         return;
       }
+      if (status === 'awaiting_final_payment') {
+        var hasRsoScan = hasRsoScanFile(orderData || {});
+        var targetCard = hasRsoScan ? 'awaitingFinalCard' : 'advancePaidCard';
+        document.getElementById(targetCard).style.display = 'block';
+        return;
+      }
       var screenId = SCREENS[status];
       if (screenId) {
         document.getElementById(screenId).style.display = 'block';
@@ -451,6 +457,11 @@
     function hasCompanyCardFile(data) {
       var files = data.files_uploaded || [];
       return files.some(function (f) { return f.category === 'company_card'; });
+    }
+
+    function hasRsoScanFile(data) {
+      var files = data.files_uploaded || [];
+      return files.some(function (f) { return f.category === 'rso_scan'; });
     }
 
     function requisitesReady(req) {
