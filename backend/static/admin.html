@@ -1358,6 +1358,8 @@
     async function loadCalcConfig(orderId) {
       const card = document.getElementById('calcConfigCard');
       const content = document.getElementById('calcConfigContent');
+      const _det = document.getElementById('calcConfigDetails');
+      const isOrderChange = !_det || _det.dataset.orderId !== String(orderId);
       bindCalcConfigDetailsToggle();
       try {
         const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config`, {
@@ -1376,7 +1378,16 @@
           (data.config && data.config.config_data) || {},
         );
         renderCalcConfig(data, orderId);
-        applyCalcConfigDetailsState(orderId);
+        // Restore open/close state only when switching to a different order.
+        // On poll refreshes for the same order we must NOT touch details.open —
+        // otherwise a completing fetch races with the user's click and
+        // re-opens the panel they just closed.
+        if (isOrderChange) {
+          applyCalcConfigDetailsState(orderId);
+        } else {
+          const d = document.getElementById('calcConfigDetails');
+          if (d) d.dataset.orderId = String(orderId);
+        }
         card.style.display = 'block';
       } catch (e) {
         card.style.display = 'none';

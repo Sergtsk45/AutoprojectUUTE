@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-16] — Fix: race-condition сворачивания настроечной БД
+
+### Исправлено
+- В [`backend/static/admin.html`](../backend/static/admin.html): `loadCalcConfig(orderId)` больше не вызывает `applyCalcConfigDetailsState(orderId)` на poll-обновлениях той же заявки; восстановление open/close состояния теперь происходит только при смене заявки, чтобы асинхронный `fetch` не переоткрывал панель, которую инженер только что закрыл.
+- В [`backend/tests/test_admin_post_project_actions.py`](../backend/tests/test_admin_post_project_actions.py): добавлен регрессионный тест на защиту `loadCalcConfig` от принудительного восстановления `details.open` при поллинге той же заявки.
+
 ## [2026-04-16] — Fix: действия инженера при замечаниях РСО
 
 ### Исправлено
