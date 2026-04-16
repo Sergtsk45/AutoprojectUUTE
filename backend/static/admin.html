@@ -1307,6 +1307,7 @@
     let calcPendingChanges = {};
     let calcSaveInFlight = false;
     let calcInitialValues = {};
+    const calcConfigUiStateByOrder = {};
 
     function normalizeCalcValue(value) {
       return value == null ? '' : String(value);
@@ -1333,9 +1334,31 @@
       saveBtn.textContent = calcSaveInFlight ? 'Сохранение…' : 'Сохранить';
     }
 
+    function bindCalcConfigDetailsToggle() {
+      const details = document.getElementById('calcConfigDetails');
+      if (!details || details.dataset.toggleBound === '1') return;
+      details.addEventListener('toggle', () => {
+        const orderId = details.dataset.orderId;
+        if (!orderId) return;
+        calcConfigUiStateByOrder[orderId] = details.open;
+      });
+      details.dataset.toggleBound = '1';
+    }
+
+    function applyCalcConfigDetailsState(orderId) {
+      const details = document.getElementById('calcConfigDetails');
+      if (!details) return;
+      details.dataset.orderId = orderId || '';
+      const isOpen = calcConfigUiStateByOrder[orderId] === true;
+      if (details.open !== isOpen) {
+        details.open = isOpen;
+      }
+    }
+
     async function loadCalcConfig(orderId) {
       const card = document.getElementById('calcConfigCard');
       const content = document.getElementById('calcConfigContent');
+      bindCalcConfigDetailsToggle();
       try {
         const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config`, {
           headers: { 'X-Admin-Key': getKey() }
@@ -1353,6 +1376,7 @@
           (data.config && data.config.config_data) || {},
         );
         renderCalcConfig(data, orderId);
+        applyCalcConfigDetailsState(orderId);
         card.style.display = 'block';
       } catch (e) {
         card.style.display = 'none';
@@ -1555,6 +1579,7 @@
           return;
         }
         calcPendingChanges = {};
+        syncCalcSaveButtonState();
         await loadCalcConfig(orderId);
       } catch (e) {
         alert('Ошибка сохранения: ' + e.message);
