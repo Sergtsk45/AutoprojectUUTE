@@ -51,6 +51,8 @@
 
 ## Письма и Celery (фрагмент)
 
+- Письмо `project_delivery` (отправка готового проекта) теперь содержит ссылку на страницу `/payment/{order_id}` для загрузки скана сопроводительного письма в РСО и отправляется с тремя вложениями: PDF проекта, DOCX сопроводительного письма и счёт на остаток по договору (`generate_invoice(..., is_advance=False)`).
+- После загрузки клиентом скана сопроводительного через `POST /landing/orders/{id}/upload-rso-scan` запускаются два уведомления: инженеру (`notify_engineer_rso_scan_received`) и клиенту (`notify_client_after_rso_scan`). Клиент получает письмо со сроками по ПП РФ №1034 (п.51 и п.50) и кнопкой «Загрузить замечания от РСО».
 - После `check_data_completeness` при непустых `missing_params` заявка переходит в `waiting_client_info`, в `orders.waiting_client_info_at` пишется UTC; **автоотправка** `info_request` клиенту — не раньше чем через 24 ч: отложенная задача Celery `send_info_request_email` с `countdown` 24 ч плюс резерв `process_due_info_requests` (Beat каждые 15 минут). Ручная отправка из админки возможна сразу; дубликат блокируется по `email_log`. В ответе `GET /orders/{id}` поле `info_request_earliest_auto_at` (UTC) подсказывает момент ближайшей автоотправки, пока запрос ещё не уходил.
 - Напоминание (`reminder`): не чаще одного успешного на заявку; периодика `send_reminders` (ежедневно 10:00 МСК) шлёт только если уже был успешный `info_request` и с его `sent_at` прошло ≥ 3 суток.
 - После `POST /pipeline/{id}/client-upload-done` в очередь ставится `notify_engineer_client_documents_received` — одно письмо на `admin_email` (тип `client_documents_received`, идемпотентность по логу).

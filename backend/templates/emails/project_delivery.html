@@ -37,6 +37,13 @@
   </ul>
 </div>
 
+{% if payment_url %}
+<p>После подписания сопроводительного письма загрузите его скан в личный кабинет:</p>
+<div class="btn-center">
+  <a href="{{ payment_url }}" class="btn">Загрузить скан сопроводительного письма</a>
+</div>
+{% endif %}
+
 <div class="note" style="background:#fff8e1; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0;">
   <strong>Оплата услуг:</strong> просим, в течение пяти рабочих дней прислать скан
   сопроводительного письма или произвести оплату за выполненную работу.

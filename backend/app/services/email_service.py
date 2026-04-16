@@ -172,6 +172,7 @@ def render_project_delivery(
         "project_documents": docs,
         "has_attachments": len(attachments) > 0,
         "download_url": download_url,
+        "payment_url": f"{settings.app_base_url}/payment/{order.id}",
     }
 
     subject = f"Проект УУТЭ готов — {order.object_address or 'заявка'}"
@@ -252,6 +253,7 @@ def render_advance_received(
 def render_final_payment_request(
     order: Order,
     retry_count: int = 0,
+    post_rso_scan: bool = False,
 ) -> tuple[str, str, list[str]]:
     """Напоминание клиенту об остатке оплаты / скане РСО."""
     env = _get_jinja()
@@ -259,13 +261,17 @@ def render_final_payment_request(
     cn = _contract_number_display(order)
     ctx = {
         **_order_context(order),
-        "header_title": "Напоминание об оплате",
+        "header_title": "Дальнейшие шаги" if post_rso_scan else "Напоминание об оплате",
         "payment_url": f"{settings.app_base_url}/payment/{order.id}",
         "contract_number": cn,
         "final_amount_formatted": _format_rub(_final_amount_rub(order)),
         "retry_count": retry_count,
+        "post_rso_scan": post_rso_scan,
     }
-    subject = f"Напоминание: остаток оплаты — договор №{cn}"
+    if post_rso_scan:
+        subject = f"Дальнейшие шаги по проекту УУТЭ — договор №{cn}"
+    else:
+        subject = f"Напоминание: остаток оплаты — договор №{cn}"
     return subject, template.render(ctx), []
 
 
@@ -622,10 +628,13 @@ def send_final_payment_request(
     session: Session,
     order: Order,
     retry_count: int = 0,
+    post_rso_scan: bool = False,
 ) -> bool:
     """Напоминание об остатке оплаты (Celery Beat или вручную)."""
     subject, html_body, attachments = render_final_payment_request(
-        order, retry_count=retry_count
+        order,
+        retry_count=retry_count,
+        post_rso_scan=post_rso_scan,
     )
     success = send_email(
         recipient=order.client_email,

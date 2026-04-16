@@ -529,9 +529,13 @@ async def client_upload_rso_scan(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    from app.services.tasks import notify_engineer_rso_scan_received
+    from app.services.tasks import (
+        notify_client_after_rso_scan,
+        notify_engineer_rso_scan_received,
+    )
 
     notify_engineer_rso_scan_received.delay(str(order_id))
+    notify_client_after_rso_scan.delay(str(order_id))
 
     return order_file
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-04-16] — Доработки UI и email/payment flow
+
+### Изменено
+- В [`backend/static/admin.html`](../backend/static/admin.html): в блоке «Настроечная БД вычислителя» кнопка «Сохранить» теперь неактивна без pending-изменений, блокируется на время `PATCH` и снова активируется только после новых правок полей.
+- В [`backend/templates/emails/info_request.html`](../backend/templates/emails/info_request.html): письмо «Запрос документов» дополнено этапом предварительных расчётов (диаметр расходомера, суточные/месячные расходы) и обновлённой формулировкой продолжения.
+- В [`backend/static/upload.html`](../backend/static/upload.html): в сценарии `contract_sent` после успешной загрузки `signed_contract` добавлена кнопка «Вернуться на сайт».
+- В [`backend/templates/emails/project_delivery.html`](../backend/templates/emails/project_delivery.html): в письмо «Проект готов» добавлена кнопка для загрузки скана сопроводительного письма (`/payment/{id}`).
+- В [`backend/templates/emails/final_payment_request.html`](../backend/templates/emails/final_payment_request.html): добавлен сценарий письма после загрузки скана сопроводительного в РСО (15/5 рабочих дней с ссылкой на ПП РФ №1034 п.51/п.50 и CTA «Загрузить замечания от РСО»).
+
+### Добавлено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): после `upload-rso-scan` добавлена задача `notify_client_after_rso_scan` с отправкой клиенту письма о следующих шагах согласования.
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `send_completed_project` формирует и прикладывает счёт на остаток по договору (`generate_invoice(..., is_advance=False)`) вместе с проектом и сопроводительным письмом.
+
+### Исправлено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): добавлен cleanup временного файла счёта на остаток после отправки письма с готовым проектом.
+
 ## [2026-04-16] — Fix: upload-signed-contract HTTP 500
 
 ### Исправлено

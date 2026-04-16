@@ -23,6 +23,7 @@ from app.core.config import settings
 from app.services.param_labels import compute_client_document_missing
 from app.models.models import (
     ALLOWED_TRANSITIONS,
+    EmailLog,
     FileCategory,
     Order,
     OrderFile,
@@ -723,12 +724,14 @@ def send_completed_project(self, order_id: str):
     Новая ветка: ADVANCE_PAID → AWAITING_FINAL_PAYMENT.
     Legacy-ветка: REVIEW → COMPLETED.
     """
+    from app.services.contract_generator import generate_invoice
     from app.services.email_service import send_project
 
     oid = uuid.UUID(order_id)
     logger.info("send_completed_project: order=%s", oid)
 
-    cover_letter_path = None
+    cover_letter_path: Path | None = None
+    final_invoice_path: Path | None = None
 
     with SyncSession() as session:
         order = _get_order(session, oid)
@@ -745,6 +748,53 @@ def send_completed_project(self, order_id: str):
         attachment_paths, cover_letter_path = _collect_project_attachments(
             session, order
         )
+        can_generate_final_invoice = (
+            order.payment_amount is not None
+            and order.advance_amount is not None
+            and order.payment_amount > order.advance_amount
+        )
+        if can_generate_final_invoice:
+            try:
+                order_id_short = str(order.id)[:8]
+                req = _normalize_client_requisites(
+                    order.company_requisites or {},
+                    order.client_name,
+                )
+                final_invoice_path = generate_invoice(
+                    order_id_short,
+                    order.contract_number or order_id_short,
+                    order.object_address or "—",
+                    order.payment_amount or 0,
+                    order.advance_amount or 0,
+                    req,
+                    is_advance=False,
+                )
+                if final_invoice_path and final_invoice_path.exists():
+                    attachment_paths.append(str(final_invoice_path))
+                logger.info(
+                    "send_completed_project: счёт на остаток сформирован: %s",
+                    final_invoice_path,
+                )
+            except Exception as e:
+                logger.error(
+                    "send_completed_project: ошибка генерации счёта на остаток для order=%s: %s",
+                    oid,
+                    e,
+                    exc_info=True,
+                )
+            if final_invoice_path is None or not final_invoice_path.exists():
+                logger.error(
+                    "send_completed_project: остановка отправки, счёт на остаток не сформирован "
+                    "для order=%s",
+                    oid,
+                )
+                return
+        else:
+            logger.warning(
+                "send_completed_project: счёт на остаток не сформирован для order=%s "
+                "(недостаточно данных по оплате)",
+                oid,
+            )
 
         project_files = [
             f for f in order.files
@@ -799,11 +849,12 @@ def send_completed_project(self, order_id: str):
                 )
 
     # Удаляем временный файл вне сессии (независимо от успеха/неуспеха)
-    if cover_letter_path and cover_letter_path.exists():
-        try:
-            cover_letter_path.unlink()
-        except OSError as e:
-            logger.warning("Не удалось удалить временный файл %s: %s", cover_letter_path, e)
+    for temp_path in (cover_letter_path, final_invoice_path):
+        if temp_path and temp_path.exists():
+            try:
+                temp_path.unlink()
+            except OSError as e:
+                logger.warning("Не удалось удалить временный файл %s: %s", temp_path, e)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1235,6 +1286,57 @@ def notify_engineer_rso_scan_received(order_id: str):
         if not ok:
             logger.error(
                 "notify_engineer_rso_scan_received: не удалось отправить письмо %s", oid
+            )
+
+
+@celery_app.task
+def notify_client_after_rso_scan(order_id: str):
+    """Уведомление клиенту после загрузки скана сопроводительного письма в РСО."""
+    from app.services.email_service import send_final_payment_request
+
+    oid = uuid.UUID(order_id)
+    logger.info("notify_client_after_rso_scan: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            logger.error("notify_client_after_rso_scan: заявка не найдена %s", oid)
+            return
+        if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+            logger.info(
+                "notify_client_after_rso_scan: пропуск, статус order=%s — %s",
+                oid,
+                order.status.value,
+            )
+            return
+
+        already_sent = session.execute(
+            select(EmailLog.id)
+            .where(
+                EmailLog.order_id == oid,
+                EmailLog.email_type == EmailType.FINAL_PAYMENT_REQUEST,
+                EmailLog.sent_at.isnot(None),
+                EmailLog.body_text.contains("Загрузить замечания от РСО"),
+            )
+            .limit(1)
+        ).scalar_one_or_none()
+        if already_sent is not None:
+            logger.info(
+                "notify_client_after_rso_scan: письмо уже отправлялось order=%s",
+                oid,
+            )
+            return
+
+        sent = send_final_payment_request(
+            session,
+            order,
+            retry_count=order.retry_count,
+            post_rso_scan=True,
+        )
+        if not sent:
+            logger.error(
+                "notify_client_after_rso_scan: не удалось отправить письмо клиенту order=%s",
+                oid,
             )
 
 

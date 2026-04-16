@@ -1276,6 +1276,34 @@
     // ─────────────────────────────────────────────────────────────────────
 
     let calcConfigState = { config: null, template: null, calcType: null };
+    let calcPendingChanges = {};
+    let calcSaveInFlight = false;
+    let calcInitialValues = {};
+
+    function normalizeCalcValue(value) {
+      return value == null ? '' : String(value);
+    }
+
+    function buildCalcInitialValues(template, cfgData) {
+      const initial = {};
+      if (!template || !Array.isArray(template.groups)) return initial;
+      for (const group of template.groups) {
+        if (!group || !Array.isArray(group.params)) continue;
+        for (const param of group.params) {
+          const baseVal = cfgData[param.id] !== undefined ? cfgData[param.id] : (param.default ?? '');
+          initial[param.id] = normalizeCalcValue(baseVal);
+        }
+      }
+      return initial;
+    }
+
+    function syncCalcSaveButtonState() {
+      const saveBtn = document.getElementById('calcSaveBtn');
+      if (!saveBtn) return;
+      const hasPendingChanges = Object.keys(calcPendingChanges).length > 0;
+      saveBtn.disabled = calcSaveInFlight || !hasPendingChanges;
+      saveBtn.textContent = calcSaveInFlight ? 'Сохранение…' : 'Сохранить';
+    }
 
     async function loadCalcConfig(orderId) {
       const card = document.getElementById('calcConfigCard');
@@ -1290,6 +1318,12 @@
         }
         const data = await resp.json();
         calcConfigState = { config: data.config, template: data.template, calcType: data.calculator_type };
+        calcPendingChanges = {};
+        calcSaveInFlight = false;
+        calcInitialValues = buildCalcInitialValues(
+          data.template || {},
+          (data.config && data.config.config_data) || {},
+        );
         renderCalcConfig(data, orderId);
         card.style.display = 'block';
       } catch (e) {
@@ -1360,11 +1394,12 @@
       html += renderCalcGroups(tpl, cfgData, hasDual, orderId, true);
 
       html += `<div class="calc-actions">
-        <button class="btn btn-primary" onclick="saveCalcConfig('${orderId}')">Сохранить</button>
+        <button class="btn btn-primary" id="calcSaveBtn" onclick="saveCalcConfig('${orderId}')" disabled>Сохранить</button>
         <button class="btn" onclick="exportCalcConfigPdf('${orderId}')">📄 Экспорт PDF</button>
       </div>`;
 
       content.innerHTML = html;
+      syncCalcSaveButtonState();
     }
 
     function renderCalcGroups(template, cfgData, hasDual, orderId, editable) {
@@ -1462,18 +1497,24 @@
       }
     }
 
-    let calcPendingChanges = {};
-
     function calcParamChanged(el, orderId) {
       const paramId = el.dataset.paramId;
-      calcPendingChanges[paramId] = el.value;
+      const currentValue = normalizeCalcValue(el.value);
+      const initialValue = calcInitialValues[paramId] ?? '';
+      if (currentValue === initialValue) {
+        delete calcPendingChanges[paramId];
+      } else {
+        calcPendingChanges[paramId] = el.value;
+      }
+      syncCalcSaveButtonState();
     }
 
     async function saveCalcConfig(orderId) {
-      if (Object.keys(calcPendingChanges).length === 0) {
-        alert('Нет изменений для сохранения');
+      if (calcSaveInFlight || Object.keys(calcPendingChanges).length === 0) {
         return;
       }
+      calcSaveInFlight = true;
+      syncCalcSaveButtonState();
       try {
         const resp = await fetch(`${API_BASE}/admin/orders/${orderId}/calc-config`, {
           method: 'PATCH',
@@ -1489,6 +1530,9 @@
         await loadCalcConfig(orderId);
       } catch (e) {
         alert('Ошибка сохранения: ' + e.message);
+      } finally {
+        calcSaveInFlight = false;
+        syncCalcSaveButtonState();
       }
     }
 
