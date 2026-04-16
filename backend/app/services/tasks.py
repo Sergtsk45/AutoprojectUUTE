@@ -1051,7 +1051,10 @@ def process_final_payment(self, order_id: str):
         if order is None:
             return
 
-        if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+        if order.status not in (
+            OrderStatus.AWAITING_FINAL_PAYMENT,
+            OrderStatus.RSO_REMARKS_RECEIVED,
+        ):
             logger.warning(
                 "process_final_payment: order=%s статус %s, пропускаем",
                 oid,
@@ -1085,7 +1088,7 @@ def resend_corrected_project(self, order_id: str):
         order = _get_order(session, oid)
         if order is None:
             return
-        if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+        if order.status != OrderStatus.RSO_REMARKS_RECEIVED:
             logger.warning(
                 "resend_corrected_project: order=%s статус %s, пропускаем",
                 oid,
@@ -1121,7 +1124,13 @@ def resend_corrected_project(self, order_id: str):
             order,
             is_redelivery=True,
         )
-        if not success:
+        if success:
+            _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
+            logger.info(
+                "resend_corrected_project: order=%s → awaiting_final_payment",
+                oid,
+            )
+        else:
             logger.error(
                 "resend_corrected_project: не удалось отправить проект для order=%s",
                 oid,

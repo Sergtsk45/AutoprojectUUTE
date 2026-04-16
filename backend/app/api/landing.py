@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.config import settings
 from app.models import FileCategory, OrderStatus, OrderType, PaymentMethod
+from app.post_project_state import derive_post_project_flags
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.email_service import send_kp_request_notification
@@ -24,7 +25,6 @@ from app.schemas import (
     OrderCreate,
     PaymentPageInfo,
     PipelineResponse,
-    derive_post_project_flags,
     UploadPageInfo,
 )
 
@@ -404,7 +404,11 @@ async def get_payment_page_info(
         FileCategory.RSO_REMARKS.value,
     }
     payment_files = [f for f in all_files if f.category.value in payment_categories]
-    post_project_flags = derive_post_project_flags(all_files, order.final_paid_at)
+    post_project_flags = derive_post_project_flags(
+        all_files,
+        order.final_paid_at,
+        order.status,
+    )
 
     return PaymentPageInfo(
         order_id=order.id,
@@ -579,7 +583,10 @@ async def client_upload_rso_remarks(
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+    if order.status not in (
+        OrderStatus.AWAITING_FINAL_PAYMENT,
+        OrderStatus.RSO_REMARKS_RECEIVED,
+    ):
         raise HTTPException(
             status_code=400,
             detail="Загрузка замечаний РСО доступна только после отправки проекта",
@@ -599,6 +606,10 @@ async def client_upload_rso_remarks(
         order_file = await svc.upload_file(order_id, FileCategory.RSO_REMARKS, file)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+    order.status = OrderStatus.RSO_REMARKS_RECEIVED
+    db.add(order)
+    await db.commit()
 
     from app.services.tasks import notify_engineer_rso_remarks_received
 

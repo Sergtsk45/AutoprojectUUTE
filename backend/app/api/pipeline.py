@@ -243,10 +243,16 @@ async def confirm_final_payment(
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+    if order.status not in (
+        OrderStatus.AWAITING_FINAL_PAYMENT,
+        OrderStatus.RSO_REMARKS_RECEIVED,
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"Подтверждение остатка недоступно в статусе «{order.status.value}»",
+            detail=(
+                "Подтверждение остатка доступно только после отправки проекта "
+                "или получения замечаний РСО"
+            ),
         )
 
     task = process_final_payment.delay(str(order_id))
@@ -269,10 +275,13 @@ async def resend_corrected_project_endpoint(
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    if order.status != OrderStatus.AWAITING_FINAL_PAYMENT:
+    if order.status != OrderStatus.RSO_REMARKS_RECEIVED:
         raise HTTPException(
             status_code=400,
-            detail=f"Повторная отправка доступна только в статусе «{order.status.value}»",
+            detail=(
+                "Повторная отправка исправленного проекта доступна только после "
+                "получения замечаний РСО"
+            ),
         )
 
     remarks_files = sorted(

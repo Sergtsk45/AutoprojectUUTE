@@ -1,5 +1,17 @@
 # Task tracker
 
+## Задача: Post-project pipeline — отдельный статус замечаний РСО (2026-04-16)
+- **Статус**: Завершена
+- **Описание**: Ввести отдельный `OrderStatus` для замечаний РСО, чтобы заявка явно возвращалась инженеру на исправление и после повторной отправки возвращалась обратно в ожидание оплаты/согласования.
+- **Шаги выполнения**:
+  - [x] `models.py` + Alembic: добавить `rso_remarks_received` в `OrderStatus` и `order_status`
+  - [x] `post_project_state.py` + `schemas.py`: отвязать derived-флаги от простого факта наличия старых remark-файлов
+  - [x] `landing.py`: при `upload-rso-remarks` переводить заявку в новый статус
+  - [x] `pipeline.py` + `tasks.py`: повторная отправка исправленного проекта только из `rso_remarks_received` с возвратом в `awaiting_final_payment`
+  - [x] `admin.html` + `payment.html`: показать новый статус и корректные действия инженера/клиента
+  - [x] `docs/changelog.md`, `docs/project.md`, `docs/tasktracker.md`
+- **Зависимости**: существующий post-project flow с `FINAL_INVOICE`, `RSO_SCAN`, `RSO_REMARKS`
+
 ## Задача: Post-project pipeline — финальный счёт и замечания РСО (2026-04-16)
 - **Статус**: Завершена
 - **Описание**: Реализовать утверждённый post-project flow без новых `OrderStatus`: сохранить основной статус `awaiting_final_payment`, но добавить артефакты согласования с РСО, повторную отправку исправленного проекта и 15-дневный reminder по финальной оплате.

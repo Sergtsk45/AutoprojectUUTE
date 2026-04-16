@@ -34,7 +34,8 @@ class OrderStatus(str, enum.Enum):
     awaiting_contract      → инженер одобрил, ждём реквизиты от клиента
     contract_sent          → договор и счёт на 50% отправлены, ждём аванс
     advance_paid           → аванс получен, проект отправлен клиенту
-    awaiting_final_payment → ждём скан РСО или оплату остатка 50%
+    awaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%
+    rso_remarks_received   → получены замечания РСО, проект возвращён инженеру
     completed              → проект отправлен клиенту
     error                  → ошибка на любом этапе
     """
@@ -51,6 +52,7 @@ class OrderStatus(str, enum.Enum):
     CONTRACT_SENT = "contract_sent"
     ADVANCE_PAID = "advance_paid"
     AWAITING_FINAL_PAYMENT = "awaiting_final_payment"
+    RSO_REMARKS_RECEIVED = "rso_remarks_received"
     COMPLETED = "completed"
     ERROR = "error"
 
@@ -102,7 +104,13 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
         OrderStatus.ERROR,
     ],
     OrderStatus.AWAITING_FINAL_PAYMENT: [
+        OrderStatus.RSO_REMARKS_RECEIVED,   # клиент загрузил замечания РСО
         OrderStatus.COMPLETED,             # остаток получен или скан загружен
+        OrderStatus.ERROR,
+    ],
+    OrderStatus.RSO_REMARKS_RECEIVED: [
+        OrderStatus.AWAITING_FINAL_PAYMENT,  # исправленный проект повторно отправлен клиенту
+        OrderStatus.COMPLETED,               # ручной override
         OrderStatus.ERROR,
     ],
     OrderStatus.COMPLETED: [],

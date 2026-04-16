@@ -42,16 +42,21 @@
 
 ## Unified upload + contract flow
 
-Актуальный основной поток заявки для клиентского/админского UI: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`. Legacy-статусы (`data_complete`, `generating_project`, `review`, `awaiting_contract`) поддерживаются для обратной совместимости старых заявок и отображаются в интерфейсах как дополнительные.
+Актуальный основной поток заявки для клиентского/админского UI: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`, с дополнительной post-project петлёй `awaiting_final_payment → rso_remarks_received → awaiting_final_payment`, если РСО вернула замечания. Legacy-статусы (`data_complete`, `generating_project`, `review`, `awaiting_contract`) поддерживаются для обратной совместимости старых заявок и отображаются в интерфейсах как дополнительные.
 
 Роль страницы `/upload/{id}`:
 - в `waiting_client_info` и `client_info_received` клиент догружает недостающие документы из `missing_params`, при этом `company_card` выделяется отдельным блоком как реквизитный документ для договора/счёта;
 - в `contract_sent` клиент видит отдельный экран подписания: номер договора, суммы (`payment_amount`, `advance_amount`) и отдельную загрузку скана подписанного договора через `POST /api/v1/landing/orders/{id}/upload-signed-contract` (PDF/JPG/JPEG/PNG);
 - после успешной загрузки `signed_contract` показывается подтверждение приёма и сообщение о сроке подготовки проекта (3 рабочих дня после подтверждения аванса).
 
-## Post-project flow (`awaiting_final_payment`)
+## Post-project flow (`awaiting_final_payment` / `rso_remarks_received`)
 
-Статус `awaiting_final_payment` остаётся единственным статусом post-project ветки, а детализация сценария строится на артефактах и derived-флагах:
+Post-project ветка теперь состоит из двух статусов:
+
+- `awaiting_final_payment` — клиенту уже отправлен проект, ждём скан из РСО, замечания или оплату остатка;
+- `rso_remarks_received` — клиент загрузил замечания РСО, и заявка явно возвращена инженеру на исправление.
+
+При этом детализация сценария по-прежнему опирается на артефакты и derived-флаги:
 
 - `orders.rso_scan_received_at` — когда клиент загрузил скан сопроводительного письма с входящим номером РСО;
 - `order_files.category = final_invoice` — сохранённый счёт на остаток, который повторно отправляется без регенерации;
@@ -62,14 +67,17 @@
 
 - до загрузки скана РСО: клиент может либо загрузить скан письма с входящим номером, либо открыть блок оплаты по счёту и реквизитам;
 - после загрузки скана: UI явно подтверждает приём документа, показывает ожидание замечаний/оплаты и даёт отдельную загрузку `rso_remarks`;
-- после загрузки замечаний: клиент видит устойчивое подтверждение, а инженер получает email-уведомление и кнопку повторной отправки исправленного проекта.
+- после загрузки замечаний: заявка переходит в `rso_remarks_received`, клиент видит устойчивое подтверждение, а инженер получает email-уведомление и кнопку повторной отправки исправленного проекта;
+- после повторной отправки исправленного проекта заявка возвращается в `awaiting_final_payment`, а клиент получает новый PDF проекта и новое сопроводительное письмо с тем же счётом на остаток.
 
 ## Письма и Celery (фрагмент)
 
 - Письмо `project_delivery` (отправка готового проекта) теперь содержит ссылку на страницу `/payment/{order_id}` для оплаты по счёту / загрузки post-project документов и отправляется с вложениями: PDF проекта, DOCX сопроводительного письма и сохранённый счёт на остаток `final_invoice`.
 - `send_completed_project` при первой отправке сохраняет счёт на остаток как `OrderFile(final_invoice)`; при повторной отправке исправленного проекта (`resend_corrected_project`) переиспользуется тот же файл счёта, а клиент получает новый PDF проекта и обновлённое сопроводительное письмо.
 - После загрузки клиентом скана сопроводительного через `POST /landing/orders/{id}/upload-rso-scan` записывается `rso_scan_received_at` и запускаются два уведомления: инженеру (`notify_engineer_rso_scan_received`) и клиенту (`notify_client_after_rso_scan`). Клиент получает письмо со сроками по ПП РФ №1034 (п.51 и п.50) и кнопкой перехода на страницу замечаний/реквизитов.
-- После загрузки `rso_remarks` через `POST /landing/orders/{id}/upload-rso-remarks` инженер получает отдельное email-уведомление.
+- После загрузки `rso_remarks` через `POST /landing/orders/{id}/upload-rso-remarks` заявка переводится в `rso_remarks_received`, а инженер получает отдельное email-уведомление.
+- Повторная отправка исправленного проекта (`POST /pipeline/{id}/resend-corrected-project`) доступна только из `rso_remarks_received`; после успешной отправки заявка возвращается в `awaiting_final_payment`.
+- Подтверждение финальной оплаты (`POST /pipeline/{id}/confirm-final`) разрешено как в `awaiting_final_payment`, так и в `rso_remarks_received`, чтобы замечания РСО не блокировали ручное закрытие уже оплаченной заявки.
 - Напоминание о финальной оплате после РСО отправляется периодической задачей `send_final_payment_reminders_after_rso_scan`: кандидат — заявка в `awaiting_final_payment` со значением `rso_scan_received_at` старше 15 дней и без `final_paid_at`; идемпотентность обеспечивается по `email_log` через тип `final_payment_request` и маркер `reminder_kind:rso_scan_15d`.
 - После `check_data_completeness` при непустых `missing_params` заявка переходит в `waiting_client_info`, в `orders.waiting_client_info_at` пишется UTC; **автоотправка** `info_request` клиенту — не раньше чем через 24 ч: отложенная задача Celery `send_info_request_email` с `countdown` 24 ч плюс резерв `process_due_info_requests` (Beat каждые 15 минут). Ручная отправка из админки возможна сразу; дубликат блокируется по `email_log`. В ответе `GET /orders/{id}` поле `info_request_earliest_auto_at` (UTC) подсказывает момент ближайшей автоотправки, пока запрос ещё не уходил.
 - Напоминание (`reminder`): не чаще одного успешного на заявку; периодика `send_reminders` (ежедневно 10:00 МСК) шлёт только если уже был успешный `info_request` и с его `sent_at` прошло ≥ 3 суток.

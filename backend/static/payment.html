@@ -435,6 +435,7 @@
       contract_sent: 'contractSentCard',
       advance_paid: 'advancePaidCard',
       awaiting_final_payment: 'awaitingFinalCard',
+      rso_remarks_received: 'awaitingFinalCard',
       completed: 'completedCard',
     };
 
@@ -478,6 +479,11 @@
         var hasRsoScan = !!(orderData && orderData.has_rso_scan);
         var targetCard = hasRsoScan ? 'awaitingFinalCard' : 'advancePaidCard';
         document.getElementById(targetCard).style.display = 'block';
+        document.getElementById('finalPaymentDetailsCard').style.display = 'block';
+        return;
+      }
+      if (status === 'rso_remarks_received') {
+        document.getElementById('awaitingFinalCard').style.display = 'block';
         document.getElementById('finalPaymentDetailsCard').style.display = 'block';
         return;
       }
@@ -844,13 +850,18 @@
       }
 
       var hasRsoScan = !!data.has_rso_scan || hasRsoScanFile(data);
-      var hasRsoRemarks = !!data.has_rso_remarks || hasRsoRemarksFile(data);
+      var hasRsoRemarks = !!data.has_rso_remarks;
       var rsoScanStatusNote = document.getElementById('rsoScanStatusNote');
       if (rsoScanStatusNote) {
         if (hasRsoScan) {
-          rsoScanStatusNote.textContent =
-            'Скан зарегистрирован: ' + formatDateTime(data.rso_scan_received_at)
-            + '. Сейчас вы можете либо дождаться ответа РСО, либо оплатить остаток по счёту.';
+          if (data.order_status === 'rso_remarks_received') {
+            rsoScanStatusNote.textContent =
+              'Замечания РСО зарегистрированы и переданы инженеру. После подготовки исправленного проекта мы снова пришлём обновлённый комплект документов.';
+          } else {
+            rsoScanStatusNote.textContent =
+              'Скан зарегистрирован: ' + formatDateTime(data.rso_scan_received_at)
+              + '. Сейчас вы можете либо дождаться ответа РСО, либо оплатить остаток по счёту.';
+          }
         } else {
           rsoScanStatusNote.textContent = '';
         }

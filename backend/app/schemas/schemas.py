@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.models import EmailType, FileCategory, OrderStatus, OrderType, PaymentMethod
+from app.post_project_state import derive_post_project_flags
 
 if TYPE_CHECKING:
     from app.models.models import Order as OrderModel
@@ -203,7 +204,11 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
         earliest_auto = order.waiting_client_info_at + timedelta(hours=24)
 
     base = OrderResponse.model_validate(order)
-    post_project_flags = derive_post_project_flags(order.files or [], order.final_paid_at)
+    post_project_flags = derive_post_project_flags(
+        order.files or [],
+        order.final_paid_at,
+        order.status,
+    )
     return base.model_copy(
         update={
             **post_project_flags,
@@ -214,23 +219,3 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
     )
 
 
-def derive_post_project_flags(
-    files: list["FileResponse"] | list[object],
-    final_paid_at: datetime | None,
-) -> dict[str, bool]:
-    """Вычисляет флаги post-project flow из файлов заявки и даты финальной оплаты."""
-    categories = {
-        getattr(file_obj.category, "value", file_obj.category)
-        for file_obj in files
-        if getattr(file_obj, "category", None) is not None
-    }
-    has_rso_scan = FileCategory.RSO_SCAN.value in categories
-    has_rso_remarks = FileCategory.RSO_REMARKS.value in categories
-    final_invoice_available = FileCategory.FINAL_INVOICE.value in categories
-    awaiting_rso_feedback = has_rso_scan and not has_rso_remarks and final_paid_at is None
-    return {
-        "has_rso_scan": has_rso_scan,
-        "has_rso_remarks": has_rso_remarks,
-        "awaiting_rso_feedback": awaiting_rso_feedback,
-        "final_invoice_available": final_invoice_available,
-    }

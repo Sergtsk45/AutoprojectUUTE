@@ -992,6 +992,7 @@
       contract_sent: 'Договор отправлен',
       advance_paid: 'Аванс получен',
       awaiting_final_payment: 'Ожидание остатка',
+      rso_remarks_received: 'Замечания РСО',
       completed: 'Завершена',
       error: 'Ошибка',
     };
@@ -1009,6 +1010,7 @@
       contract_sent: '#f57c00',
       advance_paid: '#66bb6a',
       awaiting_final_payment: '#42a5f5',
+      rso_remarks_received: '#2563eb',
       completed: '#4caf50',
       error: '#f44336',
     };
@@ -1016,6 +1018,7 @@
     const STATUS_ORDER = [
       'new','tu_parsing','tu_parsed','waiting_client_info',
       'client_info_received','contract_sent','advance_paid','awaiting_final_payment',
+      'rso_remarks_received',
       'completed'
     ];
 
@@ -1023,6 +1026,7 @@
       'tu_parsed', 'waiting_client_info', 'client_info_received',
       'data_complete', 'generating_project', 'review', 'completed',
       'awaiting_contract', 'contract_sent', 'advance_paid', 'awaiting_final_payment',
+      'rso_remarks_received',
     ]);
 
     // Parsing poll state
@@ -1916,7 +1920,7 @@
         : '<span style="color:#f57c00;">Ожидание</span>';
 
       const rub = '₽';
-      const postProjectState = order.has_rso_remarks
+      const postProjectState = order.status === 'rso_remarks_received'
         ? '<span style="color:#2563eb;">Замечания РСО получены</span>'
         : (order.awaiting_rso_feedback
           ? '<span style="color:#2563eb;">Ожидаем замечания РСО</span>'
@@ -2051,6 +2055,7 @@
         'new','tu_parsing','tu_parsed','waiting_client_info',
         'client_info_received','data_complete','generating_project','review',
         'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
+        'rso_remarks_received',
         'completed'
       ];
       const progressOrder = STATUS_ORDER.includes(currentStatus) ? STATUS_ORDER : LEGACY_STATUS_ORDER;
@@ -2506,28 +2511,39 @@
             }
           },
         });
-        if (order.has_rso_remarks) {
-          buttons.push({
-            label: '\u2709 Отправить исправленный проект',
-            cls: 'btn-primary',
-            action: () => {
-              if (confirm('Отправить клиенту исправленный проект с тем же счётом на остаток?')) {
-                runAction(
-                  `/pipeline/${order.id}/resend-corrected-project`,
-                  'POST',
-                  'Исправленный проект отправлен клиенту'
-                );
-              }
-            },
-          });
-          noteText = 'Замечания РСО загружены клиентом. Проверьте новый PDF проекта и отправьте исправленный комплект либо подтвердите оплату остатка.';
-        } else if (order.awaiting_rso_feedback) {
+        if (order.awaiting_rso_feedback) {
           noteText = 'Скан из РСО получен. Ожидаем замечания РСО или оплату остатка.';
         } else if (order.has_rso_scan) {
           noteText = 'Клиент загрузил скан из РСО. Проверьте статус согласования и ожидайте замечания или оплату.';
         } else {
           noteText = 'Ожидаем скан из РСО или оплату остатка от клиента.';
         }
+      }
+
+      if (status === 'rso_remarks_received') {
+        buttons.push({
+          label: '\uD83D\uDCB0 Остаток получен',
+          cls: 'btn-success',
+          action: () => {
+            if (confirm('Подтвердить получение остатка? Заявка будет завершена.')) {
+              runAction(`/pipeline/${order.id}/confirm-final`, 'POST', 'Оплата подтверждена — заявка завершена');
+            }
+          },
+        });
+        buttons.push({
+          label: '\u2709 Отправить исправленный проект',
+          cls: 'btn-primary',
+          action: () => {
+            if (confirm('Отправить клиенту исправленный проект с новым сопроводительным письмом и тем же счётом на остаток?')) {
+              runAction(
+                `/pipeline/${order.id}/resend-corrected-project`,
+                'POST',
+                'Исправленный проект отправлен клиенту'
+              );
+            }
+          },
+        });
+        noteText = 'Клиент загрузил замечания РСО. Загрузите новую версию PDF проекта и отправьте исправленный комплект клиенту, либо подтвердите оплату остатка, если вопрос уже закрыт.';
       }
 
       if (status === 'waiting_client_info' && !infoSent && order.info_request_earliest_auto_at) {

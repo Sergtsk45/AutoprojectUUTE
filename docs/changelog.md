@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-04-16] — Post-project flow: отдельный статус замечаний РСО
+
+### Добавлено
+- В [`backend/app/models/models.py`](../backend/app/models/models.py): новый статус заявки `rso_remarks_received` для явного возврата post-project заявки инженеру после замечаний РСО.
+- В [`backend/alembic/versions/20260416_uute_rso_remarks_status.py`](../backend/alembic/versions/20260416_uute_rso_remarks_status.py): миграция enum-значения `RSO_REMARKS_RECEIVED` для PostgreSQL-типа `order_status` и backfill уже открытых замечаний РСО.
+- В [`backend/app/post_project_state.py`](../backend/app/post_project_state.py): вынесен helper вычисления post-project флагов по статусу и хронологии файлов.
+
+### Изменено
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): `upload-rso-remarks` теперь переводит заявку в `rso_remarks_received`.
+- В [`backend/app/api/pipeline.py`](../backend/app/api/pipeline.py) и [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): повторная отправка исправленного проекта доступна из `rso_remarks_received` и после успеха возвращает заявку в `awaiting_final_payment`; подтверждение финальной оплаты теперь не блокируется новым статусом.
+- В [`backend/app/schemas/schemas.py`](../backend/app/schemas/schemas.py): derived-флаги post-project flow теперь учитывают реальный статус заявки и не залипают на старых файлах замечаний после повторной отправки.
+- В [`backend/static/admin.html`](../backend/static/admin.html) и [`backend/static/payment.html`](../backend/static/payment.html): добавлено отображение нового статуса и синхронизирован UX после загрузки замечаний РСО.
+
 ## [2026-04-16] — Post-project flow: финальный счёт и замечания РСО
 
 ### Добавлено
