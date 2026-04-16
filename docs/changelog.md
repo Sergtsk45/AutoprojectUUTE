@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-16] — Fix: upload-signed-contract HTTP 500
+
+### Исправлено
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): `POST /landing/orders/{id}/upload-signed-contract` теперь обрабатывает ошибки БД при проверке/сохранении файла как контролируемый `503` с понятным сообщением вместо `500`.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): сбой постановки Celery-уведомления инженеру (`notify_engineer_signed_contract.delay`) больше не ломает успешную загрузку файла клиентом.
+
 ## [2026-04-16] — Unified upload + contract flow (frontend/admin/API)
 
 ### Добавлено

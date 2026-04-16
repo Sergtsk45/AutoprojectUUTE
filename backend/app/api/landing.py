@@ -3,10 +3,12 @@
 Публичные (без авторизации) — вызываются фронтендом.
 """
 
+import logging
 import uuid
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -24,6 +26,7 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/landing", tags=["landing"])
+logger = logging.getLogger(__name__)
 
 # Статусы, в которых клиент может сохранить опрос по публичной ссылке (UUID).
 _SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
@@ -555,9 +558,23 @@ async def client_upload_signed_contract(
             detail="Загрузка подписанного договора доступна только в статусе contract_sent",
         )
 
-    existing_signed = await svc.get_files_by_order(
-        order_id, category=FileCategory.SIGNED_CONTRACT
-    )
+    try:
+        existing_signed = await svc.get_files_by_order(
+            order_id, category=FileCategory.SIGNED_CONTRACT
+        )
+    except SQLAlchemyError as exc:
+        logger.exception(
+            "upload-signed-contract: DB error while checking existing file, order=%s: %s",
+            order_id,
+            exc,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Сервис обновляется: не удалось проверить загрузку подписанного договора. "
+                "Повторите попытку через 1-2 минуты."
+            ),
+        ) from exc
     if existing_signed:
         raise HTTPException(
             status_code=409,
@@ -592,8 +609,29 @@ async def client_upload_signed_contract(
         order_file = await svc.upload_file(order_id, FileCategory.SIGNED_CONTRACT, file)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except SQLAlchemyError as exc:
+        logger.exception(
+            "upload-signed-contract: DB error while saving file, order=%s: %s",
+            order_id,
+            exc,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Не удалось сохранить подписанный договор. "
+                "Возможно, база данных ещё не обновлена. Повторите попытку позже."
+            ),
+        ) from exc
 
     from app.services.tasks import notify_engineer_signed_contract
 
-    notify_engineer_signed_contract.delay(str(order_id))
+    try:
+        notify_engineer_signed_contract.delay(str(order_id))
+    except Exception as exc:  # noqa: BLE001
+        # Загрузка не должна падать, если очередь временно недоступна.
+        logger.exception(
+            "upload-signed-contract: failed to enqueue engineer notification, order=%s: %s",
+            order_id,
+            exc,
+        )
     return order_file
