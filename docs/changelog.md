@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-16] — Fix: действия инженера при замечаниях РСО
+
+### Исправлено
+- В [`backend/static/admin.html`](../backend/static/admin.html): post-project действия инженера больше не зависят только от точного статуса `rso_remarks_received`; если у заявки активны derived-флаги замечаний РСО (`has_rso_remarks`), админка по-прежнему показывает кнопки `Отправить исправленный проект` и `Остаток получен`.
+- В [`backend/tests/test_admin_post_project_actions.py`](../backend/tests/test_admin_post_project_actions.py): добавлен регрессионный тест на fallback показа действий инженера по derived-флагу замечаний РСО.
+
 ## [2026-04-16] — Fix: UX настроечной БД в админке
 
 ### Изменено

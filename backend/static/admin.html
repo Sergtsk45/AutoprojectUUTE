@@ -1945,7 +1945,8 @@
         : '<span style="color:#f57c00;">Ожидание</span>';
 
       const rub = '₽';
-      const postProjectState = order.status === 'rso_remarks_received'
+      const hasActiveRsoRemarks = order.status === 'rso_remarks_received' || order.has_rso_remarks;
+      const postProjectState = hasActiveRsoRemarks
         ? '<span style="color:#2563eb;">Замечания РСО получены</span>'
         : (order.awaiting_rso_feedback
           ? '<span style="color:#2563eb;">Ожидаем замечания РСО</span>'
@@ -2545,7 +2546,7 @@
         }
       }
 
-      if (status === 'rso_remarks_received') {
+      if (status === 'rso_remarks_received' || order.has_rso_remarks) {
         buttons.push({
           label: '\uD83D\uDCB0 Остаток получен',
           cls: 'btn-success',
