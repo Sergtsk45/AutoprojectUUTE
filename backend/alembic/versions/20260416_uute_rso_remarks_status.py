@@ -20,23 +20,13 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(
-            text(
-                """
-                DO $body$
-                BEGIN
-                  IF NOT EXISTS (
-                    SELECT 1 FROM pg_enum e
-                    JOIN pg_type t ON e.enumtypid = t.oid
-                    WHERE t.typname = 'order_status'
-                      AND e.enumlabel = 'RSO_REMARKS_RECEIVED'
-                  ) THEN
-                    ALTER TYPE order_status ADD VALUE 'RSO_REMARKS_RECEIVED';
-                  END IF;
-                END$body$;
-                """
+        with op.get_context().autocommit_block():
+            op.execute(
+                text(
+                    "ALTER TYPE order_status ADD VALUE IF NOT EXISTS "
+                    "'RSO_REMARKS_RECEIVED'"
+                )
             )
-        )
         op.execute(
             text(
                 """

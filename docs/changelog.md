@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-16] — Fix: безопасная enum-миграция статуса замечаний РСО
+
+### Исправлено
+- В [`backend/alembic/versions/20260416_uute_rso_remarks_status.py`](../backend/alembic/versions/20260416_uute_rso_remarks_status.py): `ALTER TYPE ... ADD VALUE` вынесен в `autocommit_block`, чтобы PostgreSQL успевал закоммитить новый enum перед `UPDATE orders`.
+- В [`backend/alembic/README.md`](../backend/alembic/README.md): добавлено правило для всех будущих enum-миграций PostgreSQL через `op.get_context().autocommit_block()`.
+
 ## [2026-04-16] — Post-project flow: отдельный статус замечаний РСО
 
 ### Добавлено
