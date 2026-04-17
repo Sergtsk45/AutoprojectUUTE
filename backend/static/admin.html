@@ -1308,6 +1308,7 @@
     let calcSaveInFlight = false;
     let calcInitialValues = {};
     const calcConfigUiStateByOrder = {};
+    const calcGroupUiStateByOrder = {};
 
     function normalizeCalcValue(value) {
       return value == null ? '' : String(value);
@@ -1353,6 +1354,28 @@
       if (details.open !== isOpen) {
         details.open = isOpen;
       }
+    }
+
+    function bindCalcGroupToggles(orderId) {
+      const content = document.getElementById('calcConfigContent');
+      if (!content) return;
+      content.querySelectorAll('details[data-group-idx]').forEach(det => {
+        det.addEventListener('toggle', () => {
+          if (!calcGroupUiStateByOrder[orderId]) calcGroupUiStateByOrder[orderId] = {};
+          calcGroupUiStateByOrder[orderId][det.dataset.groupIdx] = det.open;
+        });
+      });
+    }
+
+    function applyCalcGroupStates(orderId) {
+      const content = document.getElementById('calcConfigContent');
+      if (!content) return;
+      const saved = calcGroupUiStateByOrder[orderId];
+      content.querySelectorAll('details[data-group-idx]').forEach(det => {
+        // Default: open; закрыто только если явно сохранено как false
+        const isOpen = !saved || saved[det.dataset.groupIdx] !== false;
+        if (det.open !== isOpen) det.open = isOpen;
+      });
     }
 
     async function loadCalcConfig(orderId) {
@@ -1451,6 +1474,8 @@
           html += renderCalcGroups(tpl, {}, hasDual, orderId, false);
         }
         content.innerHTML = html;
+        bindCalcGroupToggles(orderId);
+        applyCalcGroupStates(orderId);
         return;
       }
 
@@ -1462,15 +1487,18 @@
       </div>`;
 
       content.innerHTML = html;
+      bindCalcGroupToggles(orderId);
+      applyCalcGroupStates(orderId);
       syncCalcSaveButtonState();
     }
 
     function renderCalcGroups(template, cfgData, hasDual, orderId, editable) {
       if (!template.groups) return '';
       let html = '';
-      for (const group of template.groups) {
-        html += `<details style="margin-bottom:8px;">
-          <summary style="cursor:pointer; font-weight:600; font-size:13px; padding:6px 0; color:var(--c-text);">${group.title} ▶</summary>
+      for (let groupIdx = 0; groupIdx < template.groups.length; groupIdx++) {
+        const group = template.groups[groupIdx];
+        html += `<details data-group-idx="${groupIdx}" style="margin-bottom:8px;">
+          <summary style="cursor:pointer; font-weight:600; font-size:13px; padding:6px 0; color:var(--c-text);">${group.title}</summary>
           <table class="calc-table">
             <thead><tr>
               <th style="width:60px;">Обозн.</th>
