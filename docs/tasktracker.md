@@ -1,5 +1,16 @@
 # Task tracker
 
+## Задача: Безопасный predicate миграции статуса замечаний РСО (2026-04-16)
+- **Статус**: Завершена
+- **Описание**: Сделать безопасной исходную Alembic-миграцию `20260416_uute_rso_remarks_status`, чтобы backfill в `RSO_REMARKS_RECEIVED` выполнялся только для заявок без `final_paid_at` и не возвращал уже обработанные замечания после более нового `GENERATED_PROJECT`.
+- **Шаги выполнения**:
+  - [x] Усилить регрессионный тест `backend/tests/test_rso_status_migration.py` под итоговый безопасный predicate
+  - [x] Добавить в `backend/alembic/versions/20260416_uute_rso_remarks_status.py` guard `o.final_paid_at IS NULL`
+  - [x] Сохранить в исходной миграции `autocommit_block()` и хронологию `latest_remarks_at >= latest_project_at`
+  - [x] Удалить follow-up backfill-файлы как лишние для финального варианта
+  - [x] Обновить `docs/changelog.md`, `docs/project.md`, `docs/tasktracker.md`
+- **Зависимости**: `backend/alembic/versions/20260416_uute_rso_remarks_status.py`
+
 ## Задача: Race-fix сворачивания настроечной БД при poll-обновлениях (2026-04-16)
 - **Статус**: Завершена
 - **Описание**: Зафиксировать в репозитории продовый фикс для `admin.html`, чтобы poll-обновления той же заявки не переоткрывали блок «Настроечная БД вычислителя» поверх пользовательского клика на сворачивание.

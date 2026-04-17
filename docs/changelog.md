@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-16] — Fix: backfill статуса замечаний РСО для исторических заявок
+
+### Исправлено
+- В [`backend/alembic/versions/20260416_uute_rso_remarks_status.py`](../backend/alembic/versions/20260416_uute_rso_remarks_status.py): исходная миграция `RSO_REMARKS_RECEIVED` усилена guard-условием `o.final_paid_at IS NULL`, при этом сохранены `autocommit_block()` для enum PostgreSQL и безопасная хронологическая логика `latest_remarks_at >= latest_project_at`, чтобы backfill не возвращал уже обработанные замечания после более нового `GENERATED_PROJECT`.
+- В [`backend/tests/test_rso_status_migration.py`](../backend/tests/test_rso_status_migration.py): усилен регрессионный тест миграции, который теперь фиксирует `autocommit_block()`, `RSO_REMARKS_RECEIVED`, `o.final_paid_at IS NULL` и наличие безопасной хронологии по `latest_remarks_at` / `latest_project_at`.
+
 ## [2026-04-16] — Fix: race-condition сворачивания настроечной БД
 
 ### Исправлено

@@ -48,6 +48,7 @@ def upgrade() -> None:
                 LEFT JOIN latest_projects AS lp ON lp.order_id = lr.order_id
                 WHERE o.id = lr.order_id
                   AND o.status = 'AWAITING_FINAL_PAYMENT'
+                  AND o.final_paid_at IS NULL
                   AND (
                     lp.latest_project_at IS NULL
                     OR lr.latest_remarks_at >= lp.latest_project_at

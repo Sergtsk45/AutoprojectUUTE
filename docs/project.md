@@ -65,6 +65,8 @@ Post-project ветка теперь состоит из двух статусо
 - `order_files.category = rso_remarks` — замечания РСО, загруженные клиентом;
 - derived-флаги API: `has_rso_scan`, `has_rso_remarks`, `awaiting_rso_feedback`, `final_invoice_available`.
 
+Для исторических заявок, попавших в рассинхрон между статусом и уже загруженными замечаниями РСО, безопасный remediation встроен прямо в исходную миграцию `20260416_uute_rso_remarks_status`: после `autocommit_block()` для добавления enum она переводит заказ в `RSO_REMARKS_RECEIVED` только если в БД он всё ещё `AWAITING_FINAL_PAYMENT`, `final_paid_at IS NULL`, существуют последние `RSO_REMARKS` и после них нет более нового `GENERATED_PROJECT`. Этот predicate намеренно повторяет текущую доменную логику `derive_post_project_flags()` из [`backend/app/post_project_state.py`](../backend/app/post_project_state.py), чтобы не возвращать в статус замечаний уже обработанные заявки, по которым инженер успел повторно отправить исправленный проект.
+
 Страница `/payment/{id}` в этом статусе показывает два реальных сценария варианта A:
 
 - до загрузки скана РСО: клиент может либо загрузить скан письма с входящим номером, либо открыть блок оплаты по счёту и реквизитам;

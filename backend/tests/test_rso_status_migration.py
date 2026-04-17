@@ -6,13 +6,18 @@ MIGRATION_PATH = Path(__file__).resolve().parents[1] / "alembic" / "versions" / 
 
 
 class RsoStatusMigrationTests(unittest.TestCase):
-    def test_enum_add_value_uses_autocommit_block(self) -> None:
+    def test_migration_uses_safe_rso_status_backfill(self) -> None:
         source = MIGRATION_PATH.read_text(encoding="utf-8")
         normalized = " ".join(source.replace('"', "'").split())
 
         self.assertIn("autocommit_block()", source)
         self.assertIn("ALTER TYPE order_status ADD VALUE IF NOT EXISTS", normalized)
         self.assertIn("RSO_REMARKS_RECEIVED", normalized)
+        self.assertIn("o.final_paid_at IS NULL", normalized)
+        self.assertIn("latest_project_at", source)
+        self.assertIn("latest_remarks_at", source)
+        self.assertIn("WHERE category = 'GENERATED_PROJECT'", normalized)
+        self.assertIn("lr.latest_remarks_at >= lp.latest_project_at", normalized)
         self.assertNotIn("DO $body$", source)
 
 
