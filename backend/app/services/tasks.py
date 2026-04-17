@@ -269,9 +269,19 @@ def _collect_project_attachments(
 
 def _resolve_initial_payment_amount(order: Order) -> int:
     """Полная стоимость для старта оплаты: из заявки, из parsed_params.circuits или дефолт."""
+    from app.models.models import OrderType
+
     if order.payment_amount is not None and order.payment_amount > 0:
         return order.payment_amount
-    price_map = {1: 22500, 2: 35000, 3: 50000}
+
+    is_express = order.order_type == OrderType.EXPRESS
+    price_map = (
+        {1: 11250, 2: 35000, 3: 50000}
+        if is_express
+        else {1: 22500, 2: 35000, 3: 50000}
+    )
+    default = 11250 if is_express else 22500
+
     circuits: int | None = None
     raw = order.parsed_params
     if isinstance(raw, dict):
@@ -282,8 +292,8 @@ def _resolve_initial_payment_amount(order: Order) -> int:
             circuits = int(v.strip())
     if circuits is not None:
         circuits = max(1, min(circuits, 3))
-        return price_map.get(circuits, 22500)
-    return 22500
+        return price_map.get(circuits, default)
+    return default
 
 
 
