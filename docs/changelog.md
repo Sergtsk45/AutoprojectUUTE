@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-19] — Договор DOCX: вставка страниц ТУ и лимит размера
+
+### Добавлено
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): генерация договора по полному шаблону (разделы 1–15, приложения 1–3); вложение страниц PDF категории `tu` в Приложение №2 как PNG (PyMuPDF); автоматическое снижение DPI (150 → 120 → 100) до укладывания в ~25 МБ; при превышении лимита даже на минимальном DPI — договор без встроенных страниц ТУ и запись ERROR в лог.
+- Зависимость `PyMuPDF==1.24.10` в [`backend/requirements.txt`](../backend/requirements.txt).
+
+### Изменено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): при вызовах `generate_contract` передаются путь к последнему файлу ТУ и поля `parsed_params` (`rso.rso_name`, `document.tu_*`).
+
 ## [2026-04-16] — Fix: race-condition сворачивания настроечной БД
 
 ### Исправлено

@@ -42,6 +42,10 @@
 
 Подробный трекер: [`docs/smart-survey-tasktracker.md`](smart-survey-tasktracker.md).
 
+## Генерация договора (DOCX)
+
+Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template (1).md`](kontrakt_ukute_template%20(1).md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). PDF технических условий (`FileCategory.TU`, путь вычисляется как `upload_dir / OrderFile.storage_path`) опционально встраивается в Приложение №2: страницы раструются через PyMuPDF в PNG во временный каталог под `/tmp`, в документ вставляются с шириной 16.5 см. Чтобы вложение письма укладывалось в лимит SMTP (~25 МБ целевой запас к 30 МБ), при превышении порога размер снижается за счёт DPI 150 → 120 → 100; если и на минимальном DPI файл слишком велик — генерируется версия без встроенных страниц ТУ (текст-заглушка) и пишется ERROR в лог. Счёт `generate_invoice` и номер `generate_contract_number` не затрагиваются.
+
 ## Unified upload + contract flow
 
 Актуальный основной поток заявки для клиентского/админского UI: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`, с дополнительной post-project петлёй `awaiting_final_payment → rso_remarks_received → awaiting_final_payment`, если РСО вернула замечания. Legacy-статусы (`data_complete`, `generating_project`, `review`, `awaiting_contract`) поддерживаются для обратной совместимости старых заявок и отображаются в интерфейсах как дополнительные.

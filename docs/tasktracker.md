@@ -1,5 +1,14 @@
 # Task tracker
 
+## Задача: DOCX договор — вставка ТУ и контроль размера (2026-04-19)
+- **Статус**: Завершена
+- **Описание**: Встроить страницы PDF ТУ в Приложение 2 договора с лестницей DPI и fallback без растра при превышении ~25 МБ; передавать путь к ТУ и поля из `parsed_params` из Celery-задач.
+- **Шаги выполнения**:
+  - [x] PyMuPDF в `requirements.txt`, helpers рендера/очистки PNG и цикл `generate_contract`
+  - [x] Обновить `process_card_and_contract` и `process_company_card_and_send_contract`
+  - [x] Актуализировать `docs/project.md`, `docs/changelog.md`, `docs/tasktracker.md`
+- **Зависимости**: `backend/app/services/contract_generator.py`, `backend/app/services/tasks.py`
+
 ## Задача: Race-fix сворачивания настроечной БД при poll-обновлениях (2026-04-16)
 - **Статус**: Завершена
 - **Описание**: Зафиксировать в репозитории продовый фикс для `admin.html`, чтобы poll-обновления той же заявки не переоткрывали блок «Настроечная БД вычислителя» поверх пользовательского клика на сворачивание.

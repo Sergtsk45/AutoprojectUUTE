@@ -745,6 +745,16 @@ def process_card_and_contract(self, order_id: str):
 
             if not attachment_paths:
                 req = _normalize_client_requisites(order.company_requisites or {}, order.client_name)
+                tu_path = _existing_order_file_path(order, FileCategory.TU)
+                parsed = order.parsed_params
+                if not isinstance(parsed, dict):
+                    parsed = {}
+                doc_info = parsed.get("document") or {}
+                rso_info = parsed.get("rso") or {}
+                if not isinstance(doc_info, dict):
+                    doc_info = {}
+                if not isinstance(rso_info, dict):
+                    rso_info = {}
                 contract_path = generate_contract(
                     order_id_short,
                     order.contract_number or order_id_short,
@@ -754,6 +764,11 @@ def process_card_and_contract(self, order_id: str):
                     order.advance_amount or 0,
                     req,
                     client_email=order.client_email,
+                    tu_file_path=tu_path,
+                    rso_name=rso_info.get("rso_name"),
+                    tu_number=doc_info.get("tu_number"),
+                    tu_date=doc_info.get("tu_date"),
+                    tu_valid_to=doc_info.get("tu_valid_to"),
                 )
                 invoice_path = generate_invoice(
                     order_id_short,
@@ -1378,6 +1393,16 @@ def process_company_card_and_send_contract(self, order_id: str):
                             )
                     return
 
+            tu_path = _existing_order_file_path(order, FileCategory.TU)
+            parsed = order.parsed_params
+            if not isinstance(parsed, dict):
+                parsed = {}
+            doc_info = parsed.get("document") or {}
+            rso_info = parsed.get("rso") or {}
+            if not isinstance(doc_info, dict):
+                doc_info = {}
+            if not isinstance(rso_info, dict):
+                rso_info = {}
             contract_path = generate_contract(
                 order_id_short,
                 contract_number,
@@ -1387,6 +1412,11 @@ def process_company_card_and_send_contract(self, order_id: str):
                 order.advance_amount,
                 req,
                 client_email=order.client_email,
+                tu_file_path=tu_path,
+                rso_name=rso_info.get("rso_name"),
+                tu_number=doc_info.get("tu_number"),
+                tu_date=doc_info.get("tu_date"),
+                tu_valid_to=doc_info.get("tu_valid_to"),
             )
             invoice_path = generate_invoice(
                 order_id_short,
