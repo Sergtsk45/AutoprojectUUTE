@@ -207,6 +207,7 @@ def generate_contract(
     payment_amount: int,
     advance_amount: int,
     requisites: dict,
+    client_email: str | None = None,
 ) -> Path:
     """Генерирует DOCX договора на проектирование УУТЭ с условием оплаты 50/50.
 
@@ -330,7 +331,7 @@ def generate_contract(
     ])
 
     # ── Раздел 4 ──────────────────────────────────────────────────────────────
-    client_contact = requisites.get("email") or client_name
+    client_contact = client_email or requisites.get("email") or client_name
     _section("4. ПОРЯДОК СДАЧИ-ПРИЁМКИ", [
         f"4.1.\u2002Исполнитель направляет Заказчику проект на e-mail: {client_contact}.",
         "4.2.\u2002Заказчик обязан в течение 3\u202fрабочих дней рассмотреть проект "

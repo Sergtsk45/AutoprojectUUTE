@@ -753,6 +753,7 @@ def process_card_and_contract(self, order_id: str):
                     order.payment_amount or 0,
                     order.advance_amount or 0,
                     req,
+                    client_email=order.client_email,
                 )
                 invoice_path = generate_invoice(
                     order_id_short,
@@ -1385,6 +1386,7 @@ def process_company_card_and_send_contract(self, order_id: str):
                 order.payment_amount,
                 order.advance_amount,
                 req,
+                client_email=order.client_email,
             )
             invoice_path = generate_invoice(
                 order_id_short,
