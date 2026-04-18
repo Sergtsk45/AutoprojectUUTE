@@ -183,7 +183,7 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
               {showAddressField && (
                 <div className="mb-4">
                   <label htmlFor="modal-address" className="block text-sm font-medium text-gray-700 mb-1">
-                    Адрес объекта
+                    Почтовый адрес для отправки проекта
                   </label>
                   <input
                     type="text"

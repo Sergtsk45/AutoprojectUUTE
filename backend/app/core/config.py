@@ -35,15 +35,15 @@ class Settings(BaseSettings):
     max_retry_count: int = 3
 
     # Реквизиты компании (для договоров и счетов)
-    company_full_name: str = "ИП Иванов Иван Иванович"
-    company_inn: str = ""
-    company_ogrn: str = ""
-    company_address: str = ""
-    company_bank_name: str = ""
-    company_bik: str = ""
-    company_corr_account: str = ""
-    company_settlement_account: str = ""
-    company_director_name: str = ""
+    company_full_name: str = "ИП Анищенко Сергей Сергеевич"
+    company_inn: str = "280103456296"
+    company_ogrn: str = "305280120300026"
+    company_address: str = "675000, Амурская область, г. Благовещенск, ул. Нагорная, 17-18"
+    company_bank_name: str = "Филиал «Центральный» Банка ВТБ (ПАО)"
+    company_bik: str = "044525411"
+    company_corr_account: str = "30101810145250000411"
+    company_settlement_account: str = "40802810709560000734"
+    company_director_name: str = "Анищенко Сергей Сергеевич"
     company_director_position: str = "Индивидуальный предприниматель"
 
     # Templates
