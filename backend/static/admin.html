@@ -2046,6 +2046,7 @@
         ['Организация', order.client_organization || '—'],
         ['Почтовый адрес для отправки проекта', order.object_address || '—'],
         ['Город объекта', order.object_city || '—'],
+        ['Адрес объекта (из ТУ)', (() => { const p = order.parsed_params; if (!p) return '—'; const o = p.object || {}; const d = p.document || {}; return o.object_address ?? d.object_address ?? '—'; })()],
         ['Дата создания', formatDateFull(order.created_at)],
         ['Обновлена', formatDateFull(order.updated_at)],
         ['Повторных запросов', order.retry_count],
