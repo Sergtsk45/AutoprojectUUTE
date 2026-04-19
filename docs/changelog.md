@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-19] — Договор DOCX: новый шаблон и компактная вёрстка
+
+### Изменено
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): текст договора и приложений синхронизирован с шаблоном [`docs/kontrakt_ukute_template (2).md`](kontrakt_ukute_template%20(2).md), включая обновлённые формулировки разделов 4–14 и приложений 1–3.
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): для договора задан компактный формат документа — базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы уменьшить объём DOCX и приблизить вёрстку к образцу.
+
+## [2026-04-19] — Договор DOCX: вставка страниц ТУ и лимит размера
+
+### Добавлено
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): генерация договора по полному шаблону (разделы 1–15, приложения 1–3); вложение страниц PDF категории `tu` в Приложение №2 как PNG (PyMuPDF); автоматическое снижение DPI (150 → 120 → 100) до укладывания в ~25 МБ; при превышении лимита даже на минимальном DPI — договор без встроенных страниц ТУ и запись ERROR в лог.
+- Зависимость `PyMuPDF==1.24.10` в [`backend/requirements.txt`](../backend/requirements.txt).
+
+### Изменено
+- В [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): при вызовах `generate_contract` передаются путь к последнему файлу ТУ и поля `parsed_params` (`rso.rso_name`, `document.tu_*`).
+
 ## [2026-04-16] — Fix: backfill статуса замечаний РСО для исторических заявок
 
 ### Исправлено

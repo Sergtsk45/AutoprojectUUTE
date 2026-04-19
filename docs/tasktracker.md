@@ -1,5 +1,24 @@
 # Task tracker
 
+## Задача: DOCX договор — шаблон v2 и компактная вёрстка (2026-04-19)
+- **Статус**: Завершена
+- **Описание**: Синхронизировать генератор договора с новым шаблоном `kontrakt_ukute_template (2).md` и сделать компактную вёрстку договора: шрифт 10 pt, минимальные интервалы между строками и абзацами.
+- **Шаги выполнения**:
+  - [x] Сверить новый шаблон `docs/kontrakt_ukute_template (2).md` с `contract_generator.py`
+  - [x] Обновить тексты разделов 1–15 и приложений 1–3 в генераторе
+  - [x] Добавить компактный стиль параграфов для договора и таблиц
+  - [x] Обновить `docs/project.md`, `docs/changelog.md`, `docs/tasktracker.md`
+- **Зависимости**: `backend/app/services/contract_generator.py`, `docs/kontrakt_ukute_template (2).md`
+
+## Задача: DOCX договор — вставка ТУ и контроль размера (2026-04-19)
+- **Статус**: Завершена
+- **Описание**: Встроить страницы PDF ТУ в Приложение 2 договора с лестницей DPI и fallback без растра при превышении ~25 МБ; передавать путь к ТУ и поля из `parsed_params` из Celery-задач.
+- **Шаги выполнения**:
+  - [x] PyMuPDF в `requirements.txt`, helpers рендера/очистки PNG и цикл `generate_contract`
+  - [x] Обновить `process_card_and_contract` и `process_company_card_and_send_contract`
+  - [x] Актуализировать `docs/project.md`, `docs/changelog.md`, `docs/tasktracker.md`
+- **Зависимости**: `backend/app/services/contract_generator.py`, `backend/app/services/tasks.py`
+
 ## Задача: Безопасный predicate миграции статуса замечаний РСО (2026-04-16)
 - **Статус**: Завершена
 - **Описание**: Сделать безопасной исходную Alembic-миграцию `20260416_uute_rso_remarks_status`, чтобы backfill в `RSO_REMARKS_RECEIVED` выполнялся только для заявок без `final_paid_at` и не возвращал уже обработанные замечания после более нового `GENERATED_PROJECT`.
