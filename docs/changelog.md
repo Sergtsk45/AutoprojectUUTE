@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-04-19] — Договор DOCX: новый шаблон и компактная вёрстка
+
+### Изменено
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): текст договора и приложений синхронизирован с шаблоном [`docs/kontrakt_ukute_template (2).md`](kontrakt_ukute_template%20(2).md), включая обновлённые формулировки разделов 4–14 и приложений 1–3.
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): для договора задан компактный формат документа — базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы уменьшить объём DOCX и приблизить вёрстку к образцу.
+
 ## [2026-04-19] — Договор DOCX: вставка страниц ТУ и лимит размера
 
 ### Добавлено
