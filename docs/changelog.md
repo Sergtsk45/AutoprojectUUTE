@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-20] — Раздел 2 аудита: срочные правки безопасности
+
+### Изменено
+- В [`backend/app/main.py`](../backend/app/main.py): `CORSMiddleware` больше не использует wildcard `*`; список origin-ов читается из `settings.cors_origins` (ENV `CORS_ORIGINS`, JSON-список). Дефолт — только `https://constructproject.ru`. Сочетание `*` + `allow_credentials=True` всё равно отбрасывалось браузерами по спеке, поэтому регрессов на проде нет.
+- В [`backend/app/core/auth.py`](../backend/app/core/auth.py): `verify_admin_key` теперь сравнивает ключ через `secrets.compare_digest` (защита от timing-атак). Query-параметр `?_k=` оставлен как deprecated fallback и при использовании логируется WARNING с маскированным ключом — чтобы найти и убрать оставшихся клиентов перед его удалением.
+- В [`backend/app/core/config.py`](../backend/app/core/config.py): убраны небезопасные дефолты для секретов — `admin_api_key` (≥16 симв.), `openrouter_api_key`, `smtp_password` теперь `Field(..., ...)` без значения. Если переменных нет в `.env`, `Settings()` падает с понятной ошибкой Pydantic. Добавлено поле `cors_origins: list[str]`.
+- В [`backend/.env.example`](../backend/.env.example): помечены `[REQUIRED]` поля, добавлен `CORS_ORIGINS` с примером JSON-списка, добавлена подсказка по генерации `ADMIN_API_KEY` через `secrets.token_urlsafe(32)`.
+
+### Исправлено
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): тихий `except Exception: pass` после `send_new_order_notification` (создание заявки) заменён на `logger.exception(...)` — теперь сбои отправки уведомления инженеру попадают в логи и не маскируются.
+
+### Безопасность
+- Wildcard CORS больше не разрешён. Перед деплоем убедиться, что в боевом `.env` задан `CORS_ORIGINS` со всеми реальными origin-ами (как минимум прод-домен; для preview-стендов — добавить их в JSON-список).
+- При обновлении на сервере **обязательно** проверить, что в `~/uute-project/backend/.env` есть `ADMIN_API_KEY`, `OPENROUTER_API_KEY`, `SMTP_PASSWORD` — иначе backend не стартует.
+
 ## [2026-04-20] — Уборка документации и репозитория после аудита
 
 ### Добавлено

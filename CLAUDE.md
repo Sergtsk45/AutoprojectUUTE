@@ -129,7 +129,7 @@ AutoprojectUUTE/
 | POST | `/api/v1/landing/orders/{id}/upload-tu` | публичный | Загрузка ТУ (статус new) |
 | POST | `/api/v1/landing/orders/{id}/submit` | публичный | Запуск парсинга (статус new) |
 
-**Аутентификация admin:** заголовок `X-Admin-Key` или query-параметр `?_k=…`
+**Аутентификация admin:** заголовок `X-Admin-Key` (основной канал, constant-time через `secrets.compare_digest`). Query-параметр `?_k=…` — deprecated fallback с WARNING в логах, удалить в следующем релизе.
 
 ---
 
@@ -516,6 +516,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 - **ВСЕГДА** валидируй пользовательский ввод на серверной стороне
 - **ВСЕГДА** используй параметризованные запросы (SQLAlchemy ORM — уже безопасен)
 - Перед деструктивными действиями (DROP TABLE, rm -rf, alembic downgrade) — запроси подтверждение
+
+### Безопасность runtime-конфигурации (с 2026-04-20)
+
+- `ADMIN_API_KEY` (≥16 симв.), `OPENROUTER_API_KEY`, `SMTP_PASSWORD` — **required** в `.env`. Без них `Settings()` падает на старте (см. `backend/app/core/config.py`). Дефолтов больше нет.
+- `verify_admin_key` (`backend/app/core/auth.py`) сравнивает ключ через `secrets.compare_digest` (без timing-leak). Основной канал — заголовок `X-Admin-Key`. Query-параметр `?_k=` оставлен как deprecated на 1 релиз: при использовании пишет WARNING в лог с маскированным ключом.
+- CORS управляется через ENV `CORS_ORIGINS` (JSON-список, парсится Pydantic v2). Дефолт — только `https://constructproject.ru`. Wildcard `*` в `allow_origins` запрещён (несовместим с `allow_credentials=True` по спеке).
 
 ### Файлы конфигурации (prod, на сервере)
 
