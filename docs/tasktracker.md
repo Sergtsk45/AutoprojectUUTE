@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Срочные правки безопасности (раздел 2 аудита, 2026-04-20)
+- **Статус**: Завершена
+- **Описание**: Закрыты пункты 1, 2, 3, 6 раздела «Срочно (безопасность)» из аудита. Пункт 4 (rate-limit `/landing/*`) согласовано вынести на уровень Caddy в отдельной задаче. Пункт 5 (`.gitignore`) уже закрыт в предыдущей задаче 2026-04-20.
+- **Шаги выполнения**:
+  - [x] CORS: `Settings.cors_origins`, дефолт `["https://constructproject.ru"]`, `main.py` использует whitelist вместо `*`
+  - [x] `verify_admin_key`: `secrets.compare_digest`, deprecated `_k` с WARNING в логах и маскированным выводом ключа
+  - [x] `config.py`: `admin_api_key` (≥16 симв.), `openrouter_api_key`, `smtp_password` без дефолтов — `Settings()` падает на старте без них
+  - [x] `landing.py`: `except Exception: pass` → `logger.exception(...)`
+  - [x] `backend/.env.example`: разметка `[REQUIRED]`, `CORS_ORIGINS`, инструкция по генерации `ADMIN_API_KEY`
+  - [x] Smoke-тесты: `Settings()` без env падает с ожидаемой ошибкой; с env — стартует; CORS_ORIGINS парсится из JSON; `verify_admin_key` отрабатывает header/`_k`/wrong/missing
+  - [x] `python -m compileall backend/app` — без ошибок; `ReadLints` — чисто
+  - [x] Обновлены `CLAUDE.md`, `docs/changelog.md`, `docs/tasktracker.md`
+- **Зависимости / деплой**:
+  - На сервере перед `docker compose up -d --build backend` убедиться, что в `~/uute-project/backend/.env` есть значения `ADMIN_API_KEY`, `OPENROUTER_API_KEY`, `SMTP_PASSWORD` и заполнен `CORS_ORIGINS` (JSON-список с прод-доменом). Без этого backend упадёт на старте.
+  - Следующий шаг — раздел 3 аудита (поддерживаемость): декомпозиция `tasks.py` / `email_service.py` / `contract_generator.py`, типизация JSONB, нормализация enum.
+
 ## Задача: Уборка документации и репозитория после аудита (2026-04-20)
 - **Статус**: Завершена
 - **Описание**: По итогам полного аудита проекта закрыт пункт 1 рекомендаций — устранён мусор в репозитории, архивированы завершённые трекеры/планы, переименованы файлы с проблемными именами, синхронизированы ссылки в коде и документации, актуализирован `CLAUDE.md`.
