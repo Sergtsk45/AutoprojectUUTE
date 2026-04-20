@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Раздел 3 аудита — roadmap поддерживаемости и архитектуры (2026-04-20)
+- **Статус**: В процессе (утверждение плана)
+- **Описание**: Составлен подробный roadmap реализации раздела 3 аудита 2026-04-20 (архитектурные проблемы: «толстые» модули, async/sync смешивание, legacy-статусы, нетипизированные JSONB, несогласованный `FileCategory`, захардкоженные пути, отсутствие CI/инструментов, неиспользуемые зависимости, Celery-конфиг, миграции без единого стиля, отсутствие индексов). Документ определяет 6 фаз выполнения, последовательность ~18 PR, критерии готовности и риски.
+- **Шаги выполнения**:
+  - [x] Написан roadmap и сохранён в [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md)
+  - [x] Запись в `docs/changelog.md` и `docs/tasktracker.md`
+  - [ ] Согласовать с продактом ответы на «Открытые вопросы» (§ 13 roadmap): legacy-статусы в проде, breaking-стратегия для `FileCategory`, объём декомпозиции `admin.html`, Sentry/Glitchtip, `psycopg3`, CI provider, coverage gate
+  - [ ] Фаза A (Фундамент): 4 PR — A1 пути, A2 pyproject+ruff+mypy+pre-commit, A3 GitHub Actions CI, A4 frontend baseline
+  - [ ] Фаза B (Типизация данных): 3 PR — B1 Pydantic-схемы для JSONB, B2 нормализация `FileCategory`, B3 миграции + индексы
+  - [ ] Фаза C (Упрощение стейт-машины): 2 PR — C1 data-миграция legacy-статусов, C2 удаление legacy из enum
+  - [ ] Фаза D (Декомпозиция): 5 PR — D1 `tasks.py`, D2 `email_service.py`, D3 `contract_generator.py`, D4 async/sync граница, D5 Celery hardening
+  - [ ] Фаза E (Frontend): 4 PR — E1 typed API, E2 vitest, E3 `admin.html` модули, E4 `upload.html`
+  - [ ] Фаза F (Зависимости): 1 PR — F1 унификация на `psycopg[binary] v3`
+- **Зависимости**: разделы 1 и 2 аудита закрыты (`chore/audit-cleanup-docs`, `security/audit-hardening`). Строгий порядок фаз: A → B → C → D → F; E параллельно после A.
+- **Оценка**: ~35 чел·дней + ~10 дней резерв на ревью/регрессы ≈ 1.5–2 месяца wall-time при 50 % загрузке.
+
 ## Задача: Срочные правки безопасности (раздел 2 аудита, 2026-04-20)
 - **Статус**: Завершена
 - **Описание**: Закрыты пункты 1, 2, 3, 6 раздела «Срочно (безопасность)» из аудита. Пункт 4 (rate-limit `/landing/*`) согласовано вынести на уровень Caddy в отдельной задаче. Пункт 5 (`.gitignore`) уже закрыт в предыдущей задаче 2026-04-20.
