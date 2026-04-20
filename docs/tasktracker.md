@@ -1,14 +1,49 @@
 # Task tracker
 
+## Задача: Уборка документации и репозитория после аудита (2026-04-20)
+- **Статус**: Завершена
+- **Описание**: По итогам полного аудита проекта закрыт пункт 1 рекомендаций — устранён мусор в репозитории, архивированы завершённые трекеры/планы, переименованы файлы с проблемными именами, синхронизированы ссылки в коде и документации, актуализирован `CLAUDE.md`.
+- **Шаги выполнения**:
+  - [x] Создан `docs/archive/2026-Q2/` с подкаталогами `plans/`, `superpowers/plans/`, `superpowers/specs/`
+  - [x] Перенесены завершённые трекеры: `payment-advance-tasktracker.md`, `smart-survey-tasktracker.md`, `two-option-order-tasktracker.md`, `tasktracker-soprovod.md`, `tasktrecker-otchet-parsing.md`, `tasktrecker-progrssbar.md`, `plan-unified-upload-contract.md`
+  - [x] Перенесены реализованные планы: `docs/plans/2026-04-16-*.md` (5 шт), `docs/superpowers/plans/*` (6 шт), `docs/superpowers/specs/*` (3 шт); пустые каталоги удалены
+  - [x] Удалены: `backup_20260411.sql`, `frontend/.env`, `cursorrules`, `.cursor/rules/calculator-config-design.md:Zone.Identifier`, дубликат `docs/opros_list_form.pdf`, `docs/rekvizit_acc.md` (с реальными реквизитами; не был в git)
+  - [x] Переименованы: `docs/kontrakt_ukute_template (2).md` → `docs/kontrakt_ukute_template.md`; `docs/scheme-generator-roadmap (1).md` → `docs/scheme-generator-roadmap.md`
+  - [x] Перенесён `docs/cities_from_table1.md` → `backend/calculator_templates/cities_from_table1.md`
+  - [x] Обновлён `.gitignore`: `*.sql`, `*Zone.Identifier`, `docs/rekvizit_acc.md`, `docs/secrets/`, `.secrets/`
+  - [x] Обновлены ссылки на переименованные/перенесённые файлы: `docs/project.md`, `docs/changelog.md`, `docs/tasktracker.md`, `backend/app/services/contract_generator.py`
+  - [x] `frontend/package.json`: `name` → `uute-landing`, добавлены `description` и `version` `0.1.0`
+  - [x] `CLAUDE.md`: актуализирована стейт-машина (`OrderStatus` с веткой оплаты и замечаний РСО), раздел «Текущий статус разработки» под фактический production, структура `docs/` с `archive/`
+  - [x] Записи в `docs/changelog.md` и `docs/tasktracker.md`
+- **Зависимости**: следующий шаг аудита — раздел 2 (срочные правки безопасности: CORS, `verify_admin_key`, дефолты секретов, rate-limit)
+
+## Задача: SVG библиотека условных обозначений и ГОСТ-рамка для схем УУТЭ (2026-04-20)
+- **Статус**: Завершена
+- **Описание**: Реализованы чисто строковые генераторы SVG для инженерных схем теплоснабжения и обёртки чертежных форматов A3/A4 с основной надписью; без внешних зависимостей, таблица параметров тепловычислителя на `<rect>`/`<text>`.
+- **Шаги выполнения**:
+  - [x] Добавить `scheme_svg_elements.py` с элементами и вспомогательными функциями
+  - [x] Добавить `scheme_gost_frame.py` с `gost_frame_a3` / `gost_frame_a4`
+  - [x] Обновить `docs/project.md`, `docs/changelog.md`, `docs/tasktracker.md`
+- **Зависимости**: дальнейшая интеграция с превью/экспортом схем (вне этого коммита)
+
+## Задача: Автоматизация принципиальных схем ИТП — конфиг и маппинг (2026-04-19)
+- **Статус**: Завершена
+- **Описание**: Заложить основу для генерации принципиальных схем теплового пункта: Pydantic-схемы выбора одной из 8 типовых конфигураций, проверка допустимых сочетаний (зависимая/независимая, клапан, ГВС, вентиляция), русские подписи для UI и извлечение подстановок в SVG из `parsed_params` заявки (`Order.survey_data` / последующая интеграция с `FileCategory.HEAT_SCHEME` — вне этого коммита).
+- **Шаги выполнения**:
+  - [x] Реализовать `backend/app/schemas/scheme.py` (`SchemeType`, `SchemeConfig`, `SchemeParams`, API-модели)
+  - [x] Реализовать `backend/app/services/scheme_service.py` (маппинг, метки, `extract_scheme_params_from_parsed`)
+  - [x] Добавить запись в `docs/changelog.md` и `docs/tasktracker.md`
+- **Зависимости**: ветка `feature/avtomatizaciya-postroeniya-shem`, структура `TUParsedData` в `backend/app/services/tu_schema.py`
+
 ## Задача: DOCX договор — шаблон v2 и компактная вёрстка (2026-04-19)
 - **Статус**: Завершена
-- **Описание**: Синхронизировать генератор договора с новым шаблоном `kontrakt_ukute_template (2).md` и сделать компактную вёрстку договора: шрифт 10 pt, минимальные интервалы между строками и абзацами.
+- **Описание**: Синхронизировать генератор договора с новым шаблоном `kontrakt_ukute_template.md` и сделать компактную вёрстку договора: шрифт 10 pt, минимальные интервалы между строками и абзацами.
 - **Шаги выполнения**:
-  - [x] Сверить новый шаблон `docs/kontrakt_ukute_template (2).md` с `contract_generator.py`
+  - [x] Сверить новый шаблон `docs/kontrakt_ukute_template.md` с `contract_generator.py`
   - [x] Обновить тексты разделов 1–15 и приложений 1–3 в генераторе
   - [x] Добавить компактный стиль параграфов для договора и таблиц
   - [x] Обновить `docs/project.md`, `docs/changelog.md`, `docs/tasktracker.md`
-- **Зависимости**: `backend/app/services/contract_generator.py`, `docs/kontrakt_ukute_template (2).md`
+- **Зависимости**: `backend/app/services/contract_generator.py`, `docs/kontrakt_ukute_template.md`
 
 ## Задача: DOCX договор — вставка ТУ и контроль размера (2026-04-19)
 - **Статус**: Завершена
@@ -249,12 +284,12 @@
 
 ## Задача: Отложенный info_request, одноразовые письма, уведомление инженеру, прогресс загрузки PDF
 - **Статус**: Завершена
-- **Описание**: Реализация плана [`docs/tasktrecker-progrssbar.md`](tasktrecker-progrssbar.md): 24 ч до авто-`info_request`, флаги и 409 для дублей, письмо инженеру после `client-upload-done`, прогресс XHR для `generated_project` в админке.
+- **Описание**: Реализация плана [`docs/archive/2026-Q2/tasktrecker-progrssbar.md`](archive/2026-Q2/tasktrecker-progrssbar.md): 24 ч до авто-`info_request`, флаги и 409 для дублей, письмо инженеру после `client-upload-done`, прогресс XHR для `generated_project` в админке.
 - **Шаги выполнения**:
   - [x] Модель `waiting_client_info_at`, миграция, `process_due_info_requests` + правки `send_reminders` / `send_info_request_email`
   - [x] `has_successful_email`, `CLIENT_DOCUMENTS_RECEIVED`, шаблон и Celery-уведомление
   - [x] `OrderResponse`: `info_request_sent`, `reminder_sent`; админка и 409 в `emails.py`
-  - [x] `docs/changelog.md`, `docs/project.md`, актуализация плана в `tasktrecker-progrssbar.md`
+  - [x] `docs/changelog.md`, `docs/project.md`, актуализация плана в `archive/2026-Q2/tasktrecker-progrssbar.md`
 - **Зависимости**: миграция Alembic на PostgreSQL; перезапуск celery-worker и celery-beat после деплоя
 
 ## Задача: Валидация файла проекта перед одобрением (pipeline approve)
@@ -287,17 +322,17 @@
 - **Статус**: Завершена
 - **Описание**: Расширение upload-страницы и API: `parsed_params`/`survey_data` в ответе upload-page, polling парсинга, маппинг ТУ → поля опроса, инициализация по всем статусам, ограничение сохранения опроса по статусу заявки.
 - **Шаги выполнения**:
-  - [x] Задачи 1–5 по плану [`docs/smart-survey-tasktracker.md`](smart-survey-tasktracker.md)
+  - [x] Задачи 1–5 по плану [`docs/archive/2026-Q2/smart-survey-tasktracker.md`](archive/2026-Q2/smart-survey-tasktracker.md)
 - **Зависимости**: сегментация `OrderType` custom/express; эндпоинт `POST /landing/orders/{id}/survey`
 
 ## Задача: Сегментация клиентов — два варианта заказа (Экспресс / Индивидуальный)
 - **Статус**: В работе
-- **Описание**: Клиент выбирает тип проекта в калькуляторе. Экспресс — на базе Эско 3Э, скидка 50%. Индивидуальный — полная цена, опросный лист. Подробный план: [`docs/two-option-order-tasktracker.md`](two-option-order-tasktracker.md).
+- **Описание**: Клиент выбирает тип проекта в калькуляторе. Экспресс — на базе Эско 3Э, скидка 50%. Индивидуальный — полная цена, опросный лист. Подробный план: [`docs/archive/2026-Q2/two-option-order-tasktracker.md`](archive/2026-Q2/two-option-order-tasktracker.md).
 - **Шаги выполнения**:
   - [x] Задача 1: `OrderType` enum, поля `order_type` и `survey_data` в модели и схемах
   - [x] Задача 2: эндпоинт `POST /landing/order` принимает и сохраняет `order_type`
   - [x] Задача 3: две карточки в калькуляторе (фронтенд)
-  - [x] Задача 4: форма и сценарии опроса на upload-странице (см. умный опрос, `smart-survey-tasktracker.md`)
+  - [x] Задача 4: форма и сценарии опроса на upload-странице (см. умный опрос, `archive/2026-Q2/smart-survey-tasktracker.md`)
   - [x] Задача 5: `order_type` и `survey_data` в админке
   - [x] Задача 6: email-напоминание заполнить опросный лист для custom-заказов
   - [x] Задача 7: changelog и документация
@@ -317,7 +352,7 @@
 - **Описание**: Развёрнутый UI для `parsed_params` в карточке заявки (`admin.html`): `<details>` с таблицами по секциям, пустое состояние, legacy-плоские ключи.
 - **Шаги выполнения**:
   - [x] CSS и JS в `backend/static/admin.html`
-  - [x] `docs/changelog.md`, `docs/project.md`, [`docs/tasktrecker-otchet-parsing.md`](tasktrecker-otchet-parsing.md)
+  - [x] `docs/changelog.md`, `docs/project.md`, [`docs/archive/2026-Q2/tasktrecker-otchet-parsing.md`](archive/2026-Q2/tasktrecker-otchet-parsing.md)
 - **Зависимости**: нет
 
 ## Задача: Категории файлов УУТЭ (FileCategory + missing_params)

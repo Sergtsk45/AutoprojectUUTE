@@ -1,9 +1,49 @@
 # Changelog
 
+## [2026-04-20] — Уборка документации и репозитория после аудита
+
+### Добавлено
+- Каталог [`docs/archive/2026-Q2/`](archive/2026-Q2/) со всеми завершёнными task-трекерами и реализованными планами (включая `payment-advance-tasktracker.md`, `smart-survey-tasktracker.md`, `two-option-order-tasktracker.md`, `tasktracker-soprovod.md`, `tasktrecker-otchet-parsing.md`, `tasktrecker-progrssbar.md`, `plan-unified-upload-contract.md`, а также `plans/2026-04-16-*.md`, `superpowers/plans/*.md`, `superpowers/specs/*.md`).
+- В [`.gitignore`](../.gitignore): `*.sql`, `*Zone.Identifier`, `docs/rekvizit_acc.md`, `docs/secrets/`, `.secrets/` — чтобы локальные дампы БД, артефакты Windows/WSL и реквизиты ИП больше не попадали в git.
+
+### Изменено
+- Переименованы файлы с пробелами и `(N)` в имени:
+  - `docs/kontrakt_ukute_template (2).md` → [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md)
+  - `docs/scheme-generator-roadmap (1).md` → [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md)
+- Перенесён справочник городов: `docs/cities_from_table1.md` → [`backend/calculator_templates/cities_from_table1.md`](../backend/calculator_templates/cities_from_table1.md) (рядом с другими шаблонами калькулятора).
+- В [`frontend/package.json`](../frontend/package.json): `name` изменён с placeholder `vite-react-typescript-starter` на `uute-landing`, добавлены `description` и `version` `0.1.0`.
+- В [`CLAUDE.md`](../CLAUDE.md): актуализированы стейт-машина (`OrderStatus` с веткой оплаты и замечаний РСО), раздел «Текущий статус разработки» (полный production-флоу + backlog), описание структуры `docs/` (включая `archive/`).
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): docstring и комментарии указывают на новое имя шаблона `docs/kontrakt_ukute_template.md`.
+- В [`docs/project.md`](project.md), [`docs/changelog.md`](changelog.md), [`docs/tasktracker.md`](tasktracker.md): обновлены ссылки на переименованные/перенесённые в архив файлы.
+
+### Удалено
+- Пустые/устаревшие файлы:
+  - `backup_20260411.sql` (пустой дамп в корне репо)
+  - `frontend/.env` (пустой файл)
+  - `cursorrules` (устаревший — актуальные правила теперь в `.cursor/rules/`)
+  - `.cursor/rules/calculator-config-design.md:Zone.Identifier` (артефакт WSL/Windows)
+  - `docs/opros_list_form.pdf` (полный дубликат [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf), md5 совпадает)
+  - `docs/rekvizit_acc.md` (содержал реальные реквизиты ИП; в git ещё не был зафиксирован, поэтому из истории убирать не требуется)
+
+## [2026-04-20] — SVG: библиотека условных обозначений и ГОСТ-рамка для схем УУТЭ
+
+### Добавлено
+- Файл [`backend/app/services/scheme_svg_elements.py`](../backend/app/services/scheme_svg_elements.py): генераторы SVG-фрагментов (трубопроводы, арматура, датчики, расходомеры, теплообменник, насос, радиатор, тепловычислитель с таблицей, вспомогательные `svg_canvas`, `connection_line`, `dashed_rect`).
+- Файл [`backend/app/services/scheme_gost_frame.py`](../backend/app/services/scheme_gost_frame.py): `gost_frame_a3` и `gost_frame_a4` с рамкой по полям и основной надписью.
+
+### Изменено
+- В [`docs/project.md`](project.md): кратко описаны новые модули SVG.
+
+## [2026-04-19] — Принципиальные схемы ИТП: Pydantic-конфиг и сервис маппинга
+
+### Добавлено
+- Файл [`backend/app/schemas/scheme.py`](../backend/app/schemas/scheme.py): перечисление `SchemeType` (8 типовых конфигураций), `SchemeConfig` с валидацией сочетаний признаков (`model_validator`), `SchemeParams`, модели запроса/ответа для превью SVG и справочника шаблонов для UI.
+- Файл [`backend/app/services/scheme_service.py`](../backend/app/services/scheme_service.py): словари `SCHEME_MAP` и `SCHEME_LABELS`, функции `resolve_scheme_type`, `get_available_templates`, `extract_scheme_params_from_parsed` (вложенный формат `TUParsedData` и плоские legacy-ключи).
+
 ## [2026-04-19] — Договор DOCX: новый шаблон и компактная вёрстка
 
 ### Изменено
-- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): текст договора и приложений синхронизирован с шаблоном [`docs/kontrakt_ukute_template (2).md`](kontrakt_ukute_template%20(2).md), включая обновлённые формулировки разделов 4–14 и приложений 1–3.
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): текст договора и приложений синхронизирован с шаблоном [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md), включая обновлённые формулировки разделов 4–14 и приложений 1–3.
 - В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): для договора задан компактный формат документа — базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы уменьшить объём DOCX и приблизить вёрстку к образцу.
 
 ## [2026-04-19] — Договор DOCX: вставка страниц ТУ и лимит размера
@@ -252,7 +292,7 @@
 ## [2026-04-11] — Скачивание опросного листа (PDF) с лендинга
 
 ### Добавлено
-- Статический файл [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf): копия [`docs/opros_list_form.pdf`](opros_list_form.pdf) для раздачи Vite/production.
+- Статический файл [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf): единственный источник опросного листа (ранее дублировался в `docs/opros_list_form.pdf`, дубль удалён — см. запись `[2026-04-20]`).
 
 ### Изменено
 - В [`frontend/src/components/ProcessSection.tsx`](../frontend/src/components/ProcessSection.tsx): ссылки «Скачать опросный лист» (шаг 1 и блок под `#questionnaire`) ведут на `/downloads/opros_list_form.pdf` с атрибутом `download`.
