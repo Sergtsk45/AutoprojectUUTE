@@ -1,5 +1,7 @@
-from pydantic_settings import BaseSettings
 from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -16,23 +18,34 @@ class Settings(BaseSettings):
     smtp_host: str = "smtp.yourdomain.ru"
     smtp_port: int = 465
     smtp_user: str = ""
-    smtp_password: str = ""
+    # SMTP пароль — секрет, обязателен в .env. Без него отправка писем сразу
+    # ломается, поэтому лучше упасть на старте.
+    smtp_password: str = Field(..., min_length=1, description="Пароль SMTP (REQUIRED)")
     smtp_from: str = "noreply@yourdomain.ru"
     smtp_from_name: str = "УУТЭ Проектировщик"
     smtp_use_ssl: bool = True
 
     # Admin
     admin_email: str = "admin@yourdomain.ru"
-    admin_api_key: str = "change-me-in-production"
+    # Ключ админки — обязателен. Любой дефолт = доступ всем подряд.
+    admin_api_key: str = Field(..., min_length=16, description="API-ключ админки (REQUIRED, ≥16 симв.)")
 
-    # LLM (OpenRouter)
-    openrouter_api_key: str = "sk-or-v1-change-me"
+    # LLM (OpenRouter) — обязателен в .env, без него парсинг ТУ не работает.
+    openrouter_api_key: str = Field(..., min_length=10, description="OpenRouter API key (REQUIRED)")
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "google/gemini-2.5-flash"
 
     # App
     app_base_url: str = "http://localhost:8000"
     max_retry_count: int = 3
+
+    # CORS: список разрешённых origin-ов для браузерных запросов с лендинга/админки.
+    # ENV: CORS_ORIGINS='["https://constructproject.ru","http://localhost:5173"]'
+    # (Pydantic v2 парсит список из JSON.)
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["https://constructproject.ru"],
+        description="Разрешённые origin-ы для CORS (JSON-список в ENV)",
+    )
 
     # Реквизиты компании (для договоров и счетов)
     company_full_name: str = "ИП Анищенко Сергей Сергеевич"
