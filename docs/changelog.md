@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-04-20] — Восстановление пропущенной prod-миграции advance_payment_model
+
+### Добавлено
+- Файл [`backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py`](../backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py) — миграция `87fcef6f52ff`, которая создаёт enum `payment_method` и добавляет в `orders` колонки `payment_method`, `payment_amount`, `advance_amount`, `advance_paid_at`, `final_paid_at`, `company_requisites`, `contract_number`; дополняет значения в enum-ах `order_status` (`AWAITING_CONTRACT`, `CONTRACT_SENT`, `ADVANCE_PAID`, `AWAITING_FINAL_PAYMENT`), `file_category` (`COMPANY_CARD`, `CONTRACT`, `INVOICE`, `RSO_SCAN`), `email_type` (`PROJECT_READY_PAYMENT`, `CONTRACT_DELIVERY`, `ADVANCE_RECEIVED`, `FINAL_PAYMENT_REQUEST`, `FINAL_PAYMENT_RECEIVED`); заменяет unique-constraint на unique-индекс в `calculator_configs`. Миграция была сгенерирована через `alembic revision --autogenerate` прямо на production-сервере 2026-04-14 и применена к prod-БД, но никогда не попала в git — на clean БД `alembic upgrade head` не создавал `advance_amount`/`advance_paid_at`, хотя модель `Order` (`backend/app/models/models.py:256-257`) эти колонки читает. Это блокировало любой re-deploy на новой инфраструктуре.
+- Файл [`backend/alembic/script.py.mako`](../backend/alembic/script.py.mako) — стандартный шаблон Alembic для `alembic revision`; ранее отсутствовал в репозитории, из-за чего нельзя было сгенерировать новые миграции локально.
+
+### Изменено
+- В [`backend/alembic/versions/20260416_uute_signed_contract_enums.py`](../backend/alembic/versions/20260416_uute_signed_contract_enums.py): `down_revision` переключён с `"20260412_uute_calc_configs"` на `"87fcef6f52ff"`. Это встраивает восстановленную миграцию в линейную цепочку без появления двух голов. На prod БД ничего не меняется (alembic_version = `20260416_uute_tu_parsed_notification`, `upgrade head` = nothing to do), на чистой БД цепочка корректно пройдёт все 12 ревизий от `20260402_uute_fc` до текущей головы.
+
+### Безопасность / деплой
+- Перед следующим деплоем (`docker compose up -d --build backend`) на prod сверить `docker exec uute-project-postgres-1 psql -U postgres -d uute -c "SELECT version_num FROM alembic_version;"` — должно быть `20260416_uute_tu_parsed_notification`, `alembic upgrade head` ничего не применит.
+- На dev-стендах, клонирующих репо заново: `alembic upgrade head` корректно пройдёт всю цепочку.
+
 ## [2026-04-20] — Раздел 3 аудита: roadmap по поддерживаемости и архитектуре
 
 ### Добавлено

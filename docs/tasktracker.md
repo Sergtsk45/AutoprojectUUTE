@@ -1,5 +1,23 @@
 # Task tracker
 
+## Задача: Восстановить пропущенную prod-миграцию advance_payment_model (2026-04-20)
+- **Статус**: Завершена
+- **Описание**: При проверке перед деплоем обнаружено, что миграция `87fcef6f52ff_20260415_uute_advance_payment_model.py` и шаблон `backend/alembic/script.py.mako` существуют только на prod-сервере (`~/uute-project/`) и никогда не коммитились в git. Миграция физически применена в prod-БД (создала колонки `advance_amount`, `advance_paid_at`, `payment_method`, …), но на чистой БД (новый стенд, CI) `alembic upgrade head` их не создаст — модель `Order` при первом запросе упадёт. Восстановлено путём: вставки миграции в репозиторий и корректировки `down_revision` у `20260416_uute_signed_contract_enums`, чтобы цепочка стала линейной.
+- **Шаги выполнения**:
+  - [x] Получено содержимое миграции и `script.py.mako` с prod (`ubuntu@n8n:~/uute-project`)
+  - [x] Проверено, что на prod `alembic_version` = `20260416_uute_tu_parsed_notification`; колонки `advance_amount`/`advance_paid_at` присутствуют в модели `Order`, но ни одна git-миграция их не создаёт
+  - [x] Подтверждено отсутствие пересечений с другими миграциями (enum-значения, добавляемые `87fcef6f52ff`, уникальны; все остальные `ALTER TYPE ADD VALUE` идемпотентны за счёт `IF NOT EXISTS` / `DO $body$`)
+  - [x] Добавлены `backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py` и `backend/alembic/script.py.mako`
+  - [x] В `20260416_uute_signed_contract_enums.py` переключён `down_revision` на `"87fcef6f52ff"`
+  - [x] Проверен граф миграций (скриптом Python): одна голова `20260416_uute_tu_parsed_notification`, линейная цепочка из 12 ревизий от `20260402_uute_fc`
+  - [x] Записи в `docs/changelog.md` и `docs/tasktracker.md`
+- **Риски и mitigation**:
+  - На prod `alembic upgrade head` = nothing to do (current = head). Проверено вручную.
+  - На dev/CI clean БД вся цепочка применится линейно (12 ревизий).
+  - Downgrade миграций теперь проходит через `87fcef6f52ff`; если кто-то делал `alembic downgrade` до `20260412_uute_calc_configs` — теперь придётся откатиться через `87fcef6f52ff` (это снимет и колонки, и index). Для prod это не используется.
+- **Зависимости**: блокирует деплой раздела 2 аудита до мерджа. После мерджа — безопасно делать `docker compose up -d --build backend`.
+- **Follow-up (раздел 3 аудита)**: в фазе A3 (GitHub Actions CI) обязательно добавить job «alembic upgrade head на пустой Postgres» — это моментально ловило бы такие расхождения.
+
 ## Задача: Раздел 3 аудита — roadmap поддерживаемости и архитектуры (2026-04-20)
 - **Статус**: В процессе (утверждение плана)
 - **Описание**: Составлен подробный roadmap реализации раздела 3 аудита 2026-04-20 (архитектурные проблемы: «толстые» модули, async/sync смешивание, legacy-статусы, нетипизированные JSONB, несогласованный `FileCategory`, захардкоженные пути, отсутствие CI/инструментов, неиспользуемые зависимости, Celery-конфиг, миграции без единого стиля, отсутствие индексов). Документ определяет 6 фаз выполнения, последовательность ~18 PR, критерии готовности и риски.
