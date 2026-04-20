@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-20] — SVG: библиотека условных обозначений и ГОСТ-рамка для схем УУТЭ
+
+### Добавлено
+- Файл [`backend/app/services/scheme_svg_elements.py`](../backend/app/services/scheme_svg_elements.py): генераторы SVG-фрагментов (трубопроводы, арматура, датчики, расходомеры, теплообменник, насос, радиатор, тепловычислитель с таблицей, вспомогательные `svg_canvas`, `connection_line`, `dashed_rect`).
+- Файл [`backend/app/services/scheme_gost_frame.py`](../backend/app/services/scheme_gost_frame.py): `gost_frame_a3` и `gost_frame_a4` с рамкой по полям и основной надписью.
+
+### Изменено
+- В [`docs/project.md`](project.md): кратко описаны новые модули SVG.
+
+## [2026-04-19] — Принципиальные схемы ИТП: Pydantic-конфиг и сервис маппинга
+
+### Добавлено
+- Файл [`backend/app/schemas/scheme.py`](../backend/app/schemas/scheme.py): перечисление `SchemeType` (8 типовых конфигураций), `SchemeConfig` с валидацией сочетаний признаков (`model_validator`), `SchemeParams`, модели запроса/ответа для превью SVG и справочника шаблонов для UI.
+- Файл [`backend/app/services/scheme_service.py`](../backend/app/services/scheme_service.py): словари `SCHEME_MAP` и `SCHEME_LABELS`, функции `resolve_scheme_type`, `get_available_templates`, `extract_scheme_params_from_parsed` (вложенный формат `TUParsedData` и плоские legacy-ключи).
+
 ## [2026-04-19] — Договор DOCX: новый шаблон и компактная вёрстка
 
 ### Изменено
