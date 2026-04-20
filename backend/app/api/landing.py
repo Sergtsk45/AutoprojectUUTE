@@ -154,7 +154,10 @@ async def create_order_from_landing(
                     order_type=data.order_type,
                 )
     except Exception:
-        pass  # Не ломаем создание заявки из-за проблем с email
+        logger.exception(
+            "send_new_order_notification failed for order %s; продолжаем без уведомления инженеру",
+            order.id,
+        )
 
     upload_url = f"{settings.app_base_url}/upload/{order.id}"
 
