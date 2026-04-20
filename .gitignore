@@ -35,4 +35,13 @@ npm-debug.log*
 # Database
 *.db
 *.sqlite3
+*.sql
 .worktrees/
+
+# Windows / WSL artefacts
+*Zone.Identifier
+
+# Local secrets / requisites (никогда не коммитим)
+docs/rekvizit_acc.md
+docs/secrets/
+.secrets/

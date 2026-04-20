@@ -47,12 +47,23 @@ Internet → Caddy (443/SSL) → uute-backend:8000 (FastAPI)
 
 ### Стейт-машина заявки (OrderStatus)
 
+Полный набор переходов — в `ALLOWED_TRANSITIONS` (`backend/app/models/models.py`). Основной happy-path:
+
 ```
-new → tu_parsing → tu_parsed ─┬→ waiting_client_info → client_info_received ─┬→ data_complete
+new → tu_parsing → tu_parsed ─┬→ waiting_client_info → client_info_received ─┐
                                └→ data_complete ←──────────────────────────────┘
-data_complete → generating_project → review → completed
+data_complete → generating_project → review → awaiting_contract → contract_sent
+              → advance_paid → awaiting_final_payment ─┬→ completed
+                                                       └→ rso_remarks_received → awaiting_final_payment
 Любой статус → error → new (перезапуск)
 ```
+
+Ключевые статусы оплаты/согласования:
+- `awaiting_contract` — инженер одобрил проект, ожидаем реквизиты клиента
+- `contract_sent` — договор + счёт на 50 % отправлены, ждём аванс
+- `advance_paid` — аванс получен, проект уехал клиенту
+- `awaiting_final_payment` — ожидаем скан РСО, замечания РСО или оплату остатка
+- `rso_remarks_received` — получены замечания РСО, заявка возвращена инженеру; после повторной отправки исправленного проекта снова `awaiting_final_payment`
 
 ---
 
@@ -81,9 +92,14 @@ AutoprojectUUTE/
 │   │   └── main.tsx
 │   └── dist/              # Сборка Vite (монтируется в Docker как /app/frontend-dist)
 ├── docs/
-│   ├── changelog.md       # Хронология изменений
-│   ├── tasktracker.md     # Задачи и их статус
-│   └── project.md         # Архитектурные заметки
+│   ├── changelog.md             # Хронология изменений (актуальный)
+│   ├── tasktracker.md           # Активные/недавние задачи
+│   ├── project.md               # Архитектурные заметки
+│   ├── calculator-config-design.md   # Дизайн настроечной БД вычислителя
+│   ├── kontrakt_ukute_template.md    # Текстовый шаблон договора (используется contract_generator)
+│   ├── scheme-generator-roadmap.md   # Активный roadmap по принципиальным схемам
+│   ├── templates/                    # CSV/MD-шаблоны (опросный лист и пр.)
+│   └── archive/2026-Q2/              # Завершённые task-трекеры и реализованные планы
 ├── docker-compose.yml     # Dev: только postgres + redis
 ├── docker-compose.prod.yml # Prod: полный стек (на сервере)
 └── CLAUDE.md
@@ -462,23 +478,31 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Текущий статус разработки
 
-**Фаза:** MVP — пайплайн обработки заявок (активна)
+**Фаза:** Production — полный цикл от лендинга до отправки проекта и обработки замечаний РСО.
 
 **Реализовано (апрель 2026):**
-- Стейт-машина заявок: `new → tu_parsing → ... → completed`
-- Парсинг ТУ через LLM (OpenRouter/Gemini) с нормализацией `system_type`
-- Категории файлов: `tu`, `BALANCE_ACT`, `CONNECTION_PLAN`, `heat_point_plan`, `heat_scheme`
-- Публичные эндпоинты лендинга (upload-tu, submit) без авторизации
-- Страница загрузки клиента (`/upload/{id}`) — два сценария: `new` и `waiting_client_info`
-- Автонапоминания клиентам через Celery Beat
-- Админ-панель (`/admin`): список заявок, карточка, результаты парсинга ТУ
-- React лендинг (SPA): форма заявки, калькулятор, FAQ, образцы проектов
-- Fallback auth: `X-Admin-Key` header или `?_k=` query
+- Полный цикл стейт-машины: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → data_complete → generating_project → review → awaiting_contract → contract_sent → advance_paid → awaiting_final_payment → completed`, с веткой `rso_remarks_received` для возврата проекта инженеру.
+- Парсинг ТУ через LLM (OpenRouter / `google/gemini-2.5-flash`), типизированные `parsed_params` (`backend/app/services/tu_schema.py`).
+- Сегментация заказов: `OrderType.express` / `OrderType.custom`, опросный лист (`upload.html`) с автозаполнением из ТУ для custom.
+- Категории файлов (`FileCategory`, UPPER_CASE): `TU`, `BALANCE_ACT`, `CONNECTION_PLAN`, `HEAT_POINT_PLAN`, `HEAT_SCHEME`, `COMPANY_CARD`, `SIGNED_CONTRACT`, `GENERATED_PROJECT`, `FINAL_INVOICE`, `RSO_SCAN`, `RSO_REMARKS`.
+- Публичные эндпоинты лендинга (`/api/v1/landing/...`): создание заявки, upload ТУ/документов, опросный лист, страница оплаты `/payment/{id}`, загрузка скана РСО и замечаний.
+- Договор: `contract_generator.py` собирает DOCX по шаблону `docs/kontrakt_ukute_template.md` с встраиванием PDF ТУ в Приложение 2 (PyMuPDF, лестница DPI, fallback ~25 МБ).
+- Email-уведомления (Jinja2 + SMTP Яндекс): запрос данных, напоминания, отправка готового проекта, уведомления инженеру (новая заявка, ТУ распарсены, документы клиента получены, скан РСО), уведомление о замечаниях РСО, повторная отправка исправленного проекта.
+- Celery Beat: ежедневные напоминания, отложенный `info_request` через 24 ч, 15-дневный reminder по финальной оплате.
+- Админ-панель `/admin`: список заявок, карточка с парсингом ТУ, опросным листом по секциям, действиями инженера на post-project ветке (отправка исправленного проекта), карточка «Настроечная БД вычислителя» с автозаполнением из ТУ и экспортом PDF.
+- Настроечная БД (`CalculatorConfig`): JSON-шаблоны ТВ7, СПТ-941.20, ЭСКО-Терра М; для express автоинициализация на ЭСКО-Терра; CRUD через `/api/v1/orders/{id}/calculator-config`.
+- React лендинг: калькулятор с двумя вариантами (Экспресс/Индивидуальный), форма заказа (EmailModal) с полем «Город объекта» и модалкой политики конфиденциальности, FAQ, образцы проектов, скачивание опросного листа `/downloads/opros_list_form.pdf`.
+- Auth: `X-Admin-Key` header или `?_k=` query (последний желательно убрать — см. backlog в `docs/changelog.md`).
 
-**Следующие этапы:**
-- Генерация Excel (заполнение шаблона параметрами из ТУ)
-- Интеграция T-FLEX для генерации проектной документации
-- Email: отправка готового проекта клиенту
+**Активные направления:**
+- Автоматизация принципиальных схем ИТП (см. [`docs/scheme-generator-roadmap.md`](docs/scheme-generator-roadmap.md), черновики SVG-генераторов уже в `backend/app/services/scheme_*`).
+
+**Backlog / технический долг:**
+- Безопасность: ограничить CORS до доменов, перевести `verify_admin_key` на `secrets.compare_digest`, отказаться от `?_k=` в публичных URL, убрать дефолты секретов из `config.py`, добавить rate-limit на `/landing/*`.
+- Декомпозиция «толстых» модулей: `services/tasks.py`, `services/email_service.py`, `services/contract_generator.py`.
+- Удаление legacy-статусов / нормализация enum после миграции данных.
+- Типизация JSONB-полей (`parsed_params`, `survey_data`, `company_requisites`) Pydantic-моделями.
+- CI (pytest + ruff + mypy + eslint), error-tracking (Sentry/Glitchtip), генерация TypeScript-клиента из OpenAPI.
 
 ---
 

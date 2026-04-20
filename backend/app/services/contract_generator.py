@@ -373,7 +373,7 @@ _current_req_snapshot: dict | None = None
 
 
 def _build_main_contract(doc: Document, ctx: _ContractContext) -> None:
-    """Разделы 1–15 основного договора по `kontrakt_ukute_template (2).md`."""
+    """Разделы 1–15 основного договора по `docs/kontrakt_ukute_template.md`."""
     s = settings
     city = _extract_city(s.company_address) if s.company_address else "___"
     now = datetime.now()
