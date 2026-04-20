@@ -1,22 +1,24 @@
 # Task tracker
 
-## Задача: Восстановить пропущенную prod-миграцию advance_payment_model (2026-04-20)
+## Задача: Восстановить пропущенную prod-миграцию advance_payment_model + merge двух голов alembic (2026-04-20)
 - **Статус**: Завершена
-- **Описание**: При проверке перед деплоем обнаружено, что миграция `87fcef6f52ff_20260415_uute_advance_payment_model.py` и шаблон `backend/alembic/script.py.mako` существуют только на prod-сервере (`~/uute-project/`) и никогда не коммитились в git. Миграция физически применена в prod-БД (создала колонки `advance_amount`, `advance_paid_at`, `payment_method`, …), но на чистой БД (новый стенд, CI) `alembic upgrade head` их не создаст — модель `Order` при первом запросе упадёт. Восстановлено путём: вставки миграции в репозиторий и корректировки `down_revision` у `20260416_uute_signed_contract_enums`, чтобы цепочка стала линейной.
+- **Описание**: При проверке перед деплоем обнаружено, что файлы `backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py` и `backend/alembic/script.py.mako` существуют только на prod-сервере (`ubuntu@n8n:~/uute-project/`) и никогда не коммитились в git. Дальнейшая проверка `SELECT version_num FROM alembic_version` на prod показала **две строки** — `20260416_uute_tu_parsed_notification` и `87fcef6f52ff` — то есть после `20260412_uute_calc_configs` граф миграций исторически разошёлся на две независимые ветви, обе применены в prod-БД. Решение: вернуть `87fcef6f52ff` в git как есть (не менять `down_revision` у `20260416_uute_signed_contract_enums`), а обе головы свести одной merge-миграцией `20260420_uute_merge_advance_payment_heads` с `upgrade/downgrade = pass`.
 - **Шаги выполнения**:
-  - [x] Получено содержимое миграции и `script.py.mako` с prod (`ubuntu@n8n:~/uute-project`)
-  - [x] Проверено, что на prod `alembic_version` = `20260416_uute_tu_parsed_notification`; колонки `advance_amount`/`advance_paid_at` присутствуют в модели `Order`, но ни одна git-миграция их не создаёт
-  - [x] Подтверждено отсутствие пересечений с другими миграциями (enum-значения, добавляемые `87fcef6f52ff`, уникальны; все остальные `ALTER TYPE ADD VALUE` идемпотентны за счёт `IF NOT EXISTS` / `DO $body$`)
-  - [x] Добавлены `backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py` и `backend/alembic/script.py.mako`
-  - [x] В `20260416_uute_signed_contract_enums.py` переключён `down_revision` на `"87fcef6f52ff"`
-  - [x] Проверен граф миграций (скриптом Python): одна голова `20260416_uute_tu_parsed_notification`, линейная цепочка из 12 ревизий от `20260402_uute_fc`
+  - [x] Получено содержимое `87fcef6f52ff` и `script.py.mako` с prod
+  - [x] Проверено состояние `alembic_version` на prod: **две** строки (`tu_parsed_notification` + `87fcef6f52ff`). Это штатное состояние alembic DAG с двумя heads, не ошибка
+  - [x] Подтверждено отсутствие DDL-пересечений между двумя ветвями (enum-значения, добавляемые `87fcef6f52ff`, уникальны; все `ALTER TYPE ADD VALUE` идемпотентны за счёт `IF NOT EXISTS` / `DO $body$`)
+  - [x] Добавлены файлы `87fcef6f52ff_20260415_uute_advance_payment_model.py` и `script.py.mako`
+  - [x] Создана merge-миграция `20260420_uute_merge_advance_payment_heads.py` с `down_revision = ('87fcef6f52ff', '20260416_uute_tu_parsed_notification')`, `upgrade/downgrade = pass`
+  - [x] Проверен граф (скриптом Python): 1 root (`20260402_uute_fc`), 1 head (`20260420_uute_merge_advance_payment_heads`), обе ветви сходятся в merge
   - [x] Записи в `docs/changelog.md` и `docs/tasktracker.md`
+- **Поведение на БД**:
+  - **prod** (`alembic_version` = {`tu_parsed_notification`, `87fcef6f52ff`}): `upgrade head` применит только merge-миграцию (которая `pass`), обе строки в `alembic_version` заменятся на одну `20260420_uute_merge_advance_payment_heads`. DDL/DML не выполняется.
+  - **clean БД (CI/новый стенд)**: alembic пройдёт обе ветви от корня, затем merge. Все колонки/enum-значения создадутся.
 - **Риски и mitigation**:
-  - На prod `alembic upgrade head` = nothing to do (current = head). Проверено вручную.
-  - На dev/CI clean БД вся цепочка применится линейно (12 ревизий).
-  - Downgrade миграций теперь проходит через `87fcef6f52ff`; если кто-то делал `alembic downgrade` до `20260412_uute_calc_configs` — теперь придётся откатиться через `87fcef6f52ff` (это снимет и колонки, и index). Для prod это не используется.
-- **Зависимости**: блокирует деплой раздела 2 аудита до мерджа. После мерджа — безопасно делать `docker compose up -d --build backend`.
-- **Follow-up (раздел 3 аудита)**: в фазе A3 (GitHub Actions CI) обязательно добавить job «alembic upgrade head на пустой Postgres» — это моментально ловило бы такие расхождения.
+  - `downgrade` merge-миграции принципиально не поддерживается (откат к двум головам разрушит данные `orders`). Для штатного rollback этот шаг не нужен — он применяется один раз и навсегда.
+  - На prod перед деплоем подтвердить, что в `alembic_version` всё ещё ровно эти две ревизии (`tu_parsed_notification` и `87fcef6f52ff`). Если окажется что-то другое — СТОП, обсудить.
+- **Зависимости**: блокирует деплой раздела 2 (security) до мерджа. После мерджа — `docker compose up -d --build backend` безопасен.
+- **Follow-up (раздел 3 аудита)**: в фазе A3 (GitHub Actions CI) добавить job `alembic upgrade head` на пустом Postgres — такие расхождения ловятся моментально.
 
 ## Задача: Раздел 3 аудита — roadmap поддерживаемости и архитектуры (2026-04-20)
 - **Статус**: В процессе (утверждение плана)
