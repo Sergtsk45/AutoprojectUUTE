@@ -1,7 +1,7 @@
 """add signed contract enum labels
 
 Revision ID: 20260416_uute_signed_contract_enums
-Revises: 20260412_uute_calc_configs
+Revises: 87fcef6f52ff
 Create Date: 2026-04-16
 
 """
@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 
 revision: str = "20260416_uute_signed_contract_enums"
-down_revision: Union[str, None] = "20260412_uute_calc_configs"
+down_revision: Union[str, None] = "87fcef6f52ff"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
