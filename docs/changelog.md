@@ -1,5 +1,35 @@
 # Changelog
 
+## [2026-04-21] — Фаза B2.a: Нормализация `FileCategory` (non-breaking)
+
+### Добавлено
+- Alembic-миграция [`20260421_uute_file_category_lowercase_missing_params.py`](../backend/alembic/versions/20260421_uute_file_category_lowercase_missing_params.py): нормализует исторические значения в `orders.missing_params` JSONB (`BALANCE_ACT` → `balance_act`, `CONNECTION_PLAN` → `connection_plan`). Reversible (downgrade возвращает UPPER_CASE).
+- Новый тест-модуль [`tests/test_file_category_b2.py`](../backend/tests/test_file_category_b2.py) (12 тестов): все `.value` — snake_case lowercase, `_missing_` принимает legacy-алиасы, `param_labels.*` корректно работает и на lowercase, и на UPPER_CASE.
+
+### Изменено
+- **`backend/app/models/models.py` → `FileCategory`:**
+  - `BALANCE_ACT = "balance_act"` (было `"BALANCE_ACT"`).
+  - `CONNECTION_PLAN = "connection_plan"` (было `"CONNECTION_PLAN"`).
+  - Добавлен classmethod `_missing_(value)` — case-insensitive lookup с `WARNING` в лог: старые клиенты (`?category=BALANCE_ACT`) продолжают работать, **но в B2.b (следующий PR) это станет 422**.
+- **`backend/app/services/param_labels.py`:**
+  - `CLIENT_DOCUMENT_PARAM_CODES`, `MISSING_PARAM_LABELS`, `SAMPLE_DOCUMENTS` переведены на snake_case lowercase.
+  - `_LEGACY_DOCUMENT_PARAM_CODES` расширен UPPER_CASE-кодами — `client_document_list_needs_migration` теперь триггерит миграцию списка для заявок с legacy-значениями в `missing_params`.
+  - `get_missing_items` / `get_sample_paths` канонизируют входные коды через `_canonicalize` — письмо «запрос документов» не ломается на старых заявках.
+- **Фронтенд:**
+  - [`backend/static/admin.html`](../backend/static/admin.html): `<option value>` в форме загрузки файла + словарь `catLabels`.
+  - [`backend/static/upload.html`](../backend/static/upload.html): `PARAM_LABELS` перешёл на lowercase ключи.
+
+### Не меняется
+- **PG enum `file_category`** — labels остаются UPPER_CASE именами членов (`BALANCE_ACT`, `CONNECTION_PLAN`, …). SQLAlchemy без `values_callable` persist имена, а не `.value`, поэтому смена `.value` не требует `ALTER TYPE ... RENAME VALUE`.
+- **Старые файлы в хранилище** (`.../BALANCE_ACT/<uuid>_<name>`) — доступны через `order_files.storage_path` (хранится в БД как относительный путь). Новые файлы сохраняются в `.../balance_act/...`.
+
+### API-контракт
+- `GET /api/v1/files?category=balance_act` — канонический формат.
+- `GET /api/v1/files?category=BALANCE_ACT` — **по-прежнему работает** в этом релизе (deprecation WARNING в логах). В B2.b будет отвергнут с 422.
+
+### Следующий шаг
+- **B2.b** (планируется в отдельном PR через 1–2 релиза): убрать `FileCategory._missing_` compat-shim и legacy-алиасы в `param_labels._B2_LEGACY_ALIASES`. После этого uppercase-значения API категорически не принимаются.
+
 ## [2026-04-21] — Фаза B1.b: Миграция мест чтения JSONB через accessor-методы
 
 ### Добавлено

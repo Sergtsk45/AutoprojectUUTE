@@ -14,6 +14,31 @@
 - **Зависимости**: A-фаза смержена. Разблокирует B1.b (миграция мест чтения) и B1.c (строгая типизация `OrderResponse`).
 - **Риски**: низкие. Runtime не затронут. Shim'ы обеспечивают совместимость.
 
+## Задача: Фаза B2.a — Нормализация `FileCategory` (non-breaking, 2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Значения `FileCategory.BALANCE_ACT` и `FileCategory.CONNECTION_PLAN` переведены в snake_case lowercase (`balance_act`, `connection_plan`). Добавлен `_missing_` в enum — старые клиенты с UPPER_CASE продолжают работать один релиз. `param_labels`, фронт, исторические значения в `orders.missing_params` нормализованы. БД PG enum `file_category` не затрагивается (labels = имена членов, не `.value`).
+- **Шаги выполнения**:
+  - [x] `FileCategory.value` → lowercase + `_missing_` compat-shim
+  - [x] `param_labels.py` — все ключи lowercase; legacy-канонизатор в `get_missing_items`/`get_sample_paths`
+  - [x] `admin.html`, `upload.html` — UPPER_CASE значения заменены
+  - [x] Alembic `20260421_uute_fc_lower_missing` — миграция значений в `orders.missing_params`
+  - [x] Тесты `test_file_category_b2.py` (12/12 passed)
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`
+- **Зависимости**: B1.b — смержена.
+- **Риски**: низкие. `_missing_` покрывает все внешние интеграции со старым форматом один релиз.
+- **Rollback**: revert коммита + `alembic downgrade` (downgrade-миграция возвращает UPPER_CASE).
+
+## Задача: Фаза B2.b — Удаление legacy-uppercase у `FileCategory` (плановая)
+- **Статус**: Не начата
+- **Описание**: Через 1–2 релиза удалить `FileCategory._missing_` compat-shim и `_B2_LEGACY_ALIASES` в `param_labels.py`. После этого API категорически отвергает `?category=BALANCE_ACT` — 422 Unprocessable Entity. Должно сопровождаться подтверждением, что в логах больше нет `WARNING: FileCategory: принят устаревший uppercase-алиас`.
+- **Шаги выполнения**:
+  - [ ] Подтвердить по логам прод (`grep "устаревший uppercase-алиас" /var/log/…`) отсутствие внешних клиентов с legacy-форматом
+  - [ ] Удалить `_missing_` из `FileCategory`
+  - [ ] Удалить `_B2_LEGACY_ALIASES` и `_canonicalize` в `param_labels.py`
+  - [ ] Обновить тест `test_missing_accepts_legacy_uppercase` → `test_missing_rejects_legacy_uppercase`
+  - [ ] Changelog: BREAKING CHANGE
+- **Зависимости**: B2.a — смержена и отправлена в прод.
+
 ## Задача: Фаза B1.b — Миграция мест чтения JSONB через accessor-методы (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Все bare-обращения `order.parsed_params["..."]` / `.survey_data["..."]` / `.company_requisites["..."]` в бизнес-коде переведены на типизированные accessor-методы из `app.repositories.order_jsonb`. Добавлена Pydantic-валидация входящего body в `POST /landing/orders/{order_id}/survey` (422 вместо тихого принятия мусора).

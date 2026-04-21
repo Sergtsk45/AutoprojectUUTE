@@ -145,13 +145,21 @@ class OrderType(str, enum.Enum):
 class FileCategory(str, enum.Enum):
     """Категории загружаемых файлов.
 
-    В PostgreSQL тип file_category — метки как имена членов (TU, HEAT_SCHEME, …).
-    Значения .value — для API, query-параметров и сегментов пути в хранилище.
+    Единый канонический формат `.value` — **snake_case lowercase** (фаза B2, 2026-04-21).
+    До B2 значения `BALANCE_ACT`/`CONNECTION_PLAN` хранились в UPPER_CASE; переведены
+    в lowercase. Для совместимости со старыми клиентами API в один релиз `_missing_`
+    принимает uppercase-значение и возвращает canonical member (см. ниже).
+
+    В PostgreSQL тип `file_category` — метки совпадают с **именами** членов Python
+    (`TU`, `BALANCE_ACT`, …), а не с `.value`. SQLAlchemy без `values_callable`
+    persist имена, поэтому смена `.value` не требует Alembic-миграции enum.
+    Значения `.value` используются для API, query-параметров и сегментов пути
+    в хранилище (`upload_dir/<order_id>/<category.value>/...`).
     """
 
     TU = "tu"  # Технические условия (ТУ)
-    BALANCE_ACT = "BALANCE_ACT"  # Акт разграничения балансовой принадлежности
-    CONNECTION_PLAN = "CONNECTION_PLAN"  # План подключения к тепловой сети
+    BALANCE_ACT = "balance_act"  # Акт разграничения балансовой принадлежности
+    CONNECTION_PLAN = "connection_plan"  # План подключения к тепловой сети
     HEAT_POINT_PLAN = "heat_point_plan"  # План теплового пункта (УУТЭ, ШУ)
     HEAT_SCHEME = "heat_scheme"  # Принципиальная схема теплового пункта с УУТЭ
     GENERATED_EXCEL = "generated_excel"
@@ -164,6 +172,29 @@ class FileCategory(str, enum.Enum):
     FINAL_INVOICE = "final_invoice"  # Счёт на остаток по договору (DOCX)
     RSO_SCAN = "rso_scan"  # Скан письма с входящим номером РСО
     RSO_REMARKS = "rso_remarks"  # Замечания РСО по согласованию проекта
+
+    @classmethod
+    def _missing_(cls, value: object) -> "FileCategory | None":
+        """Case-insensitive lookup (deprecated, B2 compat shim).
+
+        Принимает значения вида `BALANCE_ACT`, `Connection_Plan` и канонизирует
+        их к lowercase. Будет удалён в следующем PR (B2.b) — после него API
+        вернёт 422 на uppercase.
+        """
+        if isinstance(value, str):
+            lowered = value.lower()
+            for member in cls:
+                if member.value == lowered:
+                    import logging
+
+                    logging.getLogger(__name__).warning(
+                        "FileCategory: принят устаревший uppercase-алиас %r "
+                        "(канонический: %r). В B2.b будет отвергнут как 422.",
+                        value,
+                        member.value,
+                    )
+                    return member
+        return None
 
 
 # ─── Типы email ──────────────────────────────────────────────────────────────
@@ -233,8 +264,10 @@ class Order(Base):
     # Пример: {"heat_load_gvs": 0.15, "heat_load_ot": 0.45, "t_supply": 150, ...}
     parsed_params = Column(JSONB, nullable=True, default=dict)
 
-    # Список параметров, которых не хватает (JSON-массив строк)
-    # Пример: ["BALANCE_ACT", "heat_scheme"] — коды как в param_labels / FileCategory
+    # Список параметров, которых не хватает (JSON-массив строк).
+    # Пример: ["balance_act", "heat_scheme"] — коды как в param_labels / FileCategory
+    # (после B2 — все в snake_case lowercase; исторические UPPER_CASE значения
+    # мигрированы в соответствующей Alembic-ревизии).
     missing_params = Column(JSONB, nullable=True, default=list)
 
     # Тип заявки
