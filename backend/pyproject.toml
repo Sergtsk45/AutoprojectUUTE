@@ -102,11 +102,23 @@ ignore_errors = true
 
 # Новые модули добавлять сюда с `ignore_errors = false`/`strict = true` по мере
 # появления — см. фазы B1 (pydantic-схемы JSONB), D1–D3 (декомпозиция).
-# Пример:
-# [[tool.mypy.overrides]]
-# module = "app.services.tasks.*"
-# ignore_errors = false
-# strict = true
+
+# Фаза B1 (аудит, 2026-04-21): типизированные Pydantic-модели для JSONB-полей
+# и accessor-методы. Код пишется строго типизированным с нуля, `strict = true`
+# ловит регрессы при добавлении новых полей или изменении сигнатур.
+[[tool.mypy.overrides]]
+module = ["app.schemas.jsonb.*", "app.repositories.*"]
+ignore_errors = false
+strict = true
+# Отключённые коды и причины:
+#   - no-untyped-call / attr-defined: `Order` живёт в legacy-модуле с
+#     ignore_errors=true, его атрибуты/методы mypy не видит.
+#   - arg-type: pydantic v2 + `default_factory=SubModel` — известный false-positive
+#     mypy; без dataclass-transform на BaseModel mypy считает классы типами,
+#     а не callable-ами. Это безопасно: Pydantic корректно вызывает модель как factory.
+#   - assignment: присвоение `dict` в `Column[...]` — артефакт SQLAlchemy 1.x
+#     (без `Mapped[...]`-typed колонок). Уйдёт в фазе D, когда перейдём на 2.x-style.
+disable_error_code = ["no-untyped-call", "attr-defined", "arg-type", "assignment"]
 
 # =============================================================================
 # Pytest — тесты backend.

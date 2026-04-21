@@ -15,6 +15,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
+from app.repositories.order_jsonb import (
+    get_parsed_params,
+    get_parsed_params_dict,
+    get_survey_data,
+    get_survey_data_dict,
+)
+
 MANUFACTURER_TO_CALCULATOR = {
     "esko": "esko_terra",
     "teplokom": "tv7",
@@ -35,11 +42,11 @@ def resolve_calculator_type_for_express(order) -> str | None:
     Проверяет metering.heat_calculator_model на маркеры Эско-Терра.
     Возвращает 'esko_terra' если обнаружены, иначе None.
     """
-    parsed = order.parsed_params or {}
-    metering = parsed.get("metering") or {}
-    model = metering.get("heat_calculator_model") or ""
-    model_lower = model.lower()
-    if any(marker in model_lower for marker in ESKO_MARKERS):
+    parsed = get_parsed_params(order)
+    if parsed is None:
+        return None
+    model = (parsed.metering.heat_calculator_model or "").lower()
+    if any(marker in model for marker in ESKO_MARKERS):
         return "esko_terra"
     return None
 
@@ -205,9 +212,10 @@ async def init_config(order, db: AsyncSession):
     """
     from app.models.models import CalculatorConfig
 
-    survey_data = order.survey_data or {}
-    manufacturer = survey_data.get("manufacturer", "")
-    calculator_type = MANUFACTURER_TO_CALCULATOR.get(manufacturer)
+    # Типизированное чтение survey_data; auto_fill принимает сырой dict.
+    survey = get_survey_data(order)
+    manufacturer = survey.manufacturer if survey is not None else None
+    calculator_type = MANUFACTURER_TO_CALCULATOR.get(manufacturer or "")
 
     if not calculator_type:
         raise ValueError(
@@ -216,7 +224,11 @@ async def init_config(order, db: AsyncSession):
         )
 
     template = load_template(calculator_type)
-    config_data = auto_fill(template, order.parsed_params or {}, survey_data)
+    config_data = auto_fill(
+        template,
+        get_parsed_params_dict(order),
+        get_survey_data_dict(order),
+    )
     total, filled, missing = compute_fill_stats(template, config_data)
 
     stmt = select(CalculatorConfig).where(CalculatorConfig.order_id == order.id)
@@ -290,7 +302,11 @@ def init_config_sync(order, session) -> "CalculatorConfig":
         )
 
     template = load_template(calculator_type)
-    config_data = auto_fill(template, order.parsed_params or {}, order.survey_data or {})
+    config_data = auto_fill(
+        template,
+        get_parsed_params_dict(order),
+        get_survey_data_dict(order),
+    )
     total, filled, missing = compute_fill_stats(template, config_data)
 
     existing = session.execute(

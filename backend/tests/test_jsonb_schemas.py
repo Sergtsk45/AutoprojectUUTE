@@ -14,8 +14,11 @@ from pydantic import ValidationError
 
 from app.repositories.order_jsonb import (
     get_company_requisites,
+    get_company_requisites_dict,
     get_parsed_params,
+    get_parsed_params_dict,
     get_survey_data,
+    get_survey_data_dict,
     set_company_requisites,
     set_parsed_params,
     set_survey_data,
@@ -250,6 +253,41 @@ class OrderJsonbAccessorsTests(unittest.TestCase):
 
         self.assertIs(LegacyTU, TUParsedData)
         self.assertIs(LegacyCR, CompanyRequisites)
+
+    # ── *_dict хелперы (для шаблонизаторов / legacy auto_fill) ────────────────
+
+    def test_get_parsed_params_dict_returns_empty_when_invalid(self) -> None:
+        """Исторические невалидные записи → {} (не роняем jinja-шаблон)."""
+        order = _fake_order(parsed_params={"heat_loads": {"total_load": "not-a-number"}})
+        with self.assertLogs("app.repositories.order_jsonb", level="WARNING"):
+            result = get_parsed_params_dict(order)
+        self.assertEqual(result, {})
+
+    def test_get_parsed_params_dict_strips_extra_keys(self) -> None:
+        """extra='ignore' убирает мусор из исторических записей."""
+        order = _fake_order(
+            parsed_params={
+                "heat_loads": {"total_load": 0.5, "old_key": "ignore_me"},
+                "removed_section": {"x": 1},
+            }
+        )
+        result = get_parsed_params_dict(order)
+        self.assertEqual(result["heat_loads"]["total_load"], 0.5)
+        self.assertNotIn("old_key", result["heat_loads"])
+        self.assertNotIn("removed_section", result)
+
+    def test_get_survey_data_dict_on_empty_order(self) -> None:
+        self.assertEqual(get_survey_data_dict(_fake_order()), {})
+
+    def test_get_company_requisites_dict_on_error_marker(self) -> None:
+        """Запись-маркер `{'error': '...'}` → пустой dict (парсер не смог)."""
+        order = _fake_order(company_requisites={"error": "bad ocr"})
+        result = get_company_requisites_dict(order)
+        # После валидации через CompanyRequisites + model_dump — получим модель
+        # с дефолтами (все обязательные строки пустые). Это корректный пустой dict
+        # для передачи в _normalize_client_requisites — там стоят fallback-ы.
+        self.assertEqual(result["full_name"], "")
+        self.assertEqual(result["inn"], "")
 
 
 if __name__ == "__main__":  # pragma: no cover

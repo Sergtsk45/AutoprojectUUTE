@@ -132,6 +132,38 @@ def set_company_requisites(order: Order, data: CompanyRequisites | None) -> None
     order.company_requisites = data.model_dump(mode="json") if data is not None else None
 
 
+# ─── dict-представления (для шаблонизаторов / legacy-функций) ─────────────────
+#
+# Некоторые функции (`_normalize_client_requisites`, jinja-шаблоны писем,
+# `auto_fill` в `calculator_config_service`) работают с «сырым» dict.
+# Эти хелперы дают им валидированный dict: либо корректные данные, либо `{}`.
+# Через модель прокидываются только описанные поля — мусорные ключи из
+# исторических записей фильтруются (`extra='ignore'`).
+
+
+def get_parsed_params_dict(order: Order) -> dict[str, object]:
+    """Валидированный dict `parsed_params` (пустой, если данных нет / невалидны)."""
+    data = get_parsed_params(order)
+    return data.model_dump(mode="json") if data is not None else {}
+
+
+def get_survey_data_dict(order: Order) -> dict[str, object]:
+    """Валидированный dict `survey_data` (пустой, если данных нет / невалидны)."""
+    data = get_survey_data(order)
+    return data.model_dump(mode="json") if data is not None else {}
+
+
+def get_company_requisites_dict(order: Order) -> dict[str, object]:
+    """Валидированный dict `company_requisites`.
+
+    Для записей-маркеров вида `{"error": "..."}` вернёт пустой dict — такие записи
+    означают неудачный парсинг, и вызывающий код должен отдельно проверять
+    `order.company_requisites.get("error")` перед вызовом этого хелпера.
+    """
+    data = get_company_requisites(order)
+    return data.model_dump(mode="json") if data is not None else {}
+
+
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
 

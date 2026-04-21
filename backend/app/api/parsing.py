@@ -9,6 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models import OrderStatus
+from app.repositories.order_jsonb import (
+    get_parsed_params,
+    get_parsed_params_dict,
+    set_parsed_params,
+)
 from app.services import OrderService
 
 router = APIRouter(prefix="/parsing", tags=["parsing"], dependencies=[Depends(verify_admin_key)])
@@ -47,15 +52,17 @@ async def get_parsing_result(
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    params = order.parsed_params or {}
+    # Валидируем через accessor (невалидные исторические данные → {} + WARNING).
+    parsed = get_parsed_params(order)
+    params = get_parsed_params_dict(order)
 
     return ParsedDataResponse(
         order_id=order.id,
         status=order.status.value,
-        parsed_params=params,
+        parsed_params=params or None,
         missing_params=order.missing_params,
-        parse_confidence=params.get("parse_confidence"),
-        warnings=params.get("warnings"),
+        parse_confidence=parsed.parse_confidence if parsed else None,
+        warnings=list(parsed.warnings) if parsed else None,
     )
 
 
@@ -99,7 +106,7 @@ async def retrigger_parsing(
 
     # Сбрасываем в NEW, чтобы пройти переход корректно
     order.status = OrderStatus.NEW
-    order.parsed_params = {}
+    set_parsed_params(order, None)
     order.missing_params = []
     db = svc.db
     await db.commit()
