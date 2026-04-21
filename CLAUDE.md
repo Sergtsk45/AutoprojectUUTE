@@ -298,6 +298,21 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 - Dev-зависимости: `pip install -e "backend[dev]"` (из корня репо).
 - Mypy в режиме baseline: существующие ошибки в `app.*` игнорируются, новые модули (фазы B/D) заводятся в `[[tool.mypy.overrides]]` со `strict = true`.
 
+### Frontend baseline (фаза A4 аудита)
+
+- Env-шаблон: [`frontend/.env.example`](frontend/.env.example). Для локальной разработки — `cp frontend/.env.example frontend/.env.local`.
+- `VITE_API_BASE_URL` — опциональная. По умолчанию `/api/v1` (same-origin в prod, vite proxy в dev).
+- Тесты: [vitest](https://vitest.dev/). Запуск:
+
+  ```bash
+  cd frontend
+  npm test           # одноразовый прогон (CI)
+  npm run test:watch # watch-режим для локальной разработки
+  ```
+
+- Первый тестовый модуль: `frontend/src/utils/pricing.test.ts` (расчёт цены калькулятора). Пример как тестировать чистые функции.
+- Новые чистые функции выносить в `src/utils/*.ts` и покрывать тестами в `src/utils/*.test.ts`.
+
 ### Python (Backend)
 
 - Все async функции через `async def` + `await`

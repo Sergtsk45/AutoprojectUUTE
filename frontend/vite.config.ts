@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -20,5 +21,13 @@ export default defineConfig({
         manualChunks: undefined
       }
     }
+  },
+  test: {
+    // Пока тестируем только чистые утилиты — jsdom не нужен.
+    // Добавим `environment: 'jsdom'` + `@testing-library/react`, когда начнём тестировать компоненты.
+    environment: 'node',
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    globals: false,
+    reporters: ['default'],
   }
 });
