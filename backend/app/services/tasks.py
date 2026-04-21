@@ -21,6 +21,13 @@ from sqlalchemy.orm import selectinload
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
+from app.repositories.order_jsonb import (
+    get_company_requisites,
+    get_company_requisites_dict,
+    get_parsed_params,
+    set_company_requisites,
+    set_parsed_params,
+)
 from app.services.param_labels import compute_client_document_missing
 from app.models.models import (
     ALLOWED_TRANSITIONS,
@@ -166,8 +173,10 @@ def _ensure_final_invoice_attachment(
         return None, None
 
     order_id_short = str(order.id)[:8]
+    # `_normalize_client_requisites` работает на сыром dict — отдаём ей
+    # валидированный dict (мусорные ключи отфильтрованы `extra='ignore'`).
     req = _normalize_client_requisites(
-        order.company_requisites or {},
+        get_company_requisites_dict(order),
         order.client_name,
     )
     temp_invoice_path = generate_invoice(
@@ -221,7 +230,6 @@ def _collect_project_attachments(session: Session, order: Order) -> tuple[list[s
         Вызывающий код ОБЯЗАН удалить cover_letter_path после отправки.
     """
     from app.services.cover_letter import generate_cover_letter
-    from app.services.tu_schema import TUParsedData
 
     _ = session
 
@@ -238,8 +246,8 @@ def _collect_project_attachments(session: Session, order: Order) -> tuple[list[s
 
     cover_letter_path: Path | None = None
     try:
-        if order.parsed_params:
-            parsed = TUParsedData.model_validate(order.parsed_params)
+        parsed = get_parsed_params(order)
+        if parsed is not None:
             cover_letter_path = generate_cover_letter(
                 parsed,
                 order_id_short,
@@ -274,6 +282,9 @@ def _resolve_initial_payment_amount(order: Order) -> int:
     price_map = {1: 11250, 2: 35000, 3: 50000} if is_express else {1: 22500, 2: 35000, 3: 50000}
     default = 11250 if is_express else 22500
 
+    # `circuits` — исторический плоский ключ, не входит в `TUParsedData`,
+    # поэтому читаем сырой dict напрямую (через accessor он был бы отфильтрован
+    # `extra='ignore'` и терялся бы у express-заявок со старыми LLM-ответами).
     circuits: int | None = None
     raw = order.parsed_params
     if isinstance(raw, dict):
@@ -329,9 +340,12 @@ def start_tu_parsing(self, order_id: str):
             # Парсинг
             parsed = parse_tu_document(pdf_path)
 
-            # Сохраняем в БД
+            # Сохраняем в БД. Ручной `model_dump(exclude={"raw_text"})` —
+            # raw_text большой (несколько страниц PDF), в JSONB не храним;
+            # accessor `set_parsed_params` дампит без исключений, поэтому здесь
+            # сохраняем напрямую.
             order.parsed_params = parsed.model_dump(
-                exclude={"raw_text"},  # raw_text большой, не храним в JSONB
+                exclude={"raw_text"},
                 mode="json",
             )
             order.missing_params = determine_missing_params(parsed)
@@ -713,7 +727,7 @@ def process_card_and_contract(self, order_id: str):
                 raise FileNotFoundError(f"Файл карточки не найден: {card_path}")
 
             requisites = parse_company_card(str(card_path))
-            order.company_requisites = requisites.model_dump(mode="json")
+            set_company_requisites(order, requisites)
             order.payment_amount = _resolve_initial_payment_amount(order)
             order.advance_amount = order.payment_amount // 2
             if not order.contract_number:
@@ -738,18 +752,18 @@ def process_card_and_contract(self, order_id: str):
 
             if not attachment_paths:
                 req = _normalize_client_requisites(
-                    order.company_requisites or {}, order.client_name
+                    get_company_requisites_dict(order), order.client_name
                 )
                 tu_path = _existing_order_file_path(order, FileCategory.TU)
-                parsed = order.parsed_params
-                if not isinstance(parsed, dict):
-                    parsed = {}
-                doc_info = parsed.get("document") or {}
-                rso_info = parsed.get("rso") or {}
-                if not isinstance(doc_info, dict):
-                    doc_info = {}
-                if not isinstance(rso_info, dict):
-                    rso_info = {}
+                parsed_model = get_parsed_params(order)
+                doc_info = (
+                    parsed_model.document.model_dump(mode="json")
+                    if parsed_model is not None
+                    else {}
+                )
+                rso_info = (
+                    parsed_model.rso.model_dump(mode="json") if parsed_model is not None else {}
+                )
                 contract_path = generate_contract(
                     order_id_short,
                     order.contract_number or order_id_short,
@@ -1224,7 +1238,9 @@ def parse_company_card_task(self, order_id: str):
             requisites = parse_company_card(str(file_path))
         except Exception as e:
             logger.exception("parse_company_card_task: ошибка парсинга: order=%s, error=%s", oid, e)
-            # Сохраняем ошибку для отображения на странице
+            # Сохраняем маркер ошибки для отображения на странице. Это не
+            # `CompanyRequisites` — отдельный формат `{"error": "..."}`;
+            # фронт проверяет `company_requisites.error` перед рендерингом.
             order.company_requisites = {
                 "error": str(e),
                 "parse_confidence": 0.0,
@@ -1232,7 +1248,7 @@ def parse_company_card_task(self, order_id: str):
             session.commit()
             raise self.retry(exc=e)
 
-        order.company_requisites = requisites.model_dump(mode="json")
+        set_company_requisites(order, requisites)
         session.commit()
 
         logger.info(
@@ -1309,6 +1325,9 @@ def process_company_card_and_send_contract(self, order_id: str):
                 logger.info("process_company_card_and_send_contract: не bank_transfer — пропуск")
                 return
 
+            # Маркер ошибки парсинга (`{"error": "..."}`) — не реквизиты, а флаг
+            # неудачного OCR; читаем сырой dict напрямую, чтобы отличить этот случай
+            # от валидных данных.
             raw_req = order.company_requisites
             if not raw_req or not isinstance(raw_req, dict) or raw_req.get("error"):
                 logger.error(
@@ -1325,7 +1344,9 @@ def process_company_card_and_send_contract(self, order_id: str):
                 return
 
             contract_number = order.contract_number or generate_contract_number(str(order.id))
-            req = _normalize_client_requisites(raw_req, order.client_name)
+            req = _normalize_client_requisites(
+                get_company_requisites_dict(order), order.client_name
+            )
 
             contract_existing = sorted(
                 [f for f in order.files if f.category == FileCategory.CONTRACT],
@@ -1361,15 +1382,11 @@ def process_company_card_and_send_contract(self, order_id: str):
                     return
 
             tu_path = _existing_order_file_path(order, FileCategory.TU)
-            parsed = order.parsed_params
-            if not isinstance(parsed, dict):
-                parsed = {}
-            doc_info = parsed.get("document") or {}
-            rso_info = parsed.get("rso") or {}
-            if not isinstance(doc_info, dict):
-                doc_info = {}
-            if not isinstance(rso_info, dict):
-                rso_info = {}
+            parsed_model = get_parsed_params(order)
+            doc_info = (
+                parsed_model.document.model_dump(mode="json") if parsed_model is not None else {}
+            )
+            rso_info = parsed_model.rso.model_dump(mode="json") if parsed_model is not None else {}
             contract_path = generate_contract(
                 order_id_short,
                 contract_number,

@@ -17,6 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
 from app.models.models import CalculatorConfig, Order, OrderType
+from app.repositories.order_jsonb import (
+    get_parsed_params_dict,
+    get_survey_data,
+    get_survey_data_dict,
+)
 from app.services import calculator_config_service as svc
 
 router = APIRouter(
@@ -99,10 +104,10 @@ async def get_calc_config(
                 "esko_detected": True,
             }
         else:
-            # Custom: определяем тип через survey_data.manufacturer
-            survey_data = order.survey_data or {}
-            manufacturer = survey_data.get("manufacturer", "")
-            calculator_type = svc.MANUFACTURER_TO_CALCULATOR.get(manufacturer)
+            # Custom: определяем тип через survey_data.manufacturer (типизированно).
+            survey = get_survey_data(order)
+            manufacturer = survey.manufacturer if survey is not None else None
+            calculator_type = svc.MANUFACTURER_TO_CALCULATOR.get(manufacturer or "")
 
             if not calculator_type:
                 return {
@@ -162,7 +167,13 @@ async def init_calc_config(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-        config_data = svc.auto_fill(template, order.parsed_params or {}, order.survey_data or {})
+        # auto_fill работает на сыром dict (`get_nested` пробегается по произвольному JSON).
+        # Прокидываем валидированные dict-представления (мусорные ключи отфильтрованы).
+        config_data = svc.auto_fill(
+            template,
+            get_parsed_params_dict(order),
+            get_survey_data_dict(order),
+        )
         total, filled, missing = svc.compute_fill_stats(template, config_data)
 
         existing = await _get_config(order_id, db)

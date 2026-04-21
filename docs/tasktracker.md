@@ -14,19 +14,26 @@
 - **Зависимости**: A-фаза смержена. Разблокирует B1.b (миграция мест чтения) и B1.c (строгая типизация `OrderResponse`).
 - **Риски**: низкие. Runtime не затронут. Shim'ы обеспечивают совместимость.
 
-## Задача: Фаза B1.b — Миграция мест чтения JSONB через accessor-методы (плановая)
-- **Статус**: Не начата
-- **Описание**: Переписать все bare-обращения к `order.parsed_params["..."]` / `.survey_data["..."]` / `.company_requisites["..."]` в бизнес-коде через accessor-методы из `app.repositories.order_jsonb`. После PR — IDE/mypy полностью типизируют работу с JSONB.
+## Задача: Фаза B1.b — Миграция мест чтения JSONB через accessor-методы (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Все bare-обращения `order.parsed_params["..."]` / `.survey_data["..."]` / `.company_requisites["..."]` в бизнес-коде переведены на типизированные accessor-методы из `app.repositories.order_jsonb`. Добавлена Pydantic-валидация входящего body в `POST /landing/orders/{order_id}/survey` (422 вместо тихого принятия мусора).
 - **Шаги выполнения**:
-  - [ ] `app/api/landing.py` — `UploadPageInfo` сборка + `save_survey` (валидация входящего body через `SurveyData`)
-  - [ ] `app/api/admin.py` — все чтения `order.parsed_params`, `order.survey_data`
-  - [ ] `app/api/calculator_config.py` + `services/calculator_config_service.py` — `survey_data.get('manufacturer')` → `sd.manufacturer`
-  - [ ] `app/services/contract_generator.py` — чтение `company_requisites`
-  - [ ] `app/services/email_service.py` — чтение реквизитов и parsed_params
-  - [ ] `app/services/tasks.py` — все записи/чтения JSONB
-  - [ ] Новые модули получают `strict=true` в `[[tool.mypy.overrides]]`
-- **Зависимости**: B1.a (каркас). Делается следующим PR.
-- **Риски**: средние — много мест, легко пропустить косвенное обращение. Мitigation: после рефакторинга включаем `mypy --strict` на переписанных модулях — пропуски вылавливает тайп-чекер.
+  - [x] `app/api/landing.py` — `UploadPageInfo` / `PaymentPageInfo` через `get_*_dict`; `save_survey` валидирует через `SurveyData.model_validate`; хелпер `_company_requisites_for_response` отделяет error-маркеры
+  - [x] `app/api/parsing.py` — чтение через accessor; `retrigger_parsing` через `set_parsed_params(order, None)`
+  - [x] `app/api/calculator_config.py` — `survey.manufacturer` через типизированный accessor
+  - [x] `app/services/calculator_config_service.py` — `resolve_calculator_type_for_express`, `init_config`, `init_config_sync` через accessor
+  - [x] `app/services/tasks.py` — `set_company_requisites`, `get_parsed_params`, `get_company_requisites_dict` в `_collect_project_attachments`, `process_card_and_contract`, `process_company_card_and_send_contract`, `parse_company_card_task`
+  - [x] `app/api/admin.py` — не содержит обращений к JSONB (данные идут через `OrderResponse` автоматически; типизация там — задача B1.c)
+  - [x] `app/services/email_service.py` — не требует accessor (читает только `missing_params: list[str]`)
+  - [x] `[[tool.mypy.overrides]] module = ["app.schemas.jsonb.*", "app.repositories.*"]` → `strict = true`
+  - [x] Новые тесты на `*_dict` хелперы. Локально: ruff ✓, mypy strict ✓ (37 файлов), pytest ✓ (34/34)
+- **Осознанные исключения** (оставлен raw-доступ, прокомментировано):
+  - `_resolve_initial_payment_amount` — ключ `circuits` не описан в `TUParsedData` (legacy flat-формат); accessor его фильтровал бы `extra='ignore'`.
+  - `start_tu_parsing` — `model_dump(exclude={"raw_text"})`: raw_text слишком велик для JSONB.
+  - Маркеры `{"error": "..."}` в `company_requisites` — отдельный формат, не `CompanyRequisites`.
+- **Зависимости**: B1.a — смержена.
+- **Риски**: `save_survey` теперь строго валидирует body. Реальный фронт (`collectSurveyData()` в `backend/static/upload.html`) шлёт данные ровно по схеме — регрессий в продакшене не ожидается.
+
 
 ## Задача: Фаза B1.c — Строгая типизация `OrderResponse` (плановая)
 - **Статус**: Не начата

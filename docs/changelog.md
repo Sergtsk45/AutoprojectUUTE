@@ -1,5 +1,41 @@
 # Changelog
 
+## [2026-04-21] — Фаза B1.b: Миграция мест чтения JSONB через accessor-методы
+
+### Добавлено
+- В [`app/repositories/order_jsonb.py`](../backend/app/repositories/order_jsonb.py) — три вспомогательных хелпера `get_*_dict(order)`: валидированный `dict` для шаблонизаторов и legacy-функций (`_normalize_client_requisites`, `auto_fill`), мусорные ключи фильтруются через `extra='ignore'`.
+- 4 новых теста в [`tests/test_jsonb_schemas.py`](../backend/tests/test_jsonb_schemas.py) на `*_dict` хелперы (34/34 passed).
+
+### Изменено
+- **`backend/app/api/landing.py`:**
+  - `POST /landing/orders/{order_id}/survey` — **теперь валидирует тело через Pydantic** (`SurveyData.model_validate(body)`). Некорректные данные → `HTTP 422`. Неизвестные ключи молча отбрасываются (`extra='ignore'`).
+  - `UploadPageInfo` / `PaymentPageInfo` собираются через `get_parsed_params_dict` / `get_survey_data_dict`. Ответы с невалидными историческими данными больше не ломают страницу — возвращается пустой объект + WARNING в логе.
+  - Введён хелпер `_company_requisites_for_response(order)` — отделяет маркеры ошибок парсинга (`{"error": "..."}`) от нормальных реквизитов.
+- **`backend/app/api/parsing.py`:** чтение через accessor, сброс `parsed_params` при `retrigger_parsing` — через `set_parsed_params(order, None)`.
+- **`backend/app/api/calculator_config.py`:** `survey_data.get("manufacturer")` → `survey.manufacturer` (типизированно). `auto_fill` получает валидированные dict.
+- **`backend/app/services/calculator_config_service.py`:** `resolve_calculator_type_for_express`, `init_config`, `init_config_sync` — через accessor + `*_dict`.
+- **`backend/app/services/tasks.py`:**
+  - `_collect_project_attachments`: убран локальный `TUParsedData.model_validate`, переведён на `get_parsed_params(order)`.
+  - `process_card_and_contract`, `process_company_card_and_send_contract`:
+    - `set_company_requisites(order, requisites)` вместо ручного `.model_dump(mode="json")`.
+    - Чтение `doc_info` / `rso_info` через типизированный `parsed.document` / `parsed.rso`.
+    - `_normalize_client_requisites(get_company_requisites_dict(order), ...)` вместо raw-dict.
+  - `parse_company_card_task`: `set_company_requisites(order, requisites)`.
+  - Сознательно оставлен raw-доступ в трёх местах (прокомментировано):
+    - `_resolve_initial_payment_amount` — ключ `circuits` не описан в `TUParsedData` (устаревший flat-формат).
+    - `start_tu_parsing` — ручной `model_dump(exclude={"raw_text"})`: raw_text слишком велик для JSONB.
+    - Маркеры ошибок `{"error": "..."}` в `company_requisites` — не `CompanyRequisites`, отдельный формат.
+
+### Инструменты
+- [`backend/pyproject.toml`](../backend/pyproject.toml) → `[[tool.mypy.overrides]]`: для `app.schemas.jsonb.*` и `app.repositories.*` включён `strict = true`. Отключены три known-false-positive кода (`no-untyped-call`, `attr-defined`, `arg-type`, `assignment`) — подробные причины в комментарии.
+
+### Безопасность / поведение
+- `save_survey` теперь **возвращает 422** на невалидное тело. Реальный фронт (`backend/static/upload.html`) шлёт ровно `collectSurveyData()` — совпадает со схемой, регрессий не ожидается.
+- Места, где показывалась ошибка парсинга карточки предприятия (`{"error": "..."}`), продолжают работать — хелпер `_company_requisites_for_response` сохраняет этот особый формат.
+
+### Следующий шаг
+- **B1.c** (строгая типизация `OrderResponse` в `schemas.py`) — в связке с **E1** (typed API через `openapi-typescript`), т.к. это формальный breaking change контракта API.
+
 ## [2026-04-21] — Фаза B1.a: Pydantic-схемы для JSONB (каркас)
 
 ### Добавлено
