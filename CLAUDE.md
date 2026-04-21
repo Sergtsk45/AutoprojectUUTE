@@ -533,7 +533,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 - Полный цикл стейт-машины: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → data_complete → generating_project → review → awaiting_contract → contract_sent → advance_paid → awaiting_final_payment → completed`, с веткой `rso_remarks_received` для возврата проекта инженеру.
 - Парсинг ТУ через LLM (OpenRouter / `google/gemini-2.5-flash`), типизированные `parsed_params` (`backend/app/schemas/jsonb/tu.py`; `services/tu_schema.py` — backward-compat shim).
 - Сегментация заказов: `OrderType.express` / `OrderType.custom`, опросный лист (`upload.html`) с автозаполнением из ТУ для custom.
-- Категории файлов (`FileCategory`, UPPER_CASE): `TU`, `BALANCE_ACT`, `CONNECTION_PLAN`, `HEAT_POINT_PLAN`, `HEAT_SCHEME`, `COMPANY_CARD`, `SIGNED_CONTRACT`, `GENERATED_PROJECT`, `FINAL_INVOICE`, `RSO_SCAN`, `RSO_REMARKS`.
+- Категории файлов (`FileCategory.<member>.value`, snake_case lowercase после B2):
+  `tu`, `balance_act`, `connection_plan`, `heat_point_plan`, `heat_scheme`,
+  `company_card`, `signed_contract`, `generated_project`, `final_invoice`,
+  `rso_scan`, `rso_remarks`.
+  - В PG enum `file_category` метки — **имена членов Python** (`TU`, `BALANCE_ACT`, …), а не `.value`. SQLAlchemy без `values_callable` persist имена.
+  - `FileCategory._missing_` (B2.a compat-shim) принимает устаревшие UPPER_CASE значения с `WARNING` в лог. В B2.b будет удалён → 422 на uppercase.
 - Публичные эндпоинты лендинга (`/api/v1/landing/...`): создание заявки, upload ТУ/документов, опросный лист, страница оплаты `/payment/{id}`, загрузка скана РСО и замечаний.
 - Договор: `contract_generator.py` собирает DOCX по шаблону `docs/kontrakt_ukute_template.md` с встраиванием PDF ТУ в Приложение 2 (PyMuPDF, лестница DPI, fallback ~25 МБ).
 - Email-уведомления (Jinja2 + SMTP Яндекс): запрос данных, напоминания, отправка готового проекта, уведомления инженеру (новая заявка, ТУ распарсены, документы клиента получены, скан РСО), уведомление о замечаниях РСО, повторная отправка исправленного проекта.
