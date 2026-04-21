@@ -313,6 +313,25 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 - Первый тестовый модуль: `frontend/src/utils/pricing.test.ts` (расчёт цены калькулятора). Пример как тестировать чистые функции.
 - Новые чистые функции выносить в `src/utils/*.ts` и покрывать тестами в `src/utils/*.test.ts`.
 
+### JSONB-поля `Order` (фаза B1 аудита)
+
+- Каноническое место Pydantic-моделей — [`backend/app/schemas/jsonb/`](backend/app/schemas/jsonb/):
+  - `TUParsedData` (tu.py) — результат LLM-парсинга ТУ.
+  - `SurveyData` (survey.py) — опросный лист клиента.
+  - `CompanyRequisites` (company.py) — реквизиты заказчика.
+- В бизнес-коде использовать **accessor-методы** из [`app.repositories.order_jsonb`](backend/app/repositories/order_jsonb.py), а НЕ голые `order.parsed_params["..."]`:
+
+  ```python
+  from app.repositories.order_jsonb import get_parsed_params, set_parsed_params
+
+  parsed = get_parsed_params(order)  # TUParsedData | None
+  if parsed is not None:
+      total_load = parsed.heat_loads.total_load  # типизированный float | None
+  ```
+
+- Accessor-методы валидируют данные при чтении (`extra='ignore'`): исторические записи с устаревшими ключами не падают, но в лог пишется WARNING.
+- Обратная совместимость: `from app.services.tu_schema import TUParsedData` и `from app.services.company_parser import CompanyRequisites` продолжают работать — это shim'ы.
+
 ### Python (Backend)
 
 - Все async функции через `async def` + `await`
@@ -512,7 +531,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 **Реализовано (апрель 2026):**
 - Полный цикл стейт-машины: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → data_complete → generating_project → review → awaiting_contract → contract_sent → advance_paid → awaiting_final_payment → completed`, с веткой `rso_remarks_received` для возврата проекта инженеру.
-- Парсинг ТУ через LLM (OpenRouter / `google/gemini-2.5-flash`), типизированные `parsed_params` (`backend/app/services/tu_schema.py`).
+- Парсинг ТУ через LLM (OpenRouter / `google/gemini-2.5-flash`), типизированные `parsed_params` (`backend/app/schemas/jsonb/tu.py`; `services/tu_schema.py` — backward-compat shim).
 - Сегментация заказов: `OrderType.express` / `OrderType.custom`, опросный лист (`upload.html`) с автозаполнением из ТУ для custom.
 - Категории файлов (`FileCategory`, UPPER_CASE): `TU`, `BALANCE_ACT`, `CONNECTION_PLAN`, `HEAT_POINT_PLAN`, `HEAT_SCHEME`, `COMPANY_CARD`, `SIGNED_CONTRACT`, `GENERATED_PROJECT`, `FINAL_INVOICE`, `RSO_SCAN`, `RSO_REMARKS`.
 - Публичные эндпоинты лендинга (`/api/v1/landing/...`): создание заявки, upload ТУ/документов, опросный лист, страница оплаты `/payment/{id}`, загрузка скана РСО и замечаний.

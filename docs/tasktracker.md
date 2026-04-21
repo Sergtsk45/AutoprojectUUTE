@@ -1,5 +1,44 @@
 # Task tracker
 
+## Задача: Фаза B1.a — Pydantic-схемы для JSONB (каркас) (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Первый шаг фазы B1 roadmap раздела 3 аудита. Создан каркас типизации JSONB-полей `Order` (`parsed_params`, `survey_data`, `company_requisites`) без изменения поведения runtime. Валидация через `TypeAdapter` при чтении, `extra='ignore'` — терпимость к историческим записям.
+- **Шаги выполнения**:
+  - [x] `backend/app/schemas/jsonb/tu.py` — перенос `TUParsedData` из `services/tu_schema.py`
+  - [x] `backend/app/schemas/jsonb/survey.py` — новая модель `SurveyData` (поля 1:1 с `collectSurveyData()` в upload.html)
+  - [x] `backend/app/schemas/jsonb/company.py` — перенос `CompanyRequisites` из `services/company_parser.py`
+  - [x] `backend/app/repositories/order_jsonb.py` — accessor-методы (`get_parsed_params` / `set_parsed_params` и т.д.) с WARNING-логом на невалидных данных
+  - [x] Backward-compat shim'ы в `services/tu_schema.py` и `services/company_parser.py`
+  - [x] `tests/test_jsonb_schemas.py` — 23 unit-теста (30/30 passed вместе со старыми)
+  - [x] Локально: ruff check ✓, ruff format ✓, mypy ✓, pytest ✓
+- **Зависимости**: A-фаза смержена. Разблокирует B1.b (миграция мест чтения) и B1.c (строгая типизация `OrderResponse`).
+- **Риски**: низкие. Runtime не затронут. Shim'ы обеспечивают совместимость.
+
+## Задача: Фаза B1.b — Миграция мест чтения JSONB через accessor-методы (плановая)
+- **Статус**: Не начата
+- **Описание**: Переписать все bare-обращения к `order.parsed_params["..."]` / `.survey_data["..."]` / `.company_requisites["..."]` в бизнес-коде через accessor-методы из `app.repositories.order_jsonb`. После PR — IDE/mypy полностью типизируют работу с JSONB.
+- **Шаги выполнения**:
+  - [ ] `app/api/landing.py` — `UploadPageInfo` сборка + `save_survey` (валидация входящего body через `SurveyData`)
+  - [ ] `app/api/admin.py` — все чтения `order.parsed_params`, `order.survey_data`
+  - [ ] `app/api/calculator_config.py` + `services/calculator_config_service.py` — `survey_data.get('manufacturer')` → `sd.manufacturer`
+  - [ ] `app/services/contract_generator.py` — чтение `company_requisites`
+  - [ ] `app/services/email_service.py` — чтение реквизитов и parsed_params
+  - [ ] `app/services/tasks.py` — все записи/чтения JSONB
+  - [ ] Новые модули получают `strict=true` в `[[tool.mypy.overrides]]`
+- **Зависимости**: B1.a (каркас). Делается следующим PR.
+- **Риски**: средние — много мест, легко пропустить косвенное обращение. Мitigation: после рефакторинга включаем `mypy --strict` на переписанных модулях — пропуски вылавливает тайп-чекер.
+
+## Задача: Фаза B1.c — Строгая типизация `OrderResponse` (плановая)
+- **Статус**: Не начата
+- **Описание**: Привести Pydantic-схему `OrderResponse` (и родственные DTO) к строгой типизации JSONB-полей вместо `dict | None`. Breaking change для фронта — делать в связке с **E1** (typed API через openapi-typescript), чтобы TS-клиент автоматически подхватил новые типы.
+- **Шаги выполнения**:
+  - [ ] Заменить `parsed_params: dict | None` на `parsed_params: TUParsedData | None` в `OrderResponse` и наследниках
+  - [ ] Аналогично `survey_data`, `company_requisites`, `missing_params: list[FileCategory]`
+  - [ ] Обновить OpenAPI-схему
+  - [ ] Проверить admin.html / upload.html / payment.html — ключи те же, но фронт переходит на типизированный клиент (E1)
+- **Зависимости**: B1.a (каркас) + E1 (typed API). Делать вместе с E1.
+- **Риски**: средние. Для внешних клиентов — строгая валидация ответа; для нашего фронта — типовой апгрейд.
+
 ## Задача: Фаза A4 — Frontend baseline (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Последний шаг фазы A roadmap раздела 3 аудита. Добавлен `frontend/.env.example` с документированной `VITE_API_BASE_URL`, подключён `vitest` + первый тестовый модуль (`src/utils/pricing.test.ts`, 5 тестов на чистые функции расчёта цены). Логика цен вынесена из `CalculatorSection.tsx` в `src/utils/pricing.ts` — единый источник правды по тарифам.

@@ -20,48 +20,22 @@ import logging
 import re
 from pathlib import Path
 
-from pydantic import BaseModel, Field
-
 from app.core.config import settings
+
+# Каноническое место модели — `app.schemas.jsonb.company` (фаза B1).
+# Реэкспортируем здесь для backward-compat с существующими импортами.
+from app.schemas.jsonb.company import CompanyRequisites
 from app.services.tu_parser import (
     extract_text_from_pdf,
     render_pdf_pages_to_base64,
 )
 
+__all__ = ["CompanyRequisites", "parse_company_card"]
+
 logger = logging.getLogger(__name__)
 
 # Порог для определения PDF-скана — как в tu_parser
 _MIN_TEXT_LENGTH = 200
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 1. Pydantic-модель реквизитов
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-class CompanyRequisites(BaseModel):
-    """Реквизиты организации, извлечённые из карточки предприятия."""
-
-    full_name: str = Field("", description="Полное наименование с ОПФ (ООО «Теплосеть»)")
-    short_name: str | None = Field(None, description="Краткое наименование")
-    inn: str = Field("", description="ИНН (10 цифр юрлицо, 12 цифр ИП)")
-    kpp: str | None = Field(None, description="КПП (9 цифр, только юрлица)")
-    ogrn: str | None = Field(None, description="ОГРН (13 цифр) или ОГРНИП (15 цифр)")
-    legal_address: str = Field("", description="Юридический адрес")
-    actual_address: str | None = Field(None, description="Фактический адрес (если отличается)")
-    bank_name: str = Field("", description="Наименование банка")
-    bik: str = Field("", description="БИК (9 цифр)")
-    corr_account: str = Field("", description="Корреспондентский счёт (20 цифр)")
-    settlement_account: str = Field("", description="Расчётный счёт (20 цифр)")
-    director_name: str = Field("", description="ФИО руководителя полностью")
-    director_position: str = Field(
-        "Генеральный директор",
-        description="Должность (Генеральный директор / Директор / ИП)",
-    )
-    phone: str | None = Field(None, description="Телефон")
-    email: str | None = Field(None, description="Email")
-    parse_confidence: float = Field(0.0, ge=0, le=1, description="Уверенность парсера")
-    warnings: list[str] = Field(default_factory=list, description="Предупреждения парсера")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
