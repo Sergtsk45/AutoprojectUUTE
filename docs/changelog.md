@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-04-21] — Фаза A1: пути к фронту и uploads вынесены в Settings
+
+### Изменено
+- В [`backend/app/core/config.py`](../backend/app/core/config.py) добавлены поля `frontend_dist_dir` и `upload_dir` (перезаписан) с factory-дефолтами. Логика дефолтов:
+  - `FRONTEND_DIST_DIR` — prod: `/app/frontend-dist` (если существует); dev: `<repo>/frontend/dist`.
+  - `UPLOAD_DIR` — prod: `/var/uute-service/uploads` (если существует); dev: `<repo>/uploads`.
+  - Оба значения переопределяются переменными окружения.
+- В [`backend/app/main.py`](../backend/app/main.py) убран захардкоженный `FRONTEND_DIR = Path("/app/frontend-dist")`; теперь используется `settings.frontend_dist_dir`.
+- В [`backend/.env.example`](../backend/.env.example) задокументирован `FRONTEND_DIST_DIR` (оставлен закомментированным — auto-fallback в коде), обновлено описание `UPLOAD_DIR`.
+- В [`CLAUDE.md`](../CLAUDE.md) в таблице ENV-переменных уточнены значения `UPLOAD_DIR` и добавлен `FRONTEND_DIST_DIR`.
+
+### Безопасность / деплой
+- **Prod не требует изменений.** Если обе переменные не заданы в `backend/.env` на сервере, код автоматически выбирает prod-пути (`/app/frontend-dist`, `/var/uute-service/uploads`) за счёт проверки существования каталогов. Поведение идентично прежнему.
+- **Dev-среда** (`uvicorn backend.app.main:app --reload` на хосте): SPA-маршруты больше не зависят от существования `/app/frontend-dist` — после `cd frontend && npm run build` backend отдаёт SPA из `frontend/dist`.
+- Pydantic-валидация обязательных полей (`ADMIN_API_KEY`, `OPENROUTER_API_KEY`, `SMTP_PASSWORD`) сохранена.
+
 ## [2026-04-21] — Раздел 3 аудита: решения по открытым вопросам
 
 ### Изменено

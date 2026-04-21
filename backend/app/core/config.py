@@ -4,6 +4,36 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
+# Корень репозитория: backend/app/core/config.py → parents[3] = репо.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _default_frontend_dist_dir() -> Path:
+    """Путь к собранному Vite-фронту.
+
+    Prod-контейнер: volume монтируется в ``/app/frontend-dist`` (см. prod-compose).
+    Dev (uvicorn на хосте): используется ``<repo>/frontend/dist``.
+    Переопределяется переменной окружения ``FRONTEND_DIST_DIR``.
+    """
+    docker_path = Path("/app/frontend-dist")
+    if docker_path.is_dir():
+        return docker_path
+    return _REPO_ROOT / "frontend" / "dist"
+
+
+def _default_upload_dir() -> Path:
+    """Каталог загруженных файлов.
+
+    Prod: bind-mount в ``/var/uute-service/uploads``.
+    Dev: ``<repo>/uploads`` (создаётся автоматически в ``lifespan``).
+    Переопределяется переменной окружения ``UPLOAD_DIR``.
+    """
+    prod_path = Path("/var/uute-service/uploads")
+    if prod_path.is_dir():
+        return prod_path
+    return _REPO_ROOT / "uploads"
+
+
 class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://uute:uute_password@localhost:5432/uute_db"
@@ -12,7 +42,16 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # File storage
-    upload_dir: Path = Path("/var/uute-service/uploads")
+    upload_dir: Path = Field(
+        default_factory=_default_upload_dir,
+        description="Каталог для загруженных файлов (ENV: UPLOAD_DIR)",
+    )
+
+    # Собранный Vite-фронт (React SPA)
+    frontend_dist_dir: Path = Field(
+        default_factory=_default_frontend_dist_dir,
+        description="Каталог со сборкой Vite (ENV: FRONTEND_DIST_DIR)",
+    )
 
     # SMTP
     smtp_host: str = "smtp.yourdomain.ru"

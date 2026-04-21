@@ -1,5 +1,18 @@
 # Task tracker
 
+## Задача: Фаза A1 — пути к фронту и uploads через Settings (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Выполнен первый PR фазы A roadmap раздела 3 аудита. Убран захардкоженный `FRONTEND_DIR = Path("/app/frontend-dist")` из `backend/app/main.py`, пути вынесены в `Settings.frontend_dist_dir` и `Settings.upload_dir` с factory-дефолтами (prod → абсолютные пути, dev → относительные к корню репо). Обе переменные переопределяются через ENV (`FRONTEND_DIST_DIR`, `UPLOAD_DIR`).
+- **Шаги выполнения**:
+  - [x] `backend/app/core/config.py`: добавлены `_default_frontend_dist_dir`, `_default_upload_dir`, `frontend_dist_dir`, переписан `upload_dir` на factory-дефолт
+  - [x] `backend/app/main.py`: `FRONTEND_DIR = settings.frontend_dist_dir`
+  - [x] `backend/.env.example`: задокументированы обе переменные; `FRONTEND_DIST_DIR` закомментирован (auto-fallback)
+  - [x] `CLAUDE.md`: обновлена таблица ENV-переменных
+  - [x] Smoke-тесты: dev-пути вычисляются корректно, переопределение через ENV работает
+  - [x] `python3 -m compileall` + `ReadLints` — без ошибок
+- **Зависимости**: разблокирует A2 (`pyproject.toml` + ruff + mypy + pre-commit). После merge PR — `docker compose up -d --build backend` на проде не требуется (обратно-совместимо).
+- **Риски**: prod читает `/app/frontend-dist` и `/var/uute-service/uploads` как раньше (auto-fallback); dev SPA-маршруты перестают давать 404 при наличии `frontend/dist`.
+
 ## Задача: UX — показывать detail ответа при 422 на `/pipeline/{id}/resend-corrected-project` (2026-04-21)
 - **Статус**: Не начата
 - **Описание**: При smoke-тесте после деплоя 2026-04-21 инженерный эндпоинт `POST /pipeline/{order_id}/resend-corrected-project` отвечает `422 Unprocessable Entity` в трёх бизнес-сценариях (см. `backend/app/api/pipeline.py:267-314`): нет `RSO_REMARKS`, нет `GENERATED_PROJECT`, либо последний `GENERATED_PROJECT` старше/равен последним `RSO_REMARKS`. Сам код корректен (защищает от отправки клиенту того же файла), но админка показывает только «Unprocessable Entity» без `detail`, из-за чего инженер не понимает, какое условие не выполнено.
@@ -41,7 +54,7 @@
     - FileCategory — через два релиза (non-breaking → breaking)
     - `admin.html` декомпозиция — решение отложено, пока планируем минимальный вариант
     - Sentry, `psycopg3`, GitHub Actions, отсутствие coverage gate — приняты дефолты, ждут финального подтверждения в первом PR фазы A
-  - [ ] Фаза A (Фундамент): 4 PR — A1 пути, A2 pyproject+ruff+mypy+pre-commit, A3 GitHub Actions CI, A4 frontend baseline
+  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [ ] A2 pyproject+ruff+mypy+pre-commit, [ ] A3 GitHub Actions CI, [ ] A4 frontend baseline
   - [ ] Фаза B (Типизация данных): 3 PR — B1 Pydantic-схемы для JSONB, B2 нормализация `FileCategory`, B3 миграции + индексы
   - [ ] Фаза C (Упрощение стейт-машины): 2 PR — C1 data-миграция legacy-статусов, C2 удаление legacy из enum
   - [ ] Фаза D (Декомпозиция): 5 PR — D1 `tasks.py`, D2 `email_service.py`, D3 `contract_generator.py`, D4 async/sync граница, D5 Celery hardening
