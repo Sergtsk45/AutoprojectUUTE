@@ -2,14 +2,29 @@
 
 ## Задача: Фаза A3 — GitHub Actions CI (2026-04-21)
 - **Статус**: Завершена
-- **Описание**: Добавлен `.github/workflows/ci.yml` с пятью job-ами: lint-type, tests, alembic (upgrade/downgrade/upgrade на чистом postgres:16), frontend (lint+build), pre-commit (все хуки). Workflow запускается на `push` в любую ветку и `pull_request` в `main`, с `cancel-in-progress` для экономии минут GHA.
+- **Описание**: Добавлен `.github/workflows/ci.yml` с четырьмя активными job-ами: lint-type (ruff+mypy), tests (pytest), frontend (lint+build), pre-commit. Workflow запускается на `push` в любую ветку и `pull_request` в `main`, с `cancel-in-progress` для экономии минут GHA. Job `alembic` (upgrade/downgrade на чистом postgres:16) временно отключён из-за структурного долга (см. задачу «Alembic initial migration»).
 - **Шаги выполнения**:
-  - [x] `.github/workflows/ci.yml` (5 job-ов)
-  - [x] Исправлен `EmailModal.tsx`: `catch (err: any)` → `catch (err: unknown)` + narrowing — иначе `npm run lint` в CI фейлился
+  - [x] `.github/workflows/ci.yml` (4 активных job-а)
+  - [x] Исправлен `EmailModal.tsx`: `catch (err: any)` → `catch (err: unknown)` + narrowing
   - [x] CI-бейдж добавлен в `README.md`
-  - [x] Локальная валидация: YAML корректный, `npm run lint`/`npm run build` проходят, `pre-commit run --all-files` зелёный
-- **Зависимости**: A2 смержен. После merge этого PR первый же прогон CI станет эталоном.
-- **Риски**: Возможны первые расхождения в CI окружении (Ubuntu runner) vs dev — типичные кейсы: таймауты Postgres-сервиса, версии pip. Если упадёт — в `pyproject.toml`/CI workflow внести минорные правки; runtime прода не затрагивается.
+  - [x] Пост-фикс: убран `pip install -e backend[dev]` (в `pyproject.toml` нет `[build-system]`), dev-deps ставятся напрямую с теми же версиями; `pythonpath = ["."]` + `testpaths = ["tests"]` в `[tool.pytest.ini_options]`; sys.path-shim в `backend/alembic/env.py`
+  - [x] Тесты pytest проходят локально на свежем venv (7/7 passed)
+- **Зависимости**: A2 смержен.
+- **Риски**: низкие. Runtime не затронут, правки только в CI-конфиге и env.py (sys.path-вставка безвредна в Docker).
+
+## Задача: Alembic initial migration (chore/alembic-initial-migration)
+- **Статус**: Не начата
+- **Описание**: В репозитории нет initial-миграции. Первая в цепочке (`20260402_uute_fc`) уже использует таблицу `order_files`, которая создавалась ранее (вне git). В prod БД живёт с предыдущих релизов — миграции работают инкрементально; но `alembic upgrade head` на чистом Postgres падает: `UndefinedTableError: relation "order_files" does not exist`. Из-за этого CI job `alembic upgrade/downgrade` был отключён.
+- **Шаги выполнения**:
+  - [ ] Снять схему с prod БД: `pg_dump --schema-only --no-owner --no-privileges uute_db > /tmp/prod_schema.sql`
+  - [ ] Сравнить с метадатой моделей через `alembic revision --autogenerate` на чистой БД — получить diff
+  - [ ] Написать `20260101_initial_schema.py` — создаёт все таблицы, которых не хватает «до base» (orders, order_files, users и т.д.), с `down_revision = None`
+  - [ ] Сдвинуть `down_revision` у `20260402_uute_fc` на новый initial
+  - [ ] Проверить на чистом postgres:16: `alembic upgrade head` → `downgrade base` → `upgrade head` без ошибок
+  - [ ] В проде: `alembic stamp 20260101_initial_schema` перед первым деплоем с новой цепочкой (в prod initial не применяется, только помечается)
+  - [ ] Включить обратно `alembic` job в `.github/workflows/ci.yml`
+- **Зависимости**: нет. Делается отдельным PR после стабилизации A-фазы.
+- **Риски**: высокие без аккуратности — неверный `alembic stamp` на проде = двойное применение миграций. Проверять на staging/dev клоне БД.
 
 ## Задача: Фаза A2 — pyproject + ruff + mypy + pre-commit (2026-04-21)
 - **Статус**: Завершена

@@ -113,7 +113,10 @@ ignore_errors = true
 # =============================================================================
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths = ["backend/tests"]
+# Пути относительно каталога с pyproject.toml (backend/).
+testpaths = ["tests"]
+# Добавляем backend/ в sys.path, чтобы работали `from app.*` импорты без editable install.
+pythonpath = ["."]
 asyncio_mode = "auto"
 addopts = [
     "-ra",
