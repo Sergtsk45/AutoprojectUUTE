@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-04-21] — Фаза A4: Frontend baseline (vitest + .env.example)
+
+### Добавлено
+- [`frontend/.env.example`](../frontend/.env.example) — шаблон env для фронта с `VITE_API_BASE_URL=/api/v1`. Документирует поведение в prod (same-origin), dev (vite proxy) и при выносе API на отдельный домен.
+- [`frontend/src/utils/pricing.ts`](../frontend/src/utils/pricing.ts) — чистые функции расчёта цены (`calcIndividualPrice`, `calcExpressPrice`, `formatPrice`) + константы `INDIVIDUAL_PRICES` / `EXPRESS_PRICE`. Единый источник правды по тарифам.
+- [`frontend/src/utils/pricing.test.ts`](../frontend/src/utils/pricing.test.ts) — 5 unit-тестов на pricing (vitest).
+- **`vitest`** (v2.1.x) в `frontend/package.json` → `devDependencies`. Скрипты `test` (vitest run) и `test:watch` (watch-режим).
+- Секция `test` в [`frontend/vite.config.ts`](../frontend/vite.config.ts) (node environment, `src/**/*.{test,spec}.{ts,tsx}`).
+- Шаг **`Test (vitest)`** в CI `frontend` job (между lint и build).
+
+### Изменено
+- [`frontend/src/api.ts`](../frontend/src/api.ts): `const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'` — обратно-совместимо, без `.env` работает как раньше.
+- [`frontend/src/components/CalculatorSection.tsx`](../frontend/src/components/CalculatorSection.tsx): удалён дублирующий расчёт цен (`useState` + `useEffect` с inline-объектом prices), подключён `src/utils/pricing.ts`. Поведение UI не изменилось.
+
+### Безопасность / деплой
+- **Runtime не затронут.** Prod-образ использует `/api/v1` как раньше (переменная не задана → fallback).
+- CI frontend-job стал строже: теперь падает не только на lint/build, но и на регрессии pricing.
+
 ## [2026-04-21] — Фаза A3: GitHub Actions CI
 
 ### Добавлено

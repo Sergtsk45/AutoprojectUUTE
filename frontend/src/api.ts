@@ -1,4 +1,6 @@
-const API_BASE = '/api/v1';
+// Базовый URL API. Переопределяется через `VITE_API_BASE_URL` (см. `.env.example`).
+// По умолчанию — относительный путь; в prod backend отдаёт SPA и API с одного домена.
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
 export interface OrderRequest {
   client_name: string;

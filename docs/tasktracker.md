@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Фаза A4 — Frontend baseline (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Последний шаг фазы A roadmap раздела 3 аудита. Добавлен `frontend/.env.example` с документированной `VITE_API_BASE_URL`, подключён `vitest` + первый тестовый модуль (`src/utils/pricing.test.ts`, 5 тестов на чистые функции расчёта цены). Логика цен вынесена из `CalculatorSection.tsx` в `src/utils/pricing.ts` — единый источник правды по тарифам.
+- **Шаги выполнения**:
+  - [x] `frontend/.env.example` с `VITE_API_BASE_URL=/api/v1`
+  - [x] `frontend/src/api.ts` — читает `import.meta.env.VITE_API_BASE_URL` с fallback на `/api/v1`
+  - [x] Вынос pricing-логики → `src/utils/pricing.ts` (чистые функции)
+  - [x] `src/utils/pricing.test.ts` — 5 тестов (5/5 passed локально)
+  - [x] `vitest` в devDependencies + скрипты `test`/`test:watch`
+  - [x] Секция `test` в `vite.config.ts`
+  - [x] Шаг `Test (vitest)` в CI frontend job
+  - [x] `CalculatorSection.tsx` использует новый util — поведение UI идентично
+  - [x] Локально: `npm test` ✓, `npm run lint` ✓, `npm run build` ✓
+- **Зависимости**: фаза A (A1→A2→A3→A4) теперь полностью закрыта. Разблокирует фазу B.
+- **Риски**: низкие. Prod без `.env` → fallback `/api/v1` (совпадает с предыдущим hardcoded значением). UI калькулятора не изменился.
+
 ## Задача: Фаза A3 — GitHub Actions CI (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Добавлен `.github/workflows/ci.yml` с четырьмя активными job-ами: lint-type (ruff+mypy), tests (pytest), frontend (lint+build), pre-commit. Workflow запускается на `push` в любую ветку и `pull_request` в `main`, с `cancel-in-progress` для экономии минут GHA. Job `alembic` (upgrade/downgrade на чистом postgres:16) временно отключён из-за структурного долга (см. задачу «Alembic initial migration»).
