@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-04-21] — Фаза A2: pyproject + ruff + mypy + pre-commit
+
+### Добавлено
+- [`backend/pyproject.toml`](../backend/pyproject.toml) — PEP 621-конфиг: `[project]` (имя, Python ≥3.12), `[project.optional-dependencies.dev]` (ruff, mypy, pytest, pytest-asyncio, pytest-cov, httpx, pre-commit), настройки `[tool.ruff]`, `[tool.ruff.lint]`, `[tool.ruff.format]`, `[tool.mypy]`, `[tool.pytest.ini_options]`. Dev-зависимости ставятся через `pip install -e "backend[dev]"`; prod продолжает использовать `requirements.txt` без изменений.
+- [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) — хуки: `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-toml`, `check-merge-conflict`, `check-added-large-files`, `ruff-check --fix`, `ruff-format`, `mypy` (с runtime-зависимостями Pydantic/SQLAlchemy/FastAPI). Установка: `pip install --user pre-commit && pre-commit install`.
+- В [`CLAUDE.md`](../CLAUDE.md) раздел «Dev-инструменты» с инструкцией по установке и запуску.
+
+### Изменено
+- Однократный прогон `ruff format backend/` — 34 файла `backend/app/**/*.py` переформатированы (LF, двойные кавычки, trailing-commas); поведение кода не меняется.
+- Автофиксы хуков `end-of-file-fixer` и `trailing-whitespace` — добавлены финальные переводы строк в ряде docs- и frontend-файлов (косметика).
+
+### Безопасность / деплой
+- **Runtime не затронут.** Prod-образ собирается по-прежнему из `requirements.txt`; pyproject используется только dev-инструментами.
+- Ruff линтинг настроен в режиме **baseline**: кириллица в строках/комментариях не триггерит RUF001/002/003; правила с массовыми нарушениями (I001, UP017, UP035, B904 и др.) временно в `ignore` — будут сняты отдельным PR `chore/audit-ruff-cleanup`.
+- Mypy в режиме baseline: существующий код в `app.*` игнорируется через `[[tool.mypy.overrides]] ignore_errors = true`; новые модули (фазы B1/D1–D3) будут заводиться со `strict = true`.
+
 ## [2026-04-21] — Фаза A1: пути к фронту и uploads вынесены в Settings
 
 ### Изменено

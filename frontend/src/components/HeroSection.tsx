@@ -7,14 +7,14 @@ const HeroSection: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
 
   return (
-    <section 
-      id="hero" 
+    <section
+      id="hero"
       className="relative min-h-screen flex items-center pt-16 pb-16"
       style={{
         backgroundColor: '#263238'
       }}
     >
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage: `url(${heroBg})`,
@@ -28,11 +28,11 @@ const HeroSection: React.FC = () => {
             за 3 дня –<br />
             готов к согласованию
           </h1>
-          
+
           <h2 className="text-gray-200 text-xl md:text-2xl mb-8">
             Быстрее рынка в 10 раз. Онлайн-сервис по ПП 1034
           </h2>
-          
+
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
             <button
               onClick={() => setShowModal(true)}
@@ -49,7 +49,7 @@ const HeroSection: React.FC = () => {
               Заполнить опросный лист
             </a>
           </div>
-          
+
           <div className="text-gray-300 text-sm">
             Документация готовится в соответствии с Постановлением Правительства №1034
           </div>

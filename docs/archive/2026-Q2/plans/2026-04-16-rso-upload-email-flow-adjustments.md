@@ -1,8 +1,8 @@
 # Plan: RSO Upload + Email Flow Adjustments
 
-**Created:** 2026-04-16  
-**Orchestration:** orch-2026-04-16-10-37-rso-upload-email  
-**Status:** Ready  
+**Created:** 2026-04-16
+**Orchestration:** orch-2026-04-16-10-37-rso-upload-email
+**Status:** Ready
 **Goal:** Внедрить правки UI и почтовых сценариев по запросу Sergey (деактивация кнопок, новые ссылки/тексты писем, доп. вложения), синхронизировать с действующим пайплайном заявок и проверить соответствие регламенту 1034 для сценария замечаний от РСО.
 
 ## Tasks Overview
@@ -96,7 +96,7 @@
 
 ## Execution Strategy
 
-- **Последовательный критический путь:** FLOW-001 -> FLOW-004/FLOW-005/FLOW-006 -> FLOW-007 -> FLOW-009  
+- **Последовательный критический путь:** FLOW-001 -> FLOW-004/FLOW-005/FLOW-006 -> FLOW-007 -> FLOW-009
 - **Параллелизация после FLOW-001:**
   - Ветка A: UI (`FLOW-002`, `FLOW-003`)
   - Ветка B: Email content/attachments (`FLOW-004`, `FLOW-005`, `FLOW-006`)

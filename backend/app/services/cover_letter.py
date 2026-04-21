@@ -115,9 +115,7 @@ def generate_cover_letter(
     sign_para = doc.add_paragraph()
     sign_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
     run = sign_para.add_run(
-        f"{contact_person or applicant_name}\n\n"
-        "Подпись: ______________________\n\n"
-        "М.П."
+        f"{contact_person or applicant_name}\n\nПодпись: ______________________\n\nМ.П."
     )
     run.font.size = Pt(12)
 

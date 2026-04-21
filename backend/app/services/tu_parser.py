@@ -258,36 +258,44 @@ def extract_params_with_llm(
 
     if page_images_b64:
         # Vision-режим: отправляем изображения страниц
-        user_content.append({
-            "type": "text",
-            "text": (
-                "Ниже — изображения страниц PDF-документа "
-                "с техническими условиями на проектирование УУТЭ. "
-                "Прочитай текст со всех страниц и извлеки параметры "
-                "согласно инструкции."
-            ),
-        })
+        user_content.append(
+            {
+                "type": "text",
+                "text": (
+                    "Ниже — изображения страниц PDF-документа "
+                    "с техническими условиями на проектирование УУТЭ. "
+                    "Прочитай текст со всех страниц и извлеки параметры "
+                    "согласно инструкции."
+                ),
+            }
+        )
         for img_b64 in page_images_b64:
-            user_content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/png;base64,{img_b64}",
-                },
-            })
-        user_content.append({
-            "type": "text",
-            "text": "Извлеки ВСЕ параметры из этих страниц. Верни только JSON.",
-        })
+            user_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img_b64}",
+                    },
+                }
+            )
+        user_content.append(
+            {
+                "type": "text",
+                "text": "Извлеки ВСЕ параметры из этих страниц. Верни только JSON.",
+            }
+        )
     elif text:
         # Текстовый режим
-        user_content.append({
-            "type": "text",
-            "text": (
-                f"Вот текст технических условий, извлечённый из PDF:\n\n"
-                f"```\n{text}\n```\n\n"
-                f"Извлеки параметры согласно инструкции."
-            ),
-        })
+        user_content.append(
+            {
+                "type": "text",
+                "text": (
+                    f"Вот текст технических условий, извлечённый из PDF:\n\n"
+                    f"```\n{text}\n```\n\n"
+                    f"Извлеки параметры согласно инструкции."
+                ),
+            }
+        )
     else:
         raise ValueError("Нужен text или page_images_b64")
 
@@ -345,9 +353,7 @@ def validate_parsed_data(data: TUParsedData) -> list[str]:
     # 1. Сумма нагрузок ≈ общая
     if hl.total_load and hl.heating_load and hl.hot_water_load:
         component_sum = (
-            (hl.heating_load or 0)
-            + (hl.ventilation_load or 0)
-            + (hl.hot_water_load or 0)
+            (hl.heating_load or 0) + (hl.ventilation_load or 0) + (hl.hot_water_load or 0)
         )
         diff = abs(hl.total_load - component_sum)
         if diff > 0.01:

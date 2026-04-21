@@ -15,7 +15,7 @@ const Header: React.FC = () => {
   }, []);
 
   return (
-    <header 
+    <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'
       }`}
@@ -44,8 +44,8 @@ const Header: React.FC = () => {
           <a href="#faq" className={`font-medium transition-colors ${isScrolled ? 'text-[#263238] hover:text-[#E53935]' : 'text-white hover:text-gray-200'}`}>
             FAQ
           </a>
-          <a 
-            href="#contact" 
+          <a
+            href="#contact"
             className="bg-[#E53935] text-white font-medium py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
           >
             Связаться
@@ -53,7 +53,7 @@ const Header: React.FC = () => {
         </nav>
 
         {/* Mobile Menu Button */}
-        <button 
+        <button
           className="md:hidden p-2"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
@@ -69,43 +69,43 @@ const Header: React.FC = () => {
       {isMenuOpen && (
         <div className="md:hidden bg-white py-4 px-4 shadow-lg">
           <nav className="flex flex-col space-y-4">
-            <a 
-              href="#why-us" 
+            <a
+              href="#why-us"
               className="text-[#263238] font-medium py-2 hover:text-[#E53935]"
               onClick={() => setIsMenuOpen(false)}
             >
               Преимущества
             </a>
-            <a 
-              href="#process" 
+            <a
+              href="#process"
               className="text-[#263238] font-medium py-2 hover:text-[#E53935]"
               onClick={() => setIsMenuOpen(false)}
             >
               Процесс
             </a>
-            <a 
-              href="#samples" 
+            <a
+              href="#samples"
               className="text-[#263238] font-medium py-2 hover:text-[#E53935]"
               onClick={() => setIsMenuOpen(false)}
             >
               Примеры
             </a>
-            <a 
-              href="#calculator" 
+            <a
+              href="#calculator"
               className="text-[#263238] font-medium py-2 hover:text-[#E53935]"
               onClick={() => setIsMenuOpen(false)}
             >
               Калькулятор
             </a>
-            <a 
-              href="#faq" 
+            <a
+              href="#faq"
               className="text-[#263238] font-medium py-2 hover:text-[#E53935]"
               onClick={() => setIsMenuOpen(false)}
             >
               FAQ
             </a>
-            <a 
-              href="#contact" 
+            <a
+              href="#contact"
               className="bg-[#E53935] text-white font-medium py-2 px-4 rounded-md text-center hover:bg-red-700"
               onClick={() => setIsMenuOpen(false)}
             >

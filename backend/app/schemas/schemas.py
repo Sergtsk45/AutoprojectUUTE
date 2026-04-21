@@ -188,12 +188,10 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
     """Собирает OrderResponse с флагами одноразовых писем (по успешным записям в логе)."""
     emails = order.emails or []
     info_request_sent = any(
-        e.email_type == EmailType.INFO_REQUEST and e.sent_at is not None
-        for e in emails
+        e.email_type == EmailType.INFO_REQUEST and e.sent_at is not None for e in emails
     )
     reminder_sent = any(
-        e.email_type == EmailType.REMINDER and e.sent_at is not None
-        for e in emails
+        e.email_type == EmailType.REMINDER and e.sent_at is not None for e in emails
     )
     earliest_auto: datetime | None = None
     if (
@@ -217,5 +215,3 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
             "info_request_earliest_auto_at": earliest_auto,
         }
     )
-
-

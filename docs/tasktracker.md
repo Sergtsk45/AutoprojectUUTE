@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Фаза A2 — pyproject + ruff + mypy + pre-commit (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Настроены dev-инструменты по roadmap раздела 3 аудита (фаза A2). Добавлены `backend/pyproject.toml` и `.pre-commit-config.yaml`, описаны в `CLAUDE.md`. Код отформатирован один раз через `ruff format` (34 файла), pre-commit `--all-files` зелёный.
+- **Шаги выполнения**:
+  - [x] `backend/pyproject.toml`: `[project]`, `[project.optional-dependencies.dev]`, `[tool.ruff]` (line-length 100, target py312, extend-exclude=alembic), `[tool.ruff.lint]` (E/F/W/I/UP/B/RUF + baseline-ignore), `[tool.ruff.format]`, `[tool.mypy]` (strict=false + `app.*` ignore_errors), `[tool.pytest.ini_options]`
+  - [x] `.pre-commit-config.yaml`: pre-commit-hooks v4.6.0 (+ check-yaml/toml/large-files), ruff-pre-commit v0.15.11 (ruff-check + ruff-format), mirrors-mypy v1.11.2 с runtime-deps
+  - [x] `CLAUDE.md`: раздел «Dev-инструменты»
+  - [x] `ruff format backend/` — 34 файла отформатированы, поведение не меняется
+  - [x] Автофиксы end-of-file-fixer / trailing-whitespace на docs/ и frontend/
+  - [x] `pre-commit run --all-files` — **все 9 хуков зелёные**
+- **Baseline-ignores (снимать отдельным PR `chore/audit-ruff-cleanup`)**:
+  - Ruff: I001, UP017, UP035, B904, UP042, F401, F541, RUF059, E402, RUF022, B905, F821, F841, RUF100
+  - Mypy: `app.*` целиком (ignore_errors = true) до фазы D
+- **Зависимости**: A1 смержен; A3 (GitHub Actions CI) идёт следом и использует эти же конфиги.
+- **Риски**: Runtime не затронут (prod-образ из `requirements.txt`). Разработчикам нужно один раз выполнить `pre-commit install` локально.
+
 ## Задача: Фаза A1 — пути к фронту и uploads через Settings (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Выполнен первый PR фазы A roadmap раздела 3 аудита. Убран захардкоженный `FRONTEND_DIR = Path("/app/frontend-dist")` из `backend/app/main.py`, пути вынесены в `Settings.frontend_dist_dir` и `Settings.upload_dir` с factory-дефолтами (prod → абсолютные пути, dev → относительные к корню репо). Обе переменные переопределяются через ENV (`FRONTEND_DIST_DIR`, `UPLOAD_DIR`).
@@ -12,6 +28,22 @@
   - [x] `python3 -m compileall` + `ReadLints` — без ошибок
 - **Зависимости**: разблокирует A2 (`pyproject.toml` + ruff + mypy + pre-commit). После merge PR — `docker compose up -d --build backend` на проде не требуется (обратно-совместимо).
 - **Риски**: prod читает `/app/frontend-dist` и `/var/uute-service/uploads` как раньше (auto-fallback); dev SPA-маршруты перестают давать 404 при наличии `frontend/dist`.
+
+## Задача: Снять ruff-baseline ignores (chore/audit-ruff-cleanup)
+- **Статус**: Не начата
+- **Описание**: После A2 в `backend/pyproject.toml` временно отключены 14 правил ruff (см. блок «TODO: снять в chore/audit-ruff-cleanup»). Нужно пройтись отдельным PR: включать правила по одному, править нарушения (часть — автофиксом `ruff check --fix`), тестировать, коммитить.
+- **Шаги выполнения**:
+  - [ ] I001 (unsorted-imports, 32) — автофикс
+  - [ ] UP017 (datetime.UTC, 19) — автофикс
+  - [ ] UP035 (deprecated-import, 10) — автофикс
+  - [ ] B904 (raise from в except, 13) — ручной проход
+  - [ ] UP042 (StrEnum, 5) — перепроверить совместимость Pydantic v2
+  - [ ] F401 (unused-import, 5) — автофикс
+  - [ ] F541 (f-string без placeholder, 5) — автофикс
+  - [ ] F821 (undefined-name в `calculator_config_service.py:274`) — починить forward-reference
+  - [ ] RUF059, E402, RUF022, B905, F841, RUF100 — штучно
+- **Зависимости**: A2 смержен.
+- **Приоритет**: средний (не блокирует фазы B/C/D, но чем раньше — тем строже последующая проверка).
 
 ## Задача: UX — показывать detail ответа при 422 на `/pipeline/{id}/resend-corrected-project` (2026-04-21)
 - **Статус**: Не начата
@@ -54,7 +86,7 @@
     - FileCategory — через два релиза (non-breaking → breaking)
     - `admin.html` декомпозиция — решение отложено, пока планируем минимальный вариант
     - Sentry, `psycopg3`, GitHub Actions, отсутствие coverage gate — приняты дефолты, ждут финального подтверждения в первом PR фазы A
-  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [ ] A2 pyproject+ruff+mypy+pre-commit, [ ] A3 GitHub Actions CI, [ ] A4 frontend baseline
+  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [x] A2 pyproject+ruff+mypy+pre-commit, [ ] A3 GitHub Actions CI, [ ] A4 frontend baseline
   - [ ] Фаза B (Типизация данных): 3 PR — B1 Pydantic-схемы для JSONB, B2 нормализация `FileCategory`, B3 миграции + индексы
   - [ ] Фаза C (Упрощение стейт-машины): 2 PR — C1 data-миграция legacy-статусов, C2 удаление legacy из enum
   - [ ] Фаза D (Декомпозиция): 5 PR — D1 `tasks.py`, D2 `email_service.py`, D3 `contract_generator.py`, D4 async/sync граница, D5 Celery hardening

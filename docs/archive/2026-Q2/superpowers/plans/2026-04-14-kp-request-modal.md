@@ -499,7 +499,7 @@ const ProcessSection: React.FC = () => {
 
 Найти блок рендера ссылки (строки ~84-90):
 ```tsx
-              <a 
+              <a
                 href={step.action.link}
                 {...(step.action.download ? { download: step.action.download } : {})}
                 className="inline-block text-[#E53935] font-medium hover:text-red-700 transition-colors"

@@ -133,5 +133,3 @@ async def list_files(
 ):
     """Получить файлы заявки."""
     return await svc.get_files_by_order(order_id, category=category)
-
-

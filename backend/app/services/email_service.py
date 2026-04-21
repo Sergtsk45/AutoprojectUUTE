@@ -126,7 +126,8 @@ def render_info_request(order: Order) -> tuple[str, str, list[str]]:
 
     # Полные пути к образцам
     full_paths = [
-        str(settings.templates_dir / p) for p in sample_paths
+        str(settings.templates_dir / p)
+        for p in sample_paths
         if (settings.templates_dir / p).exists()
     ]
 
@@ -197,9 +198,7 @@ def render_project_ready_payment(order: Order) -> tuple[str, str, list[str]]:
         "advance_amount_formatted": _format_rub(order.advance_amount),
         "final_amount_formatted": _format_rub(_final_amount_rub(order)),
     }
-    subject = (
-        f"Проект УУТЭ готов — оформление оплаты — {order.object_address or 'заявка'}"
-    )
+    subject = f"Проект УУТЭ готов — оформление оплаты — {order.object_address or 'заявка'}"
     return subject, template.render(ctx), []
 
 
@@ -345,7 +344,7 @@ def _build_message(
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     # Вложения
-    for path_str in (attachment_paths or []):
+    for path_str in attachment_paths or []:
         path = Path(path_str)
         if not path.exists():
             logger.warning("Вложение не найдено: %s", path)
@@ -353,9 +352,7 @@ def _build_message(
 
         with open(path, "rb") as f:
             part = MIMEApplication(f.read(), Name=path.name)
-        part.add_header(
-            "Content-Disposition", "attachment", filename=path.name
-        )
+        part.add_header("Content-Disposition", "attachment", filename=path.name)
         msg.attach(part)
 
     return msg
@@ -385,9 +382,7 @@ def send_email(
                 server.send_message(msg)
         else:
             # STARTTLS (порт 587)
-            with smtplib.SMTP(
-                settings.smtp_host, settings.smtp_port, timeout=30
-            ) as server:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
@@ -464,8 +459,12 @@ def send_info_request(session: Session, order: Order) -> bool:
     )
 
     _log_email(
-        session, order, EmailType.INFO_REQUEST,
-        subject, html_body, success,
+        session,
+        order,
+        EmailType.INFO_REQUEST,
+        subject,
+        html_body,
+        success,
         error_msg=None if success else "SMTP delivery failed",
     )
     return success
@@ -482,8 +481,12 @@ def send_reminder(session: Session, order: Order) -> bool:
     )
 
     _log_email(
-        session, order, EmailType.REMINDER,
-        subject, html_body, success,
+        session,
+        order,
+        EmailType.REMINDER,
+        subject,
+        html_body,
+        success,
         error_msg=None if success else "SMTP delivery failed",
     )
     return success
@@ -531,8 +534,12 @@ def send_project(
     )
 
     _log_email(
-        session, order, EmailType.PROJECT_DELIVERY,
-        subject, html_body, success,
+        session,
+        order,
+        EmailType.PROJECT_DELIVERY,
+        subject,
+        html_body,
+        success,
         error_msg=None if success else "SMTP delivery failed",
     )
     return success
@@ -725,9 +732,7 @@ def send_error_notification(
     action_required: str | None = None,
 ) -> bool:
     """Уведомить клиента об ошибке."""
-    subject, html_body, _ = render_error_notification(
-        order, error_description, action_required
-    )
+    subject, html_body, _ = render_error_notification(order, error_description, action_required)
 
     success = send_email(
         recipient=order.client_email,
@@ -736,8 +741,12 @@ def send_error_notification(
     )
 
     _log_email(
-        session, order, EmailType.ERROR_NOTIFICATION,
-        subject, html_body, success,
+        session,
+        order,
+        EmailType.ERROR_NOTIFICATION,
+        subject,
+        html_body,
+        success,
         error_msg=None if success else "SMTP delivery failed",
     )
     return success
@@ -968,9 +977,7 @@ def send_kp_request_notification(
                 server.login(settings.smtp_user, settings.smtp_password)
                 server.send_message(msg)
         else:
-            with smtplib.SMTP(
-                settings.smtp_host, settings.smtp_port, timeout=30
-            ) as server:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()

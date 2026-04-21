@@ -284,6 +284,20 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 
 ## Стандарты кода
 
+### Dev-инструменты (фаза A2 аудита)
+
+- Конфигурация: [`backend/pyproject.toml`](backend/pyproject.toml) — ruff (E/F/W/I/UP/B/RUF), mypy, pytest.
+- Pre-commit: [`.pre-commit-config.yaml`](.pre-commit-config.yaml). Установка:
+
+  ```bash
+  pip install --user pre-commit
+  pre-commit install     # в корне репо; теперь крючки запускаются перед каждым commit
+  ```
+
+- Ручной прогон: `pre-commit run --all-files`.
+- Dev-зависимости: `pip install -e "backend[dev]"` (из корня репо).
+- Mypy в режиме baseline: существующие ошибки в `app.*` игнорируются, новые модули (фазы B/D) заводятся в `[[tool.mypy.overrides]]` со `strict = true`.
+
 ### Python (Backend)
 
 - Все async функции через `async def` + `await`

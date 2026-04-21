@@ -148,7 +148,8 @@ async def create_order_from_landing(
             sync_order = _get_order(sync_session, order.id)
             if sync_order:
                 send_new_order_notification(
-                    sync_session, sync_order,
+                    sync_session,
+                    sync_order,
                     circuits=data.circuits,
                     price=data.price,
                     order_type=data.order_type,
@@ -217,7 +218,9 @@ async def kp_request(
         tu_bytes=tu_bytes,
     )
     if not ok:
-        raise HTTPException(status_code=500, detail="Не удалось отправить запрос. Попробуйте позже.")
+        raise HTTPException(
+            status_code=500, detail="Не удалось отправить запрос. Попробуйте позже."
+        )
 
     return SimpleResponse(
         success=True,
@@ -596,8 +599,7 @@ async def client_upload_rso_remarks(
         )
 
     has_rso_scan = any(
-        existing_file.category == FileCategory.RSO_SCAN
-        for existing_file in (order.files or [])
+        existing_file.category == FileCategory.RSO_SCAN for existing_file in (order.files or [])
     )
     if order.rso_scan_received_at is None and not has_rso_scan:
         raise HTTPException(

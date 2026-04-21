@@ -1,6 +1,6 @@
 # Дизайн: Модальное окно "Запросить КП" (Шаг 2)
 
-**Дата:** 2026-04-14  
+**Дата:** 2026-04-14
 **Статус:** Утверждён
 
 ---
@@ -52,7 +52,7 @@ interface KpRequestModalProps {
 export async function sendKpRequest(formData: FormData): Promise<SimpleResponse>
 ```
 
-Метод: `POST /api/v1/landing/kp-request`  
+Метод: `POST /api/v1/landing/kp-request`
 Content-Type: `multipart/form-data` (передаётся браузером автоматически при передаче `FormData`).
 
 ---

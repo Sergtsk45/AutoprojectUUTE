@@ -136,31 +136,39 @@ def _extract_with_llm(
     user_content: list[dict] = []
 
     if page_images_b64:
-        user_content.append({
-            "type": "text",
-            "text": (
-                "Ниже — изображения документа «Карточка предприятия». "
-                "Прочитай текст и извлеки реквизиты согласно инструкции."
-            ),
-        })
+        user_content.append(
+            {
+                "type": "text",
+                "text": (
+                    "Ниже — изображения документа «Карточка предприятия». "
+                    "Прочитай текст и извлеки реквизиты согласно инструкции."
+                ),
+            }
+        )
         for b64 in page_images_b64:
-            user_content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:{media_type};base64,{b64}"},
-            })
-        user_content.append({
-            "type": "text",
-            "text": "Извлеки реквизиты из этого документа. Верни только JSON.",
-        })
+            user_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{media_type};base64,{b64}"},
+                }
+            )
+        user_content.append(
+            {
+                "type": "text",
+                "text": "Извлеки реквизиты из этого документа. Верни только JSON.",
+            }
+        )
     elif text:
-        user_content.append({
-            "type": "text",
-            "text": (
-                f"Вот текст карточки предприятия:\n\n"
-                f"```\n{text}\n```\n\n"
-                f"Извлеки реквизиты согласно инструкции."
-            ),
-        })
+        user_content.append(
+            {
+                "type": "text",
+                "text": (
+                    f"Вот текст карточки предприятия:\n\n"
+                    f"```\n{text}\n```\n\n"
+                    f"Извлеки реквизиты согласно инструкции."
+                ),
+            }
+        )
     else:
         raise ValueError("Нужен text или page_images_b64")
 
@@ -207,14 +215,14 @@ def _extract_with_llm(
 _DIGITS_ONLY = re.compile(r"\D")
 
 _FIELD_LENGTHS: dict[str, tuple[int, ...]] = {
-    "inn": (10, 12),         # юрлицо / ИП
+    "inn": (10, 12),  # юрлицо / ИП
     "kpp": (9,),
     "bik": (9,),
     "corr_account": (20,),
     "settlement_account": (20,),
 }
 
-_OGRN_LENGTHS = (13, 15)     # ОГРН / ОГРНИП
+_OGRN_LENGTHS = (13, 15)  # ОГРН / ОГРНИП
 
 
 def _only_digits(value: str) -> str:

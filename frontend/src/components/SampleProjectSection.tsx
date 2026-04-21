@@ -7,18 +7,18 @@ import sample4 from '../assets/sample4.jpg';
 
 const SampleProjectSection: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  
+
   const projectImages = [
     sample1,
     sample2,
     sample3,
     sample4
   ];
-  
+
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev === projectImages.length - 1 ? 0 : prev + 1));
   };
-  
+
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev === 0 ? projectImages.length - 1 : prev - 1));
   };
@@ -29,7 +29,7 @@ const SampleProjectSection: React.FC = () => {
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#263238] mb-16">
           Посмотрите пример проекта
         </h2>
-        
+
         <div className="relative max-w-4xl mx-auto">
           {/* Carousel */}
           <div className="relative rounded-lg overflow-hidden shadow-lg aspect-[4/3]">
@@ -54,7 +54,7 @@ const SampleProjectSection: React.FC = () => {
               </div>
             ))}
           </div>
-          
+
           {/* Navigation buttons */}
           <button
             onClick={prevSlide}
@@ -62,14 +62,14 @@ const SampleProjectSection: React.FC = () => {
           >
             <ChevronLeft size={24} className="text-[#263238]" />
           </button>
-          
+
           <button
             onClick={nextSlide}
             className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors z-10"
           >
             <ChevronRight size={24} className="text-[#263238]" />
           </button>
-          
+
           {/* Dots */}
           <div className="flex justify-center mt-6 space-x-2">
             {projectImages.map((_, index) => (
@@ -83,13 +83,13 @@ const SampleProjectSection: React.FC = () => {
             ))}
           </div>
         </div>
-        
+
         <div className="text-center mt-10">
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Это пример реального проекта узла учета тепловой энергии. Мы предоставляем полный комплект документации в формате PDF.
           </p>
-          
-          <button 
+
+          <button
             onClick={() => {
               const element = document.getElementById('hero');
               if (element) element.scrollIntoView({ behavior: 'smooth' });
