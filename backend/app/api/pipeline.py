@@ -157,9 +157,7 @@ async def approve_project(
             detail=f"Одобрение недоступно в статусе «{order.status.value}»",
         )
 
-    project_files = await svc.get_files_by_order(
-        order_id, category=FileCategory.GENERATED_PROJECT
-    )
+    project_files = await svc.get_files_by_order(order_id, category=FileCategory.GENERATED_PROJECT)
     if not project_files:
         raise HTTPException(
             status_code=422,

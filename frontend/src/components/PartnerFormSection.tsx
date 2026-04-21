@@ -14,11 +14,11 @@ const PartnerFormSection: React.FC = () => {
               <h2 className="text-3xl font-bold mb-6">
                 Специальные условия для партнёров
               </h2>
-              
+
               <p className="mb-6 text-gray-300">
                 Если вы проектная организация или монтажная компания, мы предлагаем выгодные условия сотрудничества:
               </p>
-              
+
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start">
                   <span className="text-[#E53935] mr-2">✓</span>
@@ -37,20 +37,20 @@ const PartnerFormSection: React.FC = () => {
                   <span>Возможность брендирования документации</span>
                 </li>
               </ul>
-              
-              <button 
+
+              <button
                 onClick={() => setShowModal(true)}
                 className="bg-[#E53935] hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
               >
                 Стать партнёром
               </button>
             </div>
-            
+
             <div className="md:w-1/2 p-8 md:p-12">
               <h3 className="text-2xl font-bold text-[#263238] mb-6">
                 Свяжитесь с нами
               </h3>
-              
+
               <div className="space-y-6">
                 <div>
                   <p className="text-gray-700 font-medium">Email:</p>
@@ -85,7 +85,7 @@ const PartnerFormSection: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Partner Modal */}
       <EmailModal isOpen={showModal} onClose={() => setShowModal(false)} purpose="partnership" />
     </section>

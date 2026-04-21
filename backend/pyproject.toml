@@ -1,0 +1,129 @@
+[project]
+name = "uute-backend"
+version = "0.1.0"
+description = "УУТЭ Проектировщик — backend (FastAPI + Celery)"
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+# Dev-инструменты. Устанавливать: `pip install -e backend[dev]`
+# или через pre-commit (managed-envs). Prod-образ использует `requirements.txt`.
+dev = [
+    "ruff>=0.6,<1.0",
+    "mypy>=1.11,<2.0",
+    "pytest>=8.3,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "pytest-cov>=5.0,<6.0",
+    "httpx>=0.27,<1.0",
+    "pre-commit>=3.8,<5.0",
+]
+
+# =============================================================================
+# Ruff — линтер + форматтер. Линт существующего кода: `ruff check backend/`.
+# =============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# Пути разрешаются относительно каталога с pyproject.toml (backend/).
+src = ["app", "tests"]
+extend-exclude = [
+    "alembic/versions",   # автогенерённые миграции — отдельная история
+    "alembic/env.py",
+]
+
+[tool.ruff.lint]
+# Набор правил:
+#   E/W — pycodestyle, F — pyflakes, I — isort, UP — pyupgrade,
+#   B — bugbear, RUF — ruff-specific.
+# Правила S (flake8-bandit) добавим отдельно — после прохода по существующему коду.
+select = ["E", "F", "W", "I", "UP", "B", "RUF"]
+
+# BASELINE 2026-04-21. Цель: pre-commit проходит на текущем коде «как есть».
+# Правила из блока TODO отключены ТОЛЬКО временно и будут сняты отдельным PR
+# `chore/audit-ruff-cleanup` (см. docs/tasktracker.md).
+ignore = [
+    # --- постоянно ---
+    "E501",   # line-too-long — forматтер и так держит 100 симв., много исторических строк
+    "B008",   # FastAPI: `Depends(...)` в дефолтах аргумента — каноничный паттерн
+    "UP007",  # Union[X, Y] vs X | Y — в Pydantic-моделях v2 ещё встречается
+    "RUF001", # ambiguous-unicode-character-string — проект русскоязычный, кириллица в строках норма
+    "RUF002", # ambiguous-unicode-character-docstring
+    "RUF003", # ambiguous-unicode-character-comment
+
+    # --- TODO: снять в chore/audit-ruff-cleanup ---
+    "I001",   # unsorted-imports (32 нарушения)
+    "UP017",  # datetime.timezone.utc → datetime.UTC (19)
+    "UP035",  # deprecated-import (10)
+    "B904",   # raise ... from err в except (13)
+    "UP042",  # str, Enum → StrEnum (5)
+    "F401",   # unused-import (5)
+    "F541",   # f-string без плейсхолдера (5)
+    "RUF059", # unused-unpacked-variable (3)
+    "E402",   # import not at top (2)
+    "RUF022", # unsorted __all__ (2)
+    "B905",   # zip без strict=... (1)
+    "F821",   # undefined-name — forward-reference в calculator_config_service.py (1)
+    "F841",   # unused-variable (1)
+    "RUF100", # unused-noqa (1)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/**" = ["S101"]  # assert в тестах — ok
+
+[tool.ruff.format]
+# Совместимо с black: двойные кавычки, trailing-commas, LF.
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# =============================================================================
+# Mypy — тайп-чекинг.
+# BASELINE 2026-04-21: текущий код использует SQLAlchemy 1.x-style `Column[X]`
+# (без `Mapped[X]`) и даёт ~200 ошибок несовместимости; полный разбор — задача
+# фазы D (декомпозиция). Пока глобально игнорируем ошибки в `app.*`, а новые
+# модули заводим в overrides со строгой проверкой.
+# =============================================================================
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = false
+warn_redundant_casts = true
+show_error_codes = true
+mypy_path = "backend"
+files = ["backend/app"]
+exclude = [
+    "backend/alembic/versions",
+]
+
+# BASELINE: весь существующий `app.*` — без проверки ошибок.
+[[tool.mypy.overrides]]
+module = "app.*"
+ignore_errors = true
+
+# Новые модули добавлять сюда с `ignore_errors = false`/`strict = true` по мере
+# появления — см. фазы B1 (pydantic-схемы JSONB), D1–D3 (декомпозиция).
+# Пример:
+# [[tool.mypy.overrides]]
+# module = "app.services.tasks.*"
+# ignore_errors = false
+# strict = true
+
+# =============================================================================
+# Pytest — тесты backend.
+# =============================================================================
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+filterwarnings = [
+    "error",
+    # SQLAlchemy 2.x и Pydantic 2.x иногда ругаются в тестах — пока пропускаем,
+    # ревизнем после фазы B.
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

@@ -57,11 +57,11 @@ const ProcessSection: React.FC = () => {
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#263238] mb-16">
           Процесс работы в 3 шага
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="bg-white rounded-lg p-8 text-center shadow-sm hover:shadow-md transition-shadow relative"
             >
               {index < steps.length - 1 && (
@@ -71,19 +71,19 @@ const ProcessSection: React.FC = () => {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex justify-center mb-6">
                 {step.icon}
               </div>
-              
+
               <h3 className="text-xl font-bold text-[#263238] mb-2">
                 {step.title}
               </h3>
-              
+
               <p className="text-gray-600 mb-6">
                 {step.description}
               </p>
-              
+
               {index === 1 ? (
                 <button
                   onClick={() => setKpModalOpen(true)}
@@ -103,19 +103,19 @@ const ProcessSection: React.FC = () => {
             </div>
           ))}
         </div>
-        
+
         <div id="questionnaire" className="mt-16 bg-white p-8 rounded-lg shadow-sm">
           <h3 className="text-2xl font-bold text-[#263238] mb-6">
             Загрузите технические условия и заполните опросный лист
           </h3>
-          
+
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1">
               <p className="text-gray-600 mb-4">
                 Для точного расчета стоимости и сроков проектирования, пожалуйста, заполните опросный лист и загрузите технические условия от вашей теплоснабжающей организации.
               </p>
-              
-              <a 
+
+              <a
                 href={SURVEY_FORM_PDF_HREF}
                 download={SURVEY_FORM_PDF_DOWNLOAD_AS}
                 className="inline-block bg-[#E53935] hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
@@ -123,7 +123,7 @@ const ProcessSection: React.FC = () => {
                 Скачать опросный лист
               </a>
             </div>
-            
+
             <div className="flex-1">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <p className="text-gray-500 mb-4">

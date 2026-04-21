@@ -2,7 +2,12 @@ import unittest
 from pathlib import Path
 
 
-MIGRATION_PATH = Path(__file__).resolve().parents[1] / "alembic" / "versions" / "20260416_uute_rso_remarks_status.py"
+MIGRATION_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "alembic"
+    / "versions"
+    / "20260416_uute_rso_remarks_status.py"
+)
 
 
 class RsoStatusMigrationTests(unittest.TestCase):

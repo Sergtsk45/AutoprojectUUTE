@@ -1,6 +1,6 @@
 # Дизайн: Необязательные документы в custom-пайплайне + сворачивание опросного листа в админке
 
-**Дата:** 2026-04-10  
+**Дата:** 2026-04-10
 **Статус:** Утверждён
 
 ---
@@ -76,8 +76,8 @@ showDocsOptionalHint(!allDone);
 Добавить `<div id="docsOptionalHint">` сразу под кнопкой «Всё загружено — отправить»:
 
 ```html
-<div id="docsOptionalHint" style="display:none; margin-top:10px; padding:10px 14px; 
-  border-radius:8px; background:var(--c-warn-bg); border:1px solid #fde68a; 
+<div id="docsOptionalHint" style="display:none; margin-top:10px; padding:10px 14px;
+  border-radius:8px; background:var(--c-warn-bg); border:1px solid #fde68a;
   font-size:13px; color:#92400e; line-height:1.5;">
   Вы можете отправить заявку сейчас — инженер свяжется с вами для уточнения деталей.
   Либо дополнительно загрузите документы из списка выше для ускорения обработки.
@@ -103,10 +103,10 @@ function renderSurveyData(survey) {
   const card = document.getElementById('surveyCard');
   const content = document.getElementById('surveyContent');
   if (!survey || ...) { card.style.display = 'none'; return; }
-  
+
   // Строим HTML секций как сейчас...
   const sectionsHtml = ...;
-  
+
   content.innerHTML = `
     <details open class="parsed-params-details">
       <summary>Данные опросного листа ▶</summary>

@@ -20,6 +20,7 @@ from app.core.database import Base
 
 # ─── Статусы заявки (стейт-машина) ───────────────────────────────────────────
 
+
 class OrderStatus(str, enum.Enum):
     """Конечный автомат заявки.
 
@@ -63,54 +64,58 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     OrderStatus.TU_PARSING: [OrderStatus.TU_PARSED, OrderStatus.ERROR],
     OrderStatus.TU_PARSED: [
         OrderStatus.WAITING_CLIENT_INFO,  # если данных не хватает
-        OrderStatus.DATA_COMPLETE,        # если всё есть из ТУ
-        OrderStatus.COMPLETED,            # инженер одобрил вручную
+        OrderStatus.DATA_COMPLETE,  # если всё есть из ТУ
+        OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.WAITING_CLIENT_INFO: [
         OrderStatus.CLIENT_INFO_RECEIVED,
-        OrderStatus.COMPLETED,            # инженер одобрил вручную
+        OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.CLIENT_INFO_RECEIVED: [
-        OrderStatus.CONTRACT_SENT,       # новый основной путь: договор отправлен
-        OrderStatus.DATA_COMPLETE,        # всё получено
+        OrderStatus.CONTRACT_SENT,  # новый основной путь: договор отправлен
+        OrderStatus.DATA_COMPLETE,  # всё получено
         OrderStatus.WAITING_CLIENT_INFO,  # нужно ещё
-        OrderStatus.COMPLETED,            # инженер одобрил вручную
+        OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
-    OrderStatus.DATA_COMPLETE: [OrderStatus.GENERATING_PROJECT, OrderStatus.COMPLETED, OrderStatus.ERROR],
+    OrderStatus.DATA_COMPLETE: [
+        OrderStatus.GENERATING_PROJECT,
+        OrderStatus.COMPLETED,
+        OrderStatus.ERROR,
+    ],
     OrderStatus.GENERATING_PROJECT: [OrderStatus.REVIEW, OrderStatus.COMPLETED, OrderStatus.ERROR],
     OrderStatus.REVIEW: [
-        OrderStatus.AWAITING_CONTRACT,     # основной путь: запуск оплаты
-        OrderStatus.COMPLETED,             # ручной override инженером
-        OrderStatus.GENERATING_PROJECT,    # возврат на перегенерацию
+        OrderStatus.AWAITING_CONTRACT,  # основной путь: запуск оплаты
+        OrderStatus.COMPLETED,  # ручной override инженером
+        OrderStatus.GENERATING_PROJECT,  # возврат на перегенерацию
         OrderStatus.ERROR,
     ],
     OrderStatus.AWAITING_CONTRACT: [
-        OrderStatus.CONTRACT_SENT,         # реквизиты получены, договор отправлен
-        OrderStatus.COMPLETED,             # override
+        OrderStatus.CONTRACT_SENT,  # реквизиты получены, договор отправлен
+        OrderStatus.COMPLETED,  # override
         OrderStatus.ERROR,
     ],
     OrderStatus.CONTRACT_SENT: [
-        OrderStatus.ADVANCE_PAID,          # аванс получен
-        OrderStatus.AWAITING_CONTRACT,     # клиент обновил реквизиты — пересоздать договор
-        OrderStatus.COMPLETED,             # override
+        OrderStatus.ADVANCE_PAID,  # аванс получен
+        OrderStatus.AWAITING_CONTRACT,  # клиент обновил реквизиты — пересоздать договор
+        OrderStatus.COMPLETED,  # override
         OrderStatus.ERROR,
     ],
     OrderStatus.ADVANCE_PAID: [
         OrderStatus.AWAITING_FINAL_PAYMENT,  # проект отправлен, ждём остаток
-        OrderStatus.COMPLETED,               # override (инженер решил закрыть)
+        OrderStatus.COMPLETED,  # override (инженер решил закрыть)
         OrderStatus.ERROR,
     ],
     OrderStatus.AWAITING_FINAL_PAYMENT: [
-        OrderStatus.RSO_REMARKS_RECEIVED,   # клиент загрузил замечания РСО
-        OrderStatus.COMPLETED,             # остаток получен или скан загружен
+        OrderStatus.RSO_REMARKS_RECEIVED,  # клиент загрузил замечания РСО
+        OrderStatus.COMPLETED,  # остаток получен или скан загружен
         OrderStatus.ERROR,
     ],
     OrderStatus.RSO_REMARKS_RECEIVED: [
         OrderStatus.AWAITING_FINAL_PAYMENT,  # исправленный проект повторно отправлен клиенту
-        OrderStatus.COMPLETED,               # ручной override
+        OrderStatus.COMPLETED,  # ручной override
         OrderStatus.ERROR,
     ],
     OrderStatus.COMPLETED: [],
@@ -120,19 +125,22 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
 
 # ─── Метод оплаты ────────────────────────────────────────────────────────────
 
+
 class PaymentMethod(str, enum.Enum):
     BANK_TRANSFER = "bank_transfer"  # Безналичная оплата (юрлица, ИП)
-    ONLINE_CARD = "online_card"      # Онлайн картой (YooKassa)
+    ONLINE_CARD = "online_card"  # Онлайн картой (YooKassa)
 
 
 # ─── Тип заявки ──────────────────────────────────────────────────────────────
 
+
 class OrderType(str, enum.Enum):
     EXPRESS = "express"  # Экспресс-проект (по ТУ)
-    CUSTOM = "custom"    # Индивидуальный проект (опросный лист)
+    CUSTOM = "custom"  # Индивидуальный проект (опросный лист)
 
 
 # ─── Типы файлов ─────────────────────────────────────────────────────────────
+
 
 class FileCategory(str, enum.Enum):
     """Категории загружаемых файлов.
@@ -149,34 +157,37 @@ class FileCategory(str, enum.Enum):
     GENERATED_EXCEL = "generated_excel"
     GENERATED_PROJECT = "generated_project"
     OTHER = "other"
-    COMPANY_CARD = "company_card"      # Карточка предприятия (загружает клиент)
+    COMPANY_CARD = "company_card"  # Карточка предприятия (загружает клиент)
     SIGNED_CONTRACT = "signed_contract"  # Скан подписанного договора от клиента
-    CONTRACT = "contract"              # Сгенерированный договор (DOCX)
-    INVOICE = "invoice"                # Счёт на оплату (DOCX)
-    FINAL_INVOICE = "final_invoice"    # Счёт на остаток по договору (DOCX)
-    RSO_SCAN = "rso_scan"              # Скан письма с входящим номером РСО
-    RSO_REMARKS = "rso_remarks"        # Замечания РСО по согласованию проекта
+    CONTRACT = "contract"  # Сгенерированный договор (DOCX)
+    INVOICE = "invoice"  # Счёт на оплату (DOCX)
+    FINAL_INVOICE = "final_invoice"  # Счёт на остаток по договору (DOCX)
+    RSO_SCAN = "rso_scan"  # Скан письма с входящим номером РСО
+    RSO_REMARKS = "rso_remarks"  # Замечания РСО по согласованию проекта
 
 
 # ─── Типы email ──────────────────────────────────────────────────────────────
 
+
 class EmailType(str, enum.Enum):
-    INFO_REQUEST = "info_request"      # Запрос доп. информации
-    REMINDER = "reminder"              # Напоминание
+    INFO_REQUEST = "info_request"  # Запрос доп. информации
+    REMINDER = "reminder"  # Напоминание
     PROJECT_DELIVERY = "project_delivery"  # Отправка готового проекта
     ERROR_NOTIFICATION = "error_notification"  # Уведомление об ошибке
-    SAMPLE_DELIVERY = "sample_delivery"        # Отправка образца проекта
+    SAMPLE_DELIVERY = "sample_delivery"  # Отправка образца проекта
     NEW_ORDER_NOTIFICATION = "new_order_notification"  # Уведомление инженеру о новой заявке
     TU_PARSED_NOTIFICATION = "tu_parsed_notification"  # ТУ загружено и успешно распарсено
     CLIENT_DOCUMENTS_RECEIVED = "client_documents_received"  # Клиент нажал «Готово» на загрузке
     PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
-    SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
-    PROJECT_READY_PAYMENT = "project_ready_payment"          # Проект готов, ожидается оплата
-    CONTRACT_DELIVERY = "contract_delivery"                  # Договор и счёт отправлены клиенту
-    SIGNED_CONTRACT_NOTIFICATION = "signed_contract_notification"  # Уведомление инженеру о подписанном договоре
-    ADVANCE_RECEIVED = "advance_received"                    # Аванс получен, проект отправлен
-    FINAL_PAYMENT_REQUEST = "final_payment_request"          # Запрос финального платежа / скана РСО
-    FINAL_PAYMENT_RECEIVED = "final_payment_received"        # Финальный платёж получен
+    SURVEY_REMINDER = "survey_reminder"  # Напоминание заполнить опросный лист
+    PROJECT_READY_PAYMENT = "project_ready_payment"  # Проект готов, ожидается оплата
+    CONTRACT_DELIVERY = "contract_delivery"  # Договор и счёт отправлены клиенту
+    SIGNED_CONTRACT_NOTIFICATION = (
+        "signed_contract_notification"  # Уведомление инженеру о подписанном договоре
+    )
+    ADVANCE_RECEIVED = "advance_received"  # Аванс получен, проект отправлен
+    FINAL_PAYMENT_REQUEST = "final_payment_request"  # Запрос финального платежа / скана РСО
+    FINAL_PAYMENT_RECEIVED = "final_payment_received"  # Финальный платёж получен
 
 
 def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
@@ -248,8 +259,7 @@ class Order(Base):
 
     # ── Оплата ────────────────────────────────────────────
     payment_method = Column(
-        Enum(PaymentMethod, name="payment_method",
-             values_callable=_enum_db_values),
+        Enum(PaymentMethod, name="payment_method", values_callable=_enum_db_values),
         nullable=True,
     )
     payment_amount = Column(Integer, nullable=True)
@@ -354,7 +364,7 @@ class CalculatorConfig(Base):
         unique=True,
         index=True,
     )
-    calculator_type = Column(String(50), nullable=False)   # "tv7" | "spt941" | "esko_terra"
+    calculator_type = Column(String(50), nullable=False)  # "tv7" | "spt941" | "esko_terra"
     config_data = Column(JSONB, nullable=False, default=dict)
     status = Column(String(20), nullable=False, default="draft")  # draft | complete
     total_params = Column(Integer, nullable=False, default=0)

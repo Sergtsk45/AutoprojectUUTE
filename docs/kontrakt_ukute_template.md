@@ -162,7 +162,7 @@ E-mail: {executor_email}	E-mail: {client_email}
 в {executor_bank_name}	в {client_bank_name}
 БИК {executor_bik}	БИК {client_bik}
 к/с {executor_corr_account}	к/с {client_corr_account}
-	
+
 _______________ / {executor_director_name} /	_______________ / {client_director_name} /
 М.П.	М.П.
 ________________________________________
@@ -203,18 +203,17 @@ ________________________________________
 «» _____________ 20 г.
 Объект: {object_address} Договор: № {contract_number} от «» _______ 20 г. РСО (организация, выдавшая замечания): {rso_name} Исходящий номер письма РСО: № ________ от «» _______ 20 г.
 Замечание РСО	Примечание Исполнителя
- 	 
- 	 
- 	 
- 	 
- 	 
- 	 
- 	 
- 	 
+
+
+
+
+
+
+
+
 Замечания получены от представителя РСО {rso_representative_name}, должность: {rso_representative_position}.
 ИСПОЛНИТЕЛЬ	ЗАКАЗЧИК
 _______________ / {executor_director_name} /	_______________ / {client_director_name} /
 М.П.	М.П.
 ________________________________________
 Договор № {contract_number} содержит 15 разделов, 3 приложения и {total_pages} страниц. Подписан в электронной форме в двух экземплярах, имеющих равную юридическую силу.
-

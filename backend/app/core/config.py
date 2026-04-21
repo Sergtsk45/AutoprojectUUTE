@@ -67,7 +67,9 @@ class Settings(BaseSettings):
     # Admin
     admin_email: str = "admin@yourdomain.ru"
     # Ключ админки — обязателен. Любой дефолт = доступ всем подряд.
-    admin_api_key: str = Field(..., min_length=16, description="API-ключ админки (REQUIRED, ≥16 симв.)")
+    admin_api_key: str = Field(
+        ..., min_length=16, description="API-ключ админки (REQUIRED, ≥16 симв.)"
+    )
 
     # LLM (OpenRouter) — обязателен в .env, без него парсинг ТУ не работает.
     openrouter_api_key: str = Field(..., min_length=10, description="OpenRouter API key (REQUIRED)")

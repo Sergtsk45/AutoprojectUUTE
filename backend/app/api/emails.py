@@ -117,6 +117,7 @@ async def manual_send_email(
         send_project,
         send_error_notification,
     )
+
     # Используем синхронную сессию, т.к. email_service синхронный
     from app.services.tasks import SyncSession
 
@@ -127,6 +128,7 @@ async def manual_send_email(
     with SyncSession() as sync_session:
         # Перезагружаем order в синхронной сессии
         from app.services.tasks import _get_order
+
         sync_order = _get_order(sync_session, order_id)
         if sync_order is None:
             raise HTTPException(status_code=404, detail="Заявка не найдена")
@@ -149,7 +151,8 @@ async def manual_send_email(
             success = send_project(sync_session, sync_order)
         elif data.email_type == EmailType.ERROR_NOTIFICATION:
             success = send_error_notification(
-                sync_session, sync_order,
+                sync_session,
+                sync_order,
                 error_description=data.error_description or "Ошибка при обработке заявки",
                 action_required=data.action_required,
             )

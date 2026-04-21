@@ -8,7 +8,7 @@ interface FAQItem {
 
 const FAQSection: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  
+
   const faqItems: FAQItem[] = [
     {
       question: 'Какие сроки выполнения проекта УУТЭ?',
@@ -35,7 +35,7 @@ const FAQSection: React.FC = () => {
       answer: 'Да, мы предоставляем услуги авторского надзора при монтаже узла учета тепловой энергии. Это гарантирует, что узел будет смонтирован в полном соответствии с проектной документацией и требованиями нормативных документов.'
     }
   ];
-  
+
   const toggleItem = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
@@ -46,12 +46,12 @@ const FAQSection: React.FC = () => {
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#263238] mb-16">
           Часто задаваемые вопросы
         </h2>
-        
+
         <div className="max-w-3xl mx-auto">
           <div className="space-y-4">
             {faqItems.map((item, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="border border-gray-200 rounded-lg overflow-hidden"
               >
                 <button
@@ -65,8 +65,8 @@ const FAQSection: React.FC = () => {
                     <ChevronDown size={20} className="text-[#E53935]" />
                   )}
                 </button>
-                
-                <div 
+
+                <div
                   className={`px-6 pb-4 text-gray-600 ${
                     openIndex === index ? 'block' : 'hidden'
                   }`}
@@ -76,14 +76,14 @@ const FAQSection: React.FC = () => {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-12 text-center">
             <p className="text-gray-600 mb-6">
               Не нашли ответ на свой вопрос? Свяжитесь с нами, и мы с радостью поможем!
             </p>
-            
-            <a 
-              href="#contact" 
+
+            <a
+              href="#contact"
               className="bg-[#E53935] hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
             >
               Задать вопрос

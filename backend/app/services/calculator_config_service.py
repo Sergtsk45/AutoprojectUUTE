@@ -21,7 +21,9 @@ MANUFACTURER_TO_CALCULATOR = {
     "logika": "spt941",
 }
 
-ALLOWED_CALCULATOR_TYPES = frozenset(MANUFACTURER_TO_CALCULATOR.values())  # {'tv7', 'spt941', 'esko_terra'}
+ALLOWED_CALCULATOR_TYPES = frozenset(
+    MANUFACTURER_TO_CALCULATOR.values()
+)  # {'tv7', 'spt941', 'esko_terra'}
 
 # Маркеры Эско-Терра в поле metering.heat_calculator_model
 ESKO_MARKERS = frozenset({"эско", "терра", "эско-3э", "esko", "terra", "3э"})
@@ -40,6 +42,7 @@ def resolve_calculator_type_for_express(order) -> str | None:
     if any(marker in model_lower for marker in ESKO_MARKERS):
         return "esko_terra"
     return None
+
 
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "calculator_templates"
 
@@ -177,9 +180,7 @@ def auto_fill(template: dict, parsed_params: dict, survey_data: dict) -> dict:
     return result
 
 
-def compute_fill_stats(
-    template: dict, config_data: dict
-) -> tuple[int, int, list[str]]:
+def compute_fill_stats(template: dict, config_data: dict) -> tuple[int, int, list[str]]:
     """Подсчёт: (total_params, filled_params, missing_required_ids)."""
     total = 0
     filled = 0
@@ -435,9 +436,7 @@ def export_pdf(config, template: dict, order) -> bytes:
 
             row_h = 14
             bg = (0.97, 0.97, 0.97) if i % 2 == 0 else (1, 1, 1)
-            page.draw_rect(
-                fitz.Rect(margin_l, y, margin_r, y + row_h), fill=bg, color=None
-            )
+            page.draw_rect(fitz.Rect(margin_l, y, margin_r, y + row_h), fill=bg, color=None)
 
             label_text = param.get("label", param["id"])
             full_label = param.get("full_label", "")

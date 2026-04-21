@@ -65,9 +65,11 @@ def _get_sync_session() -> Session:
 
 class _SyncSessionContextManager:
     """Drop-in replacement for `with SyncSession() as session:`."""
+
     def __enter__(self) -> Session:
         self._session = _get_sync_session()
         return self._session
+
     def __exit__(self, *exc):
         self._session.close()
 
@@ -86,9 +88,7 @@ def _get_order(session: Session, order_id: uuid.UUID) -> Order | None:
 
 def _transition(session: Session, order: Order, new_status: OrderStatus) -> None:
     if not order.can_transition_to(new_status):
-        raise ValueError(
-            f"Недопустимый переход: {order.status.value} → {new_status.value}"
-        )
+        raise ValueError(f"Недопустимый переход: {order.status.value} → {new_status.value}")
     order.status = new_status
     session.commit()
 
@@ -121,10 +121,7 @@ def _store_generated_file(
     source_path: Path,
     category: FileCategory,
     prefix: str,
-    content_type: str = (
-        "application/vnd.openxmlformats-officedocument."
-        "wordprocessingml.document"
-    ),
+    content_type: str = ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
 ) -> Path:
     order_id_short = str(order.id)[:8]
     dest_dir = settings.upload_dir / str(order.id) / category.value
@@ -214,9 +211,8 @@ def _has_successful_final_payment_reminder(
         is not None
     )
 
-def _collect_project_attachments(
-    session: Session, order: Order
-) -> tuple[list[str], Path | None]:
+
+def _collect_project_attachments(session: Session, order: Order) -> tuple[list[str], Path | None]:
     """Собирает PDF проекта и генерирует сопроводительное письмо в РСО.
 
     Returns:
@@ -275,11 +271,7 @@ def _resolve_initial_payment_amount(order: Order) -> int:
         return order.payment_amount
 
     is_express = order.order_type == OrderType.EXPRESS
-    price_map = (
-        {1: 11250, 2: 35000, 3: 50000}
-        if is_express
-        else {1: 22500, 2: 35000, 3: 50000}
-    )
+    price_map = {1: 11250, 2: 35000, 3: 50000} if is_express else {1: 22500, 2: 35000, 3: 50000}
     default = 11250 if is_express else 22500
 
     circuits: int | None = None
@@ -294,7 +286,6 @@ def _resolve_initial_payment_amount(order: Order) -> int:
         circuits = max(1, min(circuits, 3))
         return price_map.get(circuits, default)
     return default
-
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -352,23 +343,28 @@ def start_tu_parsing(self, order_id: str):
             _transition(session, order, OrderStatus.TU_PARSED)
             logger.info(
                 "Парсинг завершён: order=%s, confidence=%.2f, missing=%s",
-                oid, parsed.parse_confidence, order.missing_params,
+                oid,
+                parsed.parse_confidence,
+                order.missing_params,
             )
 
             # Автоинициализация настроечной БД для express-заявок с Эско-Терра
             from app.models.models import OrderType
+
             if order.order_type == OrderType.EXPRESS:
                 try:
                     from app.services.calculator_config_service import (
                         resolve_calculator_type_for_express,
                         init_config_sync,
                     )
+
                     calc_type = resolve_calculator_type_for_express(order)
                     if calc_type:
                         init_config_sync(order, session)
                         logger.info(
                             "Авто-инициализация настроечной БД (%s) для order=%s",
-                            calc_type, oid,
+                            calc_type,
+                            oid,
                         )
                     else:
                         logger.info(
@@ -379,7 +375,8 @@ def start_tu_parsing(self, order_id: str):
                 except Exception as init_err:
                     logger.warning(
                         "Авто-инициализация настроечной БД не удалась для order=%s: %s",
-                        oid, init_err,
+                        oid,
+                        init_err,
                     )
 
         except Exception as e:
@@ -530,15 +527,11 @@ def send_info_request_email(self, order_id: str):
                 order.retry_count,
             )
         else:
-            logger.error(
-                "Не удалось отправить письмо на %s", order.client_email
-            )
+            logger.error("Не удалось отправить письмо на %s", order.client_email)
             try:
                 self.retry()
             except self.MaxRetriesExceededError:
-                logger.error(
-                    "Исчерпаны попытки отправки email для order=%s", oid
-                )
+                logger.error("Исчерпаны попытки отправки email для order=%s", oid)
 
 
 @celery_app.task
@@ -744,7 +737,9 @@ def process_card_and_contract(self, order_id: str):
                     attachment_paths = [str(existing_contract), str(existing_invoice)]
 
             if not attachment_paths:
-                req = _normalize_client_requisites(order.company_requisites or {}, order.client_name)
+                req = _normalize_client_requisites(
+                    order.company_requisites or {}, order.client_name
+                )
                 tu_path = _existing_order_file_path(order, FileCategory.TU)
                 parsed = order.parsed_params
                 if not isinstance(parsed, dict):
@@ -780,10 +775,7 @@ def process_card_and_contract(self, order_id: str):
                     is_advance=True,
                 )
 
-                doc_mime = (
-                    "application/vnd.openxmlformats-officedocument."
-                    "wordprocessingml.document"
-                )
+                doc_mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 for src_path, category, prefix in (
                     (contract_path, FileCategory.CONTRACT, "contract"),
                     (invoice_path, FileCategory.INVOICE, "invoice"),
@@ -989,9 +981,7 @@ def send_completed_project(self, order_id: str):
             try:
                 self.retry()
             except self.MaxRetriesExceededError:
-                logger.error(
-                    "Исчерпаны попытки отправки проекта для order=%s", oid
-                )
+                logger.error("Исчерпаны попытки отправки проекта для order=%s", oid)
 
     for temp_path in temporary_paths:
         if temp_path and temp_path.exists():
@@ -1045,9 +1035,7 @@ def initiate_payment_flow(self, order_id: str):
                 oid,
             )
 
-    logger.info(
-        "initiate_payment_flow: завершено, order=%s → awaiting_contract", oid
-    )
+    logger.info("initiate_payment_flow: завершено, order=%s → awaiting_contract", oid)
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
@@ -1113,9 +1101,7 @@ def process_final_payment(self, order_id: str):
 
         success = send_final_payment_received(session, order)
         if not success:
-            logger.warning(
-                "process_final_payment: email не отправлен для order=%s", oid
-            )
+            logger.warning("process_final_payment: email не отправлен для order=%s", oid)
 
         _transition(session, order, OrderStatus.COMPLETED)
 
@@ -1222,31 +1208,22 @@ def parse_company_card_task(self, order_id: str):
             return
 
         # Найти файл карточки предприятия (берём последний загруженный)
-        card_files = [
-            f for f in order.files
-            if f.category.value == "company_card"
-        ]
+        card_files = [f for f in order.files if f.category.value == "company_card"]
         if not card_files:
-            logger.error(
-                "parse_company_card_task: нет файла company_card для order=%s", oid
-            )
+            logger.error("parse_company_card_task: нет файла company_card для order=%s", oid)
             return
 
         card_file = sorted(card_files, key=lambda f: f.created_at)[-1]
         file_path = settings.upload_dir / card_file.storage_path
 
         if not file_path.exists():
-            logger.error(
-                "parse_company_card_task: файл не найден на диске: %s", file_path
-            )
+            logger.error("parse_company_card_task: файл не найден на диске: %s", file_path)
             return
 
         try:
             requisites = parse_company_card(str(file_path))
         except Exception as e:
-            logger.exception(
-                "parse_company_card_task: ошибка парсинга: order=%s, error=%s", oid, e
-            )
+            logger.exception("parse_company_card_task: ошибка парсинга: order=%s, error=%s", oid, e)
             # Сохраняем ошибку для отображения на странице
             order.company_requisites = {
                 "error": str(e),
@@ -1318,9 +1295,7 @@ def process_company_card_and_send_contract(self, order_id: str):
         with SyncSession() as session:
             order = _get_order(session, oid)
             if order is None:
-                logger.error(
-                    "process_company_card_and_send_contract: заявка не найдена: %s", oid
-                )
+                logger.error("process_company_card_and_send_contract: заявка не найдена: %s", oid)
                 return
 
             if order.status != OrderStatus.AWAITING_CONTRACT:
@@ -1331,17 +1306,11 @@ def process_company_card_and_send_contract(self, order_id: str):
                 return
 
             if order.payment_method != PaymentMethod.BANK_TRANSFER:
-                logger.info(
-                    "process_company_card_and_send_contract: не bank_transfer — пропуск"
-                )
+                logger.info("process_company_card_and_send_contract: не bank_transfer — пропуск")
                 return
 
             raw_req = order.company_requisites
-            if (
-                not raw_req
-                or not isinstance(raw_req, dict)
-                or raw_req.get("error")
-            ):
+            if not raw_req or not isinstance(raw_req, dict) or raw_req.get("error"):
                 logger.error(
                     "process_company_card_and_send_contract: нет валидных реквизитов %s",
                     oid,
@@ -1355,9 +1324,7 @@ def process_company_card_and_send_contract(self, order_id: str):
                 )
                 return
 
-            contract_number = order.contract_number or generate_contract_number(
-                str(order.id)
-            )
+            contract_number = order.contract_number or generate_contract_number(str(order.id))
             req = _normalize_client_requisites(raw_req, order.client_name)
 
             contract_existing = sorted(
@@ -1428,10 +1395,7 @@ def process_company_card_and_send_contract(self, order_id: str):
                 is_advance=True,
             )
 
-            doc_mime = (
-                "application/vnd.openxmlformats-officedocument."
-                "wordprocessingml.document"
-            )
+            doc_mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             for src_path, category, prefix in (
                 (contract_path, FileCategory.CONTRACT, "contract"),
                 (invoice_path, FileCategory.INVOICE, "invoice"),
@@ -1462,9 +1426,7 @@ def process_company_card_and_send_contract(self, order_id: str):
             )
             if ok:
                 _transition(session, order, OrderStatus.CONTRACT_SENT)
-                logger.info(
-                    "process_company_card_and_send_contract: готово order=%s", oid
-                )
+                logger.info("process_company_card_and_send_contract: готово order=%s", oid)
             else:
                 try:
                     self.retry()
@@ -1474,9 +1436,7 @@ def process_company_card_and_send_contract(self, order_id: str):
                         oid,
                     )
     except Exception as e:
-        logger.exception(
-            "process_company_card_and_send_contract: ошибка order=%s: %s", oid, e
-        )
+        logger.exception("process_company_card_and_send_contract: ошибка order=%s: %s", oid, e)
         try:
             self.retry(exc=e)
         except self.MaxRetriesExceededError:
@@ -1490,10 +1450,7 @@ def process_company_card_and_send_contract(self, order_id: str):
                 try:
                     p.unlink(missing_ok=True)
                 except OSError as err:
-                    logger.warning(
-                        "Не удалось удалить временный файл %s: %s", p, err
-                    )
-
+                    logger.warning("Не удалось удалить временный файл %s: %s", p, err)
 
 
 @celery_app.task
@@ -1526,9 +1483,7 @@ def notify_engineer_rso_scan_received(order_id: str):
             html_body=html_body,
         )
         if not ok:
-            logger.error(
-                "notify_engineer_rso_scan_received: не удалось отправить письмо %s", oid
-            )
+            logger.error("notify_engineer_rso_scan_received: не удалось отправить письмо %s", oid)
 
 
 @celery_app.task
@@ -1624,6 +1579,7 @@ def notify_engineer_signed_contract(order_id: str):
             return
         send_signed_contract_notification(session, order)
 
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Периодические задачи
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1652,7 +1608,9 @@ def send_final_payment_reminders_after_rso_scan():
                 .where(Order.rso_scan_received_at.isnot(None))
                 .where(Order.rso_scan_received_at <= cutoff)
                 .where(Order.final_paid_at.is_(None))
-            ).scalars().all()
+            )
+            .scalars()
+            .all()
         )
 
         for order in orders:

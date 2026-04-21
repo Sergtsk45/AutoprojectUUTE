@@ -31,11 +31,11 @@ const WhyUsSection: React.FC = () => {
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#263238] mb-16">
           Почему выбирают нас
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {benefits.map((benefit, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="bg-white rounded-lg p-6 text-center shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex justify-center mb-4">

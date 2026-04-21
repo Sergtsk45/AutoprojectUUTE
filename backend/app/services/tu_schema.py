@@ -11,17 +11,19 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 # Допустимые значения connection.system_type (синхронно с парсером и LLM)
-SYSTEM_TYPE_ALLOWED: frozenset[str] = frozenset({
-    "закрытая",
-    "открытая",
-    "закрытая_двухтрубная",
-    "закрытая_четырёхтрубная",
-    "открытая_двухтрубная",
-    "открытая_четырёхтрубная",
-    "двухтрубная",
-    "четырёхтрубная",
-    "неизвестно",
-})
+SYSTEM_TYPE_ALLOWED: frozenset[str] = frozenset(
+    {
+        "закрытая",
+        "открытая",
+        "закрытая_двухтрубная",
+        "закрытая_четырёхтрубная",
+        "открытая_двухтрубная",
+        "открытая_четырёхтрубная",
+        "двухтрубная",
+        "четырёхтрубная",
+        "неизвестно",
+    }
+)
 
 
 class RSOInfo(BaseModel):
@@ -71,15 +73,9 @@ class HeatLoads(BaseModel):
     total_load: float | None = Field(
         None, ge=0, le=100, description="Общая договорная тепловая нагрузка, Гкал/ч"
     )
-    heating_load: float | None = Field(
-        None, ge=0, le=100, description="Отопление, Гкал/ч"
-    )
-    ventilation_load: float | None = Field(
-        None, ge=0, le=100, description="Вентиляция, Гкал/ч"
-    )
-    hot_water_load: float | None = Field(
-        None, ge=0, le=100, description="ГВС, Гкал/ч"
-    )
+    heating_load: float | None = Field(None, ge=0, le=100, description="Отопление, Гкал/ч")
+    ventilation_load: float | None = Field(None, ge=0, le=100, description="Вентиляция, Гкал/ч")
+    hot_water_load: float | None = Field(None, ge=0, le=100, description="ГВС, Гкал/ч")
 
 
 class PipelineParams(BaseModel):
@@ -106,9 +102,7 @@ class CoolantParams(BaseModel):
     temp_schedule: str | None = Field(
         None, description="Температурный график, например '150/70' или '117.2/70'"
     )
-    heating_season: str | None = Field(
-        None, description="Отопительный сезон, например '2024/2025'"
-    )
+    heating_season: str | None = Field(None, description="Отопительный сезон, например '2024/2025'")
 
     # Давления
     supply_pressure_kgcm2: float | None = Field(
@@ -125,52 +119,43 @@ class MeteringRequirements(BaseModel):
     meter_location: str | None = Field(
         None, description="Место установки узла учёта (на вводе, в ИТП и т.д.)"
     )
-    heat_calculator_model: str | None = Field(
-        None, description="Рекомендуемый тепловычислитель"
-    )
-    flowmeter_model: str | None = Field(
-        None, description="Рекомендуемые расходомеры"
-    )
-    temp_sensor_model: str | None = Field(
-        None, description="Рекомендуемые датчики температуры"
-    )
-    pressure_sensor_model: str | None = Field(
-        None, description="Рекомендуемые датчики давления"
-    )
+    heat_calculator_model: str | None = Field(None, description="Рекомендуемый тепловычислитель")
+    flowmeter_model: str | None = Field(None, description="Рекомендуемые расходомеры")
+    temp_sensor_model: str | None = Field(None, description="Рекомендуемые датчики температуры")
+    pressure_sensor_model: str | None = Field(None, description="Рекомендуемые датчики давления")
     heat_meter_class: int | None = Field(
         None, ge=1, le=4, description="Класс точности теплосчётчика (не ниже)"
     )
     data_interface: str | None = Field(
         None, description="Интерфейс передачи данных (RS-485, GSM модем и т.д.)"
     )
-    archive_capacity_hours: int | None = Field(
-        None, description="Ёмкость архива часового, суток"
-    )
+    archive_capacity_hours: int | None = Field(None, description="Ёмкость архива часового, суток")
     archive_capacity_daily: int | None = Field(
         None, description="Ёмкость архива суточного, месяцев"
     )
-    archive_capacity_monthly: int | None = Field(
-        None, description="Ёмкость архива месячного, лет"
-    )
+    archive_capacity_monthly: int | None = Field(None, description="Ёмкость архива месячного, лет")
 
 
 class ConnectionScheme(BaseModel):
     """Схема подключения."""
 
-    connection_type: Literal[
-        "зависимая", "независимая", "неизвестно"
-    ] | None = Field(None, description="Тип присоединения")
-    system_type: Literal[
-        "закрытая",
-        "открытая",
-        "закрытая_двухтрубная",
-        "закрытая_четырёхтрубная",
-        "открытая_двухтрубная",
-        "открытая_четырёхтрубная",
-        "двухтрубная",
-        "четырёхтрубная",
-        "неизвестно",
-    ] | None = Field(None, description="Тип системы теплоснабжения")
+    connection_type: Literal["зависимая", "независимая", "неизвестно"] | None = Field(
+        None, description="Тип присоединения"
+    )
+    system_type: (
+        Literal[
+            "закрытая",
+            "открытая",
+            "закрытая_двухтрубная",
+            "закрытая_четырёхтрубная",
+            "открытая_двухтрубная",
+            "открытая_четырёхтрубная",
+            "двухтрубная",
+            "четырёхтрубная",
+            "неизвестно",
+        ]
+        | None
+    ) = Field(None, description="Тип системы теплоснабжения")
     heating_system: str | None = Field(
         None, description="Система отопления: отопление, ГВС, вентиляция и т.д."
     )
@@ -185,9 +170,7 @@ class AdditionalRequirements(BaseModel):
     pre_survey_required: bool | None = Field(
         None, description="Требуется акт предпроектного обследования"
     )
-    gcs_module: bool | None = Field(
-        None, description="Требуется модуль ГСМ для передачи данных"
-    )
+    gcs_module: bool | None = Field(None, description="Требуется модуль ГСМ для передачи данных")
     notes: list[str] = Field(
         default_factory=list,
         description="Дополнительные примечания и требования из ТУ",
@@ -213,9 +196,7 @@ class TUParsedData(BaseModel):
     additional: AdditionalRequirements = Field(default_factory=AdditionalRequirements)
 
     # Метаданные парсинга
-    parse_confidence: float = Field(
-        0.0, ge=0, le=1, description="Общая уверенность парсера (0–1)"
-    )
+    parse_confidence: float = Field(0.0, ge=0, le=1, description="Общая уверенность парсера (0–1)")
     raw_text: str = Field("", description="Исходный текст из PDF (для отладки)")
     warnings: list[str] = Field(
         default_factory=list,

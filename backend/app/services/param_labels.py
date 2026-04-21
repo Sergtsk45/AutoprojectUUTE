@@ -22,9 +22,7 @@ def compute_client_document_missing(uploaded_categories: set[str]) -> list[str]:
     return [c for c in CLIENT_DOCUMENT_PARAM_CODES if c not in uploaded_categories]
 
 
-_LEGACY_DOCUMENT_PARAM_CODES = frozenset(
-    {"floor_plan", "connection_scheme", "system_type"}
-)
+_LEGACY_DOCUMENT_PARAM_CODES = frozenset({"floor_plan", "connection_scheme", "system_type"})
 
 
 def client_document_list_needs_migration(missing: list[str] | None) -> bool:

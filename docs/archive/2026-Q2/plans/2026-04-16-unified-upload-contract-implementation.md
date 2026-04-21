@@ -1,8 +1,8 @@
 # Plan: Unified Upload + Contract Flow
 
-**Created:** 2026-04-16  
-**Orchestration:** orch-2026-04-16-04-49-unified-upload-contract  
-**Status:** Ready  
+**Created:** 2026-04-16
+**Orchestration:** orch-2026-04-16-04-49-unified-upload-contract
+**Status:** Ready
 **Goal:** Перевести новые заявки на единый путь `new → ... → completed` с общим сбором документов/реквизитов, отправкой договора до проекта, раздельными `confirm-advance` и отправкой проекта, добавлением `signed_contract`.
 
 ## Critical Path Tasks
