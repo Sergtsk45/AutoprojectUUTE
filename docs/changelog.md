@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-04-21] — Фаза A3: GitHub Actions CI
+
+### Добавлено
+- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — четыре активных job:
+  - **lint-type** — `ruff check` + `ruff format --check` + `mypy` на `backend/`.
+  - **tests** — `pytest backend/tests/` (7 unit-тестов, БД не требуется).
+  - **frontend** — `node 20`, `npm ci` + `npm run lint` + `npm run build`.
+  - **pre-commit** — прогон всех хуков через `pre-commit/action@v3.0.1` (кэшируется).
+- Конкурентность: `concurrency.group=ci-${{ github.ref }}, cancel-in-progress=true` — автоматически отменяет предыдущие прогоны в той же ветке.
+- CI-бейдж в корневом [`README.md`](../README.md).
+
+### Изменено
+- [`frontend/src/components/EmailModal.tsx`](../frontend/src/components/EmailModal.tsx) — убран `any` в `catch (err)`, заменён на `unknown` + narrowing через `err instanceof Error`.
+- [`backend/pyproject.toml`](../backend/pyproject.toml) — в `[tool.pytest.ini_options]` добавлены `pythonpath = ["."]` и `testpaths = ["tests"]` (пути относительно backend/). Без этого pytest без editable install не находил пакет `app`.
+- [`backend/alembic/env.py`](../backend/alembic/env.py) — добавлен sys.path-shim: корень `backend/` вставляется в `sys.path` перед `from app.*` импортами. В Docker безвреден (WORKDIR=/app уже в path), в dev/CI делает `alembic` работоспособным без editable install.
+
+### Исправлено
+- CI `lint-type` и `tests` изначально падали на `pip install -e "backend[dev]"` из-за отсутствия секции `[build-system]` в `pyproject.toml`. Решение: dev-deps ставятся напрямую по тем же версиям (`pip install "ruff>=0.6,<1.0" ...`). Editable install вернём, когда появится фаза, где пакет `app` имеет смысл инсталлировать как distribution.
+
+### Известные ограничения
+- **Job `alembic` временно отключён (закомментирован в `ci.yml`)**. На чистой БД `alembic upgrade head` падает с `UndefinedTableError: relation "order_files" does not exist`: в репо нет initial-миграции, первая в цепочке уже ссылается на таблицу, созданную «до base». Включим обратно после задачи `chore/alembic-initial-migration` (см. `docs/tasktracker.md`). В prod это не воспроизводится — БД живёт с предыдущих релизов.
+
+### Безопасность / деплой
+- **Runtime не затронут.** Workflow запускается на `push` (все ветки) и `pull_request` в `main`.
+- В job-ах, требующих `Settings()`, заданы фейковые значения `ADMIN_API_KEY`, `SMTP_PASSWORD`, `OPENROUTER_API_KEY` — в тестах они не используются.
+
 ## [2026-04-21] — Фаза A2: pyproject + ruff + mypy + pre-commit
 
 ### Добавлено

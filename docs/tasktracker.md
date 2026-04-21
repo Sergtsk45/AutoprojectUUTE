@@ -1,5 +1,31 @@
 # Task tracker
 
+## Задача: Фаза A3 — GitHub Actions CI (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Добавлен `.github/workflows/ci.yml` с четырьмя активными job-ами: lint-type (ruff+mypy), tests (pytest), frontend (lint+build), pre-commit. Workflow запускается на `push` в любую ветку и `pull_request` в `main`, с `cancel-in-progress` для экономии минут GHA. Job `alembic` (upgrade/downgrade на чистом postgres:16) временно отключён из-за структурного долга (см. задачу «Alembic initial migration»).
+- **Шаги выполнения**:
+  - [x] `.github/workflows/ci.yml` (4 активных job-а)
+  - [x] Исправлен `EmailModal.tsx`: `catch (err: any)` → `catch (err: unknown)` + narrowing
+  - [x] CI-бейдж добавлен в `README.md`
+  - [x] Пост-фикс: убран `pip install -e backend[dev]` (в `pyproject.toml` нет `[build-system]`), dev-deps ставятся напрямую с теми же версиями; `pythonpath = ["."]` + `testpaths = ["tests"]` в `[tool.pytest.ini_options]`; sys.path-shim в `backend/alembic/env.py`
+  - [x] Тесты pytest проходят локально на свежем venv (7/7 passed)
+- **Зависимости**: A2 смержен.
+- **Риски**: низкие. Runtime не затронут, правки только в CI-конфиге и env.py (sys.path-вставка безвредна в Docker).
+
+## Задача: Alembic initial migration (chore/alembic-initial-migration)
+- **Статус**: Не начата
+- **Описание**: В репозитории нет initial-миграции. Первая в цепочке (`20260402_uute_fc`) уже использует таблицу `order_files`, которая создавалась ранее (вне git). В prod БД живёт с предыдущих релизов — миграции работают инкрементально; но `alembic upgrade head` на чистом Postgres падает: `UndefinedTableError: relation "order_files" does not exist`. Из-за этого CI job `alembic upgrade/downgrade` был отключён.
+- **Шаги выполнения**:
+  - [ ] Снять схему с prod БД: `pg_dump --schema-only --no-owner --no-privileges uute_db > /tmp/prod_schema.sql`
+  - [ ] Сравнить с метадатой моделей через `alembic revision --autogenerate` на чистой БД — получить diff
+  - [ ] Написать `20260101_initial_schema.py` — создаёт все таблицы, которых не хватает «до base» (orders, order_files, users и т.д.), с `down_revision = None`
+  - [ ] Сдвинуть `down_revision` у `20260402_uute_fc` на новый initial
+  - [ ] Проверить на чистом postgres:16: `alembic upgrade head` → `downgrade base` → `upgrade head` без ошибок
+  - [ ] В проде: `alembic stamp 20260101_initial_schema` перед первым деплоем с новой цепочкой (в prod initial не применяется, только помечается)
+  - [ ] Включить обратно `alembic` job в `.github/workflows/ci.yml`
+- **Зависимости**: нет. Делается отдельным PR после стабилизации A-фазы.
+- **Риски**: высокие без аккуратности — неверный `alembic stamp` на проде = двойное применение миграций. Проверять на staging/dev клоне БД.
+
 ## Задача: Фаза A2 — pyproject + ruff + mypy + pre-commit (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Настроены dev-инструменты по roadmap раздела 3 аудита (фаза A2). Добавлены `backend/pyproject.toml` и `.pre-commit-config.yaml`, описаны в `CLAUDE.md`. Код отформатирован один раз через `ruff format` (34 файла), pre-commit `--all-files` зелёный.
@@ -86,7 +112,7 @@
     - FileCategory — через два релиза (non-breaking → breaking)
     - `admin.html` декомпозиция — решение отложено, пока планируем минимальный вариант
     - Sentry, `psycopg3`, GitHub Actions, отсутствие coverage gate — приняты дефолты, ждут финального подтверждения в первом PR фазы A
-  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [x] A2 pyproject+ruff+mypy+pre-commit, [ ] A3 GitHub Actions CI, [ ] A4 frontend baseline
+  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [x] A2 pyproject+ruff+mypy+pre-commit, [x] A3 GitHub Actions CI, [ ] A4 frontend baseline
   - [ ] Фаза B (Типизация данных): 3 PR — B1 Pydantic-схемы для JSONB, B2 нормализация `FileCategory`, B3 миграции + индексы
   - [ ] Фаза C (Упрощение стейт-машины): 2 PR — C1 data-миграция legacy-статусов, C2 удаление legacy из enum
   - [ ] Фаза D (Декомпозиция): 5 PR — D1 `tasks.py`, D2 `email_service.py`, D3 `contract_generator.py`, D4 async/sync граница, D5 Celery hardening
