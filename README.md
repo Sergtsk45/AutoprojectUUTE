@@ -1,5 +1,7 @@
 # УУТЭ Проектировщик
 
+[![CI](https://github.com/Sergtsk45/AutoprojectUUTE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Sergtsk45/AutoprojectUUTE/actions/workflows/ci.yml)
+
 Сервис автоматизированного проектирования узлов учёта тепловой энергии
 по Приказу Минстроя №1036/пр.
 

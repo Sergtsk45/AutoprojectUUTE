@@ -58,8 +58,9 @@ const EmailModal: React.FC<EmailModalProps> = ({ isOpen, onClose, purpose, order
         });
       }
       setIsSubmitted(true);
-    } catch (err: any) {
-      setError(err.message || 'Произошла ошибка. Попробуйте позже.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Произошла ошибка. Попробуйте позже.';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

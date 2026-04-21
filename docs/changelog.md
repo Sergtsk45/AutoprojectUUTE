@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-04-21] — Фаза A3: GitHub Actions CI
+
+### Добавлено
+- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — пять параллельных job:
+  - **lint-type** — `ruff check` + `ruff format --check` + `mypy` на `backend/`.
+  - **tests** — `pytest backend/tests/` (7 unit-тестов, БД не требуется).
+  - **alembic** — поднятие `postgres:16-alpine` как service, затем `upgrade head → downgrade base → upgrade head`. Это именно то покрытие, которое поймало бы историю с потерянной миграцией `87fcef6f52ff`.
+  - **frontend** — `node 20`, `npm ci` + `npm run lint` + `npm run build`.
+  - **pre-commit** — прогон всех хуков через `pre-commit/action@v3.0.1` (кэшируется).
+- Конкурентность: `concurrency.group=ci-${{ github.ref }}, cancel-in-progress=true` — автоматически отменяет предыдущие прогоны в той же ветке.
+- CI-бейдж в корневом [`README.md`](../README.md).
+
+### Изменено
+- [`frontend/src/components/EmailModal.tsx`](../frontend/src/components/EmailModal.tsx) — убран `any` в `catch (err)`, заменён на `unknown` + narrowing через `err instanceof Error`. Эта правка была нужна для прохождения `npm run lint` в CI.
+
+### Безопасность / деплой
+- **Runtime не затронут.** Workflow запускается на `push` (все ветки) и `pull_request` в `main`.
+- В job-ах, требующих `Settings()`, заданы фейковые значения `ADMIN_API_KEY`, `SMTP_PASSWORD`, `OPENROUTER_API_KEY` — в тестах они не используются.
+- Job `alembic` на чистой БД проходит всю цепочку миграций, что даёт гарантию: новые миграции обратимы и никакая не «выпала» из git (рецидив проблемы 2026-04-20 будет пойман в PR, а не на проде).
+
 ## [2026-04-21] — Фаза A2: pyproject + ruff + mypy + pre-commit
 
 ### Добавлено

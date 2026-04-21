@@ -1,5 +1,16 @@
 # Task tracker
 
+## Задача: Фаза A3 — GitHub Actions CI (2026-04-21)
+- **Статус**: Завершена
+- **Описание**: Добавлен `.github/workflows/ci.yml` с пятью job-ами: lint-type, tests, alembic (upgrade/downgrade/upgrade на чистом postgres:16), frontend (lint+build), pre-commit (все хуки). Workflow запускается на `push` в любую ветку и `pull_request` в `main`, с `cancel-in-progress` для экономии минут GHA.
+- **Шаги выполнения**:
+  - [x] `.github/workflows/ci.yml` (5 job-ов)
+  - [x] Исправлен `EmailModal.tsx`: `catch (err: any)` → `catch (err: unknown)` + narrowing — иначе `npm run lint` в CI фейлился
+  - [x] CI-бейдж добавлен в `README.md`
+  - [x] Локальная валидация: YAML корректный, `npm run lint`/`npm run build` проходят, `pre-commit run --all-files` зелёный
+- **Зависимости**: A2 смержен. После merge этого PR первый же прогон CI станет эталоном.
+- **Риски**: Возможны первые расхождения в CI окружении (Ubuntu runner) vs dev — типичные кейсы: таймауты Postgres-сервиса, версии pip. Если упадёт — в `pyproject.toml`/CI workflow внести минорные правки; runtime прода не затрагивается.
+
 ## Задача: Фаза A2 — pyproject + ruff + mypy + pre-commit (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Настроены dev-инструменты по roadmap раздела 3 аудита (фаза A2). Добавлены `backend/pyproject.toml` и `.pre-commit-config.yaml`, описаны в `CLAUDE.md`. Код отформатирован один раз через `ruff format` (34 файла), pre-commit `--all-files` зелёный.
@@ -86,7 +97,7 @@
     - FileCategory — через два релиза (non-breaking → breaking)
     - `admin.html` декомпозиция — решение отложено, пока планируем минимальный вариант
     - Sentry, `psycopg3`, GitHub Actions, отсутствие coverage gate — приняты дефолты, ждут финального подтверждения в первом PR фазы A
-  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [x] A2 pyproject+ruff+mypy+pre-commit, [ ] A3 GitHub Actions CI, [ ] A4 frontend baseline
+  - [~] Фаза A (Фундамент): 4 PR — [x] A1 пути, [x] A2 pyproject+ruff+mypy+pre-commit, [x] A3 GitHub Actions CI, [ ] A4 frontend baseline
   - [ ] Фаза B (Типизация данных): 3 PR — B1 Pydantic-схемы для JSONB, B2 нормализация `FileCategory`, B3 миграции + индексы
   - [ ] Фаза C (Упрощение стейт-машины): 2 PR — C1 data-миграция legacy-статусов, C2 удаление legacy из enum
   - [ ] Фаза D (Декомпозиция): 5 PR — D1 `tasks.py`, D2 `email_service.py`, D3 `contract_generator.py`, D4 async/sync граница, D5 Celery hardening
