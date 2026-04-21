@@ -16,7 +16,7 @@ from app.api.calculator_config import router as calculator_config_router
 from app.core.config import settings
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
-FRONTEND_DIR = Path("/app/frontend-dist")
+FRONTEND_DIR = settings.frontend_dist_dir
 
 
 def _safe_dist_file(full_path: str) -> Path | None:

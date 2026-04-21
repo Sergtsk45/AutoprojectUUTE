@@ -263,7 +263,8 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 |-----------|-----------|
 | `DATABASE_URL` | postgresql+asyncpg://uute:…@postgres:5432/uute_db |
 | `REDIS_URL` | redis://redis:6379/0 |
-| `UPLOAD_DIR` | /var/uute-service/uploads |
+| `UPLOAD_DIR` | /var/uute-service/uploads (prod) / `<repo>/uploads` (dev, auto) |
+| `FRONTEND_DIST_DIR` | /app/frontend-dist (prod, auto) / `<repo>/frontend/dist` (dev, auto) |
 | `ADMIN_API_KEY` | ключ для X-Admin-Key |
 | `ADMIN_EMAIL` | email инженера для уведомлений |
 | `OPENROUTER_API_KEY` | ключ OpenRouter (sk-or-v1-…) |
