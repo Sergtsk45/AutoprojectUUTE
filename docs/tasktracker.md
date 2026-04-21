@@ -1,5 +1,17 @@
 # Task tracker
 
+## Задача: UX — показывать detail ответа при 422 на `/pipeline/{id}/resend-corrected-project` (2026-04-21)
+- **Статус**: Не начата
+- **Описание**: При smoke-тесте после деплоя 2026-04-21 инженерный эндпоинт `POST /pipeline/{order_id}/resend-corrected-project` отвечает `422 Unprocessable Entity` в трёх бизнес-сценариях (см. `backend/app/api/pipeline.py:267-314`): нет `RSO_REMARKS`, нет `GENERATED_PROJECT`, либо последний `GENERATED_PROJECT` старше/равен последним `RSO_REMARKS`. Сам код корректен (защищает от отправки клиенту того же файла), но админка показывает только «Unprocessable Entity» без `detail`, из-за чего инженер не понимает, какое условие не выполнено.
+- **Шаги выполнения**:
+  - [ ] Проверить в `backend/static/admin.html` обработчик ошибки для кнопки «Повторно отправить исправленный проект» — читается ли `response.json().detail` и показывается ли в тосте/алерте
+  - [ ] Если нет — вывести `detail` в UI (и для других pipeline-эндпоинтов, где 400/422 несут осмысленный текст)
+  - [ ] Добавить короткую подсказку в самой кнопке/секции: «Перед повторной отправкой загрузите новую версию проекта в категорию "Готовый проект"»
+  - [ ] Smoke-тест: три сценария 422 → видны три разных сообщения из `detail`
+  - [ ] Запись в `docs/changelog.md`
+- **Зависимости**: нет; эта задача войдёт в фазу E3 roadmap раздела 3 (декомпозиция `admin.html`) или может быть сделана раньше как точечный UX-фикс.
+- **Приоритет**: низкий (не блокирует работу, это UX).
+
 ## Задача: Восстановить пропущенную prod-миграцию advance_payment_model (2026-04-20)
 - **Статус**: Завершена
 - **Описание**: При проверке перед деплоем обнаружено, что миграция `87fcef6f52ff_20260415_uute_advance_payment_model.py` и шаблон `backend/alembic/script.py.mako` существуют только на prod-сервере (`~/uute-project/`) и никогда не коммитились в git. Миграция физически применена в prod-БД (создала колонки `advance_amount`, `advance_paid_at`, `payment_method`, …), но на чистой БД (новый стенд, CI) `alembic upgrade head` их не создаст — модель `Order` при первом запросе упадёт. Восстановлено путём: вставки миграции в репозиторий и корректировки `down_revision` у `20260416_uute_signed_contract_enums`, чтобы цепочка стала линейной.
@@ -24,7 +36,11 @@
 - **Шаги выполнения**:
   - [x] Написан roadmap и сохранён в [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md)
   - [x] Запись в `docs/changelog.md` и `docs/tasktracker.md`
-  - [ ] Согласовать с продактом ответы на «Открытые вопросы» (§ 13 roadmap): legacy-статусы в проде, breaking-стратегия для `FileCategory`, объём декомпозиции `admin.html`, Sentry/Glitchtip, `psycopg3`, CI provider, coverage gate
+  - [x] Согласованы ответы на «Открытые вопросы» (§ 13.1 roadmap, 2026-04-21):
+    - Legacy-статусы — живых заявок нет, тестовые удаляемы → фаза C упрощается (C1+C2 можно одним PR)
+    - FileCategory — через два релиза (non-breaking → breaking)
+    - `admin.html` декомпозиция — решение отложено, пока планируем минимальный вариант
+    - Sentry, `psycopg3`, GitHub Actions, отсутствие coverage gate — приняты дефолты, ждут финального подтверждения в первом PR фазы A
   - [ ] Фаза A (Фундамент): 4 PR — A1 пути, A2 pyproject+ruff+mypy+pre-commit, A3 GitHub Actions CI, A4 frontend baseline
   - [ ] Фаза B (Типизация данных): 3 PR — B1 Pydantic-схемы для JSONB, B2 нормализация `FileCategory`, B3 миграции + индексы
   - [ ] Фаза C (Упрощение стейт-машины): 2 PR — C1 data-миграция legacy-статусов, C2 удаление legacy из enum
