@@ -1,5 +1,29 @@
 # Changelog
 
+## [2026-04-21] — Фаза B1.a: Pydantic-схемы для JSONB (каркас)
+
+### Добавлено
+- Новый модуль [`backend/app/schemas/jsonb/`](../backend/app/schemas/jsonb/):
+  - `tu.py` — `TUParsedData` и все её submodel'и (перенесены из `services/tu_schema.py`).
+  - `survey.py` — новая модель `SurveyData` для `Order.survey_data` (опросный лист клиента). Поля 1:1 с `collectSurveyData()` в `backend/static/upload.html`.
+  - `company.py` — `CompanyRequisites` (перенесена из `services/company_parser.py`).
+  - `__init__.py` — публичный API модуля.
+- Новый слой [`backend/app/repositories/`](../backend/app/repositories/):
+  - `order_jsonb.py` — типизированные accessor-методы `get_parsed_params/set_parsed_params`, `get_survey_data/set_survey_data`, `get_company_requisites/set_company_requisites`. Валидация через `TypeAdapter` происходит **при чтении** с `extra='ignore'`. На невалидных исторических данных — WARNING в лог + возврат `None` (не падаем).
+- [`backend/tests/test_jsonb_schemas.py`](../backend/tests/test_jsonb_schemas.py) — 23 unit-теста на модели + accessor-методы (валидация, границы, fallback, backward-compat имортов).
+
+### Изменено
+- [`backend/app/services/tu_schema.py`](../backend/app/services/tu_schema.py) — превращён в backward-compat shim (реэкспорт из `app.schemas.jsonb.tu`). Все существующие импорты (`from app.services.tu_schema import TUParsedData`) продолжают работать.
+- [`backend/app/services/company_parser.py`](../backend/app/services/company_parser.py) — удалено локальное определение `CompanyRequisites`, добавлен реэкспорт из `app.schemas.jsonb.company`. Поведение парсера не изменилось.
+
+### Безопасность / деплой
+- **Runtime не затронут.** Места чтения JSONB в бизнес-коде пока обращаются к полям как раньше (`order.parsed_params["heat_loads"]`). Это будет переписано в следующем PR **B1.b**.
+- Модели JSONB используют `extra='ignore'` — исторические записи с устаревшими ключами читаются без ошибок (важно для миграций промпта LLM).
+
+### Следующие шаги (B1.b, B1.c)
+- **B1.b:** переписать все места чтения (`admin.py`, `landing.py`, `contract_generator.py`, `email_service.py`, `tasks.py`, `calculator_config_service.py`) через accessor-методы из `app.repositories.order_jsonb`.
+- **B1.c:** строгая типизация `OrderResponse` — breaking для фронта, делать в связке с E1 (typed API).
+
 ## [2026-04-21] — Фаза A4: Frontend baseline (vitest + .env.example)
 
 ### Добавлено
