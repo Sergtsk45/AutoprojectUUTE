@@ -50,6 +50,10 @@
 
 С **фазы D2 (2026-04-22)** отправка писем разбита на пакет [`backend/app/services/email/`](../backend/app/services/email/): `renderers` (Jinja2 и все `render_*`), `smtp` (сборка MIME, `send_email`, общий `send_smtp_message` для нестандартных писем, например с `Reply-To` и вложениями), `idempotency` (`has_successful_email`, `log_email` для писем клиенту с логом по `order_id`), `service` (все `send_*`). Обратная совместимость: `from app.services.email_service import …` (модуль-обёртка re-export'ит пакет); допустим также `from app.services.email import …`.
 
+## Генерация договора и счёта (`app.services.contract`)
+
+С **фазы D3 (2026-04-22)** логика вынесена из [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) в пакет [`backend/app/services/contract/`](../backend/app/services/contract/): `number_format` (пропись, формат рублей), `tu_embed` (PyMuPDF → PNG, лимит 25 МБ), `docx_utils` (таблицы/параграфы), `contract_docx` (текст договора и приложений), `invoice` (счёт). Публичный API прежний: `generate_contract`, `generate_contract_number`, `generate_invoice` — через shim `contract_generator` или `from app.services.contract import …`.
+
 ## Генерация договора (DOCX)
 
 Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). Для договора используется компактная вёрстка: базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы DOCX оставался плотным и ближе к согласованному шаблону.

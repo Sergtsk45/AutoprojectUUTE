@@ -120,6 +120,13 @@ strict = true
 #     (без `Mapped[...]`-typed колонок). Уйдёт в фазе D, когда перейдём на 2.x-style.
 disable_error_code = ["no-untyped-call", "attr-defined", "arg-type", "assignment"]
 
+# Фаза D3: декомпозиция contract_generator → пакет `app.services.contract`
+[[tool.mypy.overrides]]
+module = ["app.services.contract.*"]
+ignore_errors = false
+strict = true
+disable_error_code = ["no-untyped-call", "attr-defined", "arg-type", "assignment"]
+
 # =============================================================================
 # Pytest — тесты backend.
 # =============================================================================
