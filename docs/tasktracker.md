@@ -1,5 +1,19 @@
 # Task tracker
 
+## Задача: Фаза D2 — Декомпозиция `email_service.py` (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Монолитный `email_service.py` (~1K строк) разбит на пакет `app/services/email/` (`smtp`, `idempotency`, `renderers`, `service`, `__init__.py`). Публичный API через `app.services.email_service` сохранён (re-export). `send_kp_request_notification` переведён на общий `send_smtp_message`.
+- **Шаги выполнения**:
+  - [x] `smtp.py` — MIME, `send_smtp_message`, `send_email`
+  - [x] `idempotency.py` — `has_successful_email`, `log_email`
+  - [x] `renderers.py` — Jinja2, все `render_*`
+  - [x] `service.py` — все `send_*`
+  - [x] `email_service.py` — shim на пакет
+  - [x] `docs/changelog.md`, `docs/project.md`, `docs/tasktracker.md`, `CLAUDE.md`
+  - [x] ruff ✓, mypy ✓, pytest 47/47
+- **Зависимости**: D1.b (желательно смержен для единого audit-контекста; на функциональность email не влияет).
+- **Разблокирует**: D3 (`contract_generator.py`) по roadmap §3.
+
 ## Задача: Фаза D1.a — Явные `name=` для Celery-задач (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Подготовительный шаг перед декомпозицией `services/tasks.py`. Всем 23 задачам в декораторе проставлено явное `name="app.services.tasks.<funcname>"` — имя в Celery registry больше не зависит от расположения функции в файловой системе. Без этого перенос задач в подмодули сломал бы `beat_schedule` и доставку сообщений из очередей.
@@ -29,7 +43,7 @@
   - [ ] **После деплоя**: `celery -A app.core.celery_app inspect registered` (ожидается 23× `app.services.tasks.*`)
 - **Скрипт-референс**: `scripts/split_tasks_d1b.py` (документация `T()` — 1-based inclusive, не обрезать `)`).
 - **Риски**: низкие при D1.a. Импорт-циклы сняты: `process_client_response` → lazy `contract_flow`; `tu_parsing` → `client_response` (без обратного импорта на уровне модуля).
-- **Разблокирует**: D2 (`email_service.py`) по roadmap.
+- **Разблокирует**: D2 (`email_service.py`) — выполнена 2026-04-22.
 
 ## Задача: Фаза C — Упрощение стейт-машины (отложена, 2026-04-22)
 - **Статус**: Отложена (awaiting product decision)
