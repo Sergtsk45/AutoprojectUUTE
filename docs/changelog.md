@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-04-22] — hotfix: миграция C1/C2 — enum в UPPERCASE
+
+### Исправлено
+- [`backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py`](../backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py):
+  значения в `_LEGACY_STATUSES`, `_TARGET_STATUS`, `_NEW_ENUM_VALUES`,
+  `_OLD_ENUM_VALUES` переведены в UPPERCASE, чтобы соответствовать реальному
+  содержимому prod-БД. Причина: в [`backend/app/models/models.py`](../backend/app/models/models.py)
+  `Order.status` сконфигурирован без `values_callable=_enum_db_values`, поэтому
+  SQLAlchemy хранит Python-имя члена enum (`OrderStatus.NEW.name == "NEW"`), а
+  не `.value` (`"new"`). Миграция, написанная под lowercase, падала с
+  `invalid input value for enum order_status` на проде. Деплой уже применил
+  исправление руками — коммит синхронизирует репозиторий с тем, что накатано.
+
+### Добавлено
+- [`docs/backlog.md`](backlog.md) → [`BL-021`](backlog.md#bl-021--orderstatus-lowercase-python-values-vs-uppercase-db-storage):
+  асимметрия «lowercase `.value` в Python API ↔ UPPERCASE `.name` в БД»
+  зафиксирована как технический долг. Решение (зафиксировать как инвариант
+  комментарием+тестом или унифицировать через миграцию на `values_callable`)
+  принимается перед следующим изменением `order_status`.
+
 ## [2026-04-22] — docs: единый реестр долга `docs/backlog.md`
 
 ### Добавлено

@@ -75,6 +75,7 @@
 | [BL-018](#bl-018--structlog--sentry-для-celery-логов) | `structlog` / Sentry для Celery | B | open | M | L | L | BL-003 |
 | [BL-019](#bl-019--b2b-downgrade-миграции-не-восстанавливает-upper_case) | B2.b downgrade — нестрогая обратимость | B | accepted | L | L | L | — |
 | [BL-020](#bl-020--c1c2-downgrade-не-восстанавливает-статусы-заявок) | C1+C2 downgrade — нестрогая обратимость | B | accepted | L | L | L | — |
+| [BL-021](#bl-021--orderstatus-lowercase-python-values-vs-uppercase-db-storage) | `OrderStatus` lowercase Python vs UPPERCASE DB | B | open | M | M | M | — |
 | [BL-030](#bl-030--решение-по-двум-веткам-оплаты) | Решение: одна ветка оплаты из двух | C | blocked | H | L | M | продакт |
 | [BL-031](#bl-031--консолидация-или-удаление-paymenthtml) | Консолидация/удаление `payment.html` | C | blocked | M | M | M | BL-030 |
 | [BL-032](#bl-032--регрессионные-тесты-llm-парсера-ту) | Регрессионные тесты LLM парсера ТУ | D | open | H | H | M | — |
@@ -298,6 +299,48 @@
   (нет хранения оригинального статуса). Безопасно в нашем сценарии (прод-данных
   в legacy не было).
 
+#### BL-021 — `OrderStatus` lowercase Python values vs UPPERCASE DB storage
+
+- **Источник:** prod-инцидент миграции C1/C2 (2026-04-22): миграция
+  `20260422_uute_drop_legacy_order_statuses.py` была написана под lowercase,
+  но прод-БД хранила enum-метки в UPPERCASE — потребовался hotfix
+  (коммит `64d7e07`, `fix(migration): C1/C2 — enum values must be UPPERCASE`).
+- **Статус:** `open`.
+- **Приоритет:** Impact M / Effort M / Risk **M** (любая будущая миграция над
+  `order_status` может снова «не попасть» в реальное содержимое БД).
+- **Описание:** В [`backend/app/models/models.py`](../backend/app/models/models.py)
+  для колонки `Order.status` тип `Enum(OrderStatus)` сконфигурирован **без**
+  `values_callable=_enum_db_values`. В этом режиме SQLAlchemy персистит
+  Python-имя члена enum (`OrderStatus.NEW.name == "NEW"`), а не его `.value`
+  (`"new"`). В результате:
+  - в Python-коде и в JSON API фигурируют lowercase-значения (`"new"`,
+    `"client_info_received"`, …) — это `.value` и контракт наружу;
+  - в PostgreSQL-типе `order_status` и в колонке `orders.status` хранятся
+    UPPERCASE-метки (`"NEW"`, `"CLIENT_INFO_RECEIVED"`, …);
+  - эту асимметрию легко пропустить при написании миграций (прецедент — C1/C2).
+- **Варианты решения:**
+  1. **Зафиксировать текущее поведение как инвариант.** Добавить комментарий
+     над `OrderStatus` и `Order.status`, что в БД хранятся `.name` (UPPERCASE),
+     а также юнит-тест, проверяющий `inspect(Order).columns['status'].type.enum_class`
+     и `native_enum=True` + отсутствие `values_callable`. Все будущие миграции
+     над `order_status` пишем под UPPERCASE.
+  2. **Симметрия с остальными enum'ами.** Подключить
+     `values_callable=_enum_db_values` к `Order.status` и миграцией перевести
+     PostgreSQL-тип на lowercase (backfill данных + `CREATE TYPE … AS ENUM`
+     с новыми метками + `USING lower(status::text)::order_status_new`). Риск
+     выше — одна «тяжёлая» миграция на всех заявках, но дальше правила едины.
+- **Триггер возврата:** любая следующая миграция, меняющая значения
+  `order_status` (BL-013 full-scope C1/C2), либо первый bug-ticket, где эта
+  асимметрия сыграла.
+- **DoD:**
+  - в `backend/app/models/models.py` есть явный комментарий-инвариант у
+    `OrderStatus` и у `Order.status`;
+  - в `backend/tests/` есть тест, который падает при случайной смене поведения
+    (например, при добавлении `values_callable`);
+  - в `docs/project.md` — короткий подраздел «Enum conventions» с описанием,
+    какие enum хранятся как `.value` (lowercase), какие как `.name` (UPPERCASE),
+    и почему.
+
 ---
 
 ### C. Продуктовый долг
@@ -412,4 +455,5 @@ _Пока пусто. После закрытия первых BL-пунктов
 
 | Дата | ID | Изменение |
 |---|---|---|
+| 2026-04-22 | BL-021 | Добавлено по итогам prod-инцидента миграции C1/C2: `OrderStatus` хранится в БД как `.name` (UPPERCASE), а не `.value` (lowercase) — зафиксировать как инвариант или унифицировать с остальными enum'ами. |
 | 2026-04-22 | — | Файл создан. Перенесены пункты из roadmap §3, tasktracker и постмортемов фаз A–E. |
