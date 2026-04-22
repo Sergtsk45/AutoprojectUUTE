@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-04-22] — Фаза B3: приведение имён alembic-миграций к соглашению
+
+### Изменено
+- `backend/alembic/versions/20260403_file_category_uppercase_bc.py` → `20260403_uute_file_category_uppercase_bc.py` (добавлен префикс `uute_` — соответствие соглашению `YYYYMMDD_uute_<описание>.py` из `CLAUDE.md`).
+- `backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py` → `20260415_uute_advance_payment_model.py` (убран лидирующий alembic-хеш из имени файла).
+
+### Не затронуто
+- `revision` и `down_revision` внутри файлов оставлены без изменений: таблица `alembic_version` в проде хранит именно эти идентификаторы (`20260403_fc_upper`, `87fcef6f52ff`), и их правка потребовала бы дополнительной миграции с риском разрыва чейна. Имена файлов Alembic вообще не анализирует — только значения полей `revision` внутри.
+- Остальные 12 миграций уже соответствуют соглашению.
+- Требование B3 по индексам админского листинга (`ix_orders_created_at_desc`, `ix_orders_status_created_at_desc`, `ix_order_files_order_id_category`) было реализовано параллельно в рамках миграции `20260422_uute_add_listing_indexes.py` (создание `CONCURRENTLY`, без блокировки таблиц) и прописано в `Order.__table_args__` / `OrderFile.__table_args__`.
+
+### Проверено
+- `alembic.script.ScriptDirectory.walk_revisions()` локально возвращает все 14 ревизий, один head (`20260422_uute_listing_idx`), без разрывов.
+- `pytest` (63 теста backend) проходит локально.
+
+### Результат
+- `ls backend/alembic/versions/*.py` теперь единообразный: каждый файл начинается с `YYYYMMDD_uute_`. Нулевые расходы на код, чистая гигиена репозитория.
+
+---
+
 ## [2026-04-22] — Фаза E4: декомпозиция `upload.html` на модули
 
 ### Добавлено

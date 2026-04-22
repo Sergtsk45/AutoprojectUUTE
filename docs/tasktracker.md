@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Фаза B3 — имена alembic-миграций по соглашению (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Два файла миграций нарушали соглашение `YYYYMMDD_uute_<описание>.py` из `CLAUDE.md` — приведены к шаблону. Индексная часть B3 была реализована ранее (миграция `20260422_uute_add_listing_indexes.py`, объявления `Index(...)` в `__table_args__` моделей `Order`/`OrderFile`).
+- **Шаги выполнения**:
+  - [x] Ветка `refactor/audit-b3-migration-filenames`
+  - [x] `git mv 20260403_file_category_uppercase_bc.py → 20260403_uute_file_category_uppercase_bc.py`
+  - [x] `git mv 87fcef6f52ff_20260415_uute_advance_payment_model.py → 20260415_uute_advance_payment_model.py`
+  - [x] `revision`/`down_revision` внутри файлов НЕ меняются (целостность `alembic_version` в проде)
+  - [x] Проверка Alembic-чейна: `ScriptDirectory.walk_revisions()` показывает все 14 ревизий, один head, без разрывов
+  - [x] `pytest` (63 теста) проходит локально
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, ✅ в roadmap
+- **Зависимости**: нет. Изменение чисто косметическое.
+- **Разблокирует**: ничего. Чистая гигиена репозитория.
+- **Риски**: нулевые. Alembic сопоставляет ревизии по содержимому `revision = "..."`, имя файла не учитывается.
+- **Rollback**: `git revert` ветки `refactor/audit-b3-migration-filenames`.
+
 ## Задача: Фаза E4 — декомпозиция `upload.html` на модули (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: `backend/static/upload.html` (2323 строки, ~92 KB) разрезан на HTML-скелет + внешний CSS + 5 JS-файлов в `backend/static/js/upload/`. Применён тот же сценарий, что и в E3 (обычные `<script>`, не ES-модули): единственный inline-хендлер `onclick="toggleSurveyCollapse()"` продолжает работать без правок HTML. Поведение страницы `/upload/<id>` не изменилось.
