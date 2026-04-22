@@ -153,4 +153,3 @@
     function hideSurveyError() {
       if ($surveyError) $surveyError.style.display = 'none';
     }
-
