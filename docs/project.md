@@ -10,6 +10,24 @@
 
 ## Админка (`/admin`, `backend/static/admin.html`)
 
+**Структура статики (фаза E3, 2026-04-22).** `admin.html` теперь — тонкий HTML-скелет (~13 KB) с внешними стилями и пятью `<script>`-тегами (обычные скрипты, не ES-модули — чтобы inline `onclick`/`onchange` в HTML работали без переписывания):
+
+```mermaid
+flowchart LR
+  HTML[admin.html skeleton<br/>~13 KB]
+  CSS[css/admin.css<br/>~18 KB]
+  CFG[js/admin/config.js<br/>константы, state]
+  UT[js/admin/utils.js<br/>форматтеры, badges]
+  VP[js/admin/views-parsed.js<br/>parsed+survey+cmp]
+  VC[js/admin/views-calc.js<br/>настроечная БД]
+  APP[js/admin/admin.js<br/>auth+api+nav+polls+list+order+actions]
+
+  HTML -->|link| CSS
+  HTML -->|script, в порядке| CFG --> UT --> VP --> VC --> APP
+```
+
+Порядок подключения обязателен — все модули определяют top-level идентификаторы глобально, и `admin.js` использует константы из `config.js`, хелперы из `utils.js` и рендер-функции из `views-*`. Переименования и изменения поведения не вводились — код перенесён 1-в-1.
+
 Статический интерфейс инженера: список заявок, карточка заявки, файлы, действия по пайплайну. Результат парсинга ТУ (`orders.parsed_params`, JSON из `TUParsedData`) отображается в блоке «Результат парсинга ТУ»: уверенность, раскрываемые таблицы параметров по группам, `missing_params`, `warnings`. Данные подгружаются из `GET /api/v1/orders/{id}` без отдельного эндпоинта.
 
 Ответ `GET /api/v1/orders/{id}` дополняется флагами `info_request_sent` и `reminder_sent` (успешная отправка по записям в `email_log` с `sent_at`). Кнопки «Отправить запрос клиенту» и «Отправить напоминание» в админке одноразовые; повторный вызов `POST /emails/{id}/send` с тем же типом даёт **409**. Загрузка файла категории «Готовый проект» показывает линейный прогресс отправки (XHR `upload.onprogress`).

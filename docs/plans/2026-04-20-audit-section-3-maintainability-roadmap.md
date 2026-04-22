@@ -106,7 +106,7 @@ graph TD
 | D5 | Celery: убрать `visibility_timeout=86400`, `task_reject_on_worker_lost=True` | M | 1 | M | 14 |
 | E1 ✅ | Typed API через `openapi-typescript`, генерация клиента | H | 1 | L | Параллельно, после A — **сделано 2026-04-22** |
 | E2 ✅ | Vitest + тесты на критические утилиты фронта | M | 1 | L | Параллельно — **сделано 2026-04-22** |
-| E3 | `admin.html` — декомпозиция на модули (минимально, без миграции на React) | M | 3 | M | После E1 |
+| E3 ✅ | `admin.html` — декомпозиция на модули (минимальный вариант, без сборщика) | M | 3 | M | После E1 — **сделано 2026-04-22** |
 | E4 | `upload.html` — аналогично | L | 2 | M | После E3 |
 | F1 | Унификация PG-драйвера на `psycopg[binary] v3` | M | 2 | H | Последним |
 
@@ -572,18 +572,33 @@ backend/app/services/contract/
 
 ---
 
-### E3. `admin.html` декомпозиция
+### E3. `admin.html` декомпозиция ✅ (2026-04-22, минимальный вариант)
 
-**Проблема.** `backend/static/admin.html` — 126 КБ vanilla JS в одном файле. Даже простое изменение требует чтения всего кода.
+**Что сделано.** `backend/static/admin.html` (**129 645 → 13 131 байт, −90%**) разрезан на HTML-скелет + внешний CSS + 5 JS-файлов в `backend/static/js/admin/`:
 
-**Решение — на выбор:**
-- **Минимальный (рекомендую первым):** разделить inline JS на несколько `.js` файлов в `backend/static/js/admin/` (views, api, utils) без сборщика. Подключить через `<script type="module">`.
-- **Средний:** ввести сборщик (esbuild) для `backend/static/`, без смены фреймворка.
-- **Полный:** миграция `admin.html` на React (внутри существующего Vite-проекта `frontend/`). **Отдельный эпик, не покрывается этим roadmap.**
+| Файл | Ответственность |
+|------|-----------------|
+| [`css/admin.css`](../../backend/static/css/admin.css) (~18 KB) | весь прежний inline `<style>` |
+| [`js/admin/config.js`](../../backend/static/js/admin/config.js) (~7 KB) | `API_BASE`, `ORDER_ID_URL_RE`, `STATUS_LABELS/COLORS/ORDER`, `POST_PARSE_STATUSES`, `SURVEY_LABELS/VALUE_MAP/SECTIONS`, глобальное состояние поллингов |
+| [`js/admin/utils.js`](../../backend/static/js/admin/utils.js) (~3.5 KB) | `statusBadge`, `orderTypeBadge`, `formatNum`/`fmtNum`, `esc`, `formatDate*`, `formatSize`, `addKeyToUrl`, `isParsedParamsEmpty`, `showOrderAlert` |
+| [`js/admin/views-parsed.js`](../../backend/static/js/admin/views-parsed.js) (~28 KB) | рендер parsed_params, опросного листа и сравнительной таблицы (`cmp*`, `buildParsedParamsTablesHtml`, `renderParsedParams`, `renderSurveyData`, `*FromParams`) |
+| [`js/admin/views-calc.js`](../../backend/static/js/admin/views-calc.js) (~16 KB) | настроечная БД вычислителя (`loadCalcConfig`, `renderCalcConfig`, `renderCalcGroups`, `initCalcConfig*`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged` + UI-state) |
+| [`js/admin/admin.js`](../../backend/static/js/admin/admin.js) (~44 KB) | entry: auth, `apiFetch`/`apiJSON`, навигация, 4 поллинга, `approveProject`, список заявок, карточка заявки, действия, `DOMContentLoaded` |
 
-**DoD.** Файл `admin.html` уменьшился до <30 КБ (skeleton + подключение модулей).
+**Ключевое решение — обычные `<script>`, не ES-модули.** В `admin.html` 15 inline `onclick`/`onchange` вызывают 12 глобальных функций (`doLogin`, `doLogout`, `refreshList`, `showList`, `showOrderScreen`, `uploadAdminFile`, `initCalcConfig*`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged`, `addKeyToUrl`). Если бы перешли на `<script type="module">`, все top-level-идентификаторы стали бы module-private, и пришлось бы либо переписывать inline-хендлеры, либо расклеивать функции по `window.*`. Вместо этого загружаем файлы как обычные скрипты — top-level `function`/`const`/`let` остаются глобальными. Код перенесён 1-в-1 без переименований и реорганизации.
 
-**Risk.** Средний. Vanilla-JS SPA со stateful-логикой сложно разрезать, не сломав.
+**Порядок подключения (обязателен):** `config.js → utils.js → views-parsed.js → views-calc.js → admin.js`. Это гарантирует, что все зависимости определены до первого вызова из `DOMContentLoaded`.
+
+**Проверки.**
+- `node --check` на каждом из 5 модулей — чистый синтаксис.
+- `python3 -m http.server` по `backend/static/`: HTTP 200 на `/admin.html`, `/css/admin.css` и всех пяти `/js/admin/*.js`.
+- Аудит: все 12 функций, вызываемых из inline `onclick` в HTML, присутствуют в модулях.
+
+**DoD.** Файл `admin.html` уменьшился до <30 КБ (skeleton + подключение модулей). ✅ (13 KB фактически).
+
+**Не вошло в «минимальный» вариант.** Сборщик (esbuild/Vite), ES-модули, миграция на React, eslint-правила для `backend/static/js/` — при необходимости отдельными фазами.
+
+**Risk.** Средний → фактически низкий: кода не менялся, статика теперь проще ревьюить.
 
 ---
 

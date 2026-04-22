@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-04-22] — Фаза E3 (минимальный вариант): декомпозиция `admin.html` на модули
+
+### Добавлено
+- Каталог [`backend/static/css/`](../backend/static/css/) и файл [`admin.css`](../backend/static/css/admin.css) (~18 KB) — вынос inline `<style>` из `admin.html`.
+- Каталог [`backend/static/js/admin/`](../backend/static/js/admin/) с пятью JS-модулями (обычные `<script>`, не ES-модули, чтобы inline `onclick`/`onchange` в HTML продолжали работать без изменений):
+  - [`config.js`](../backend/static/js/admin/config.js) — константы (`API_BASE`, `ORDER_ID_URL_RE`, `STATUS_LABELS/COLORS/ORDER`, `POST_PARSE_STATUSES`, `SURVEY_LABELS/VALUE_MAP/SECTIONS`) и глобальное состояние поллингов (`currentOrderId`, таймеры).
+  - [`utils.js`](../backend/static/js/admin/utils.js) — чистые хелперы: `statusBadge`, `orderTypeBadge`, `formatNum`, `fmtNum`, `addKeyToUrl`, `isParsedParamsEmpty`, `showOrderAlert`, `esc`, `formatDate`, `formatDateFull`, `formatSize`.
+  - [`views-parsed.js`](../backend/static/js/admin/views-parsed.js) — рендер разобранных параметров ТУ, опросного листа и сравнительной таблицы parsed vs survey (все `cmp*`, `buildParsedParamsTablesHtml`, `renderParsedParams`, `renderSurveyData`, `*FromParams`).
+  - [`views-calc.js`](../backend/static/js/admin/views-calc.js) — настроечная БД вычислителя (`loadCalcConfig`, `renderCalcConfig`, `renderCalcGroups`, `initCalcConfig*`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged` + UI-state).
+  - [`admin.js`](../backend/static/js/admin/admin.js) — entry: auth, fetch-хелперы (`apiFetch`/`apiJSON`), навигация, четыре поллинга (waiting-email / sending-project / payment-flow / parsing), `approveProject`, список заявок (`refreshList`, `renderStats`, `renderOrdersTable`), карточка заявки (`loadOrder`, `renderOrder`, `renderProgress`, `renderPaymentCard`, `renderFiles`, `renderEmailLog`), действия (`renderActions`, `runAction`, `sendEmail`, `uploadAdminFile`) и `DOMContentLoaded`.
+
+### Изменено
+- [`backend/static/admin.html`](../backend/static/admin.html) сократился **с 129 645 → 13 131 байт** (−90%): удалены inline `<style>` (~586 строк) и inline `<script>` (~2045 строк), добавлены `<link rel="stylesheet" href="/static/css/admin.css">` и пять `<script src="/static/js/admin/*.js">` в конце `<body>`. Порядок подключения `config → utils → views-parsed → views-calc → admin` гарантирует, что все глобальные функции определены до первого `onclick` (15 inline-хендлеров в HTML остались без правок).
+
+### Не затронуто
+- Ни одна функция не переименована и не переработана — код перенесён 1-в-1, поведение админки эквивалентно.
+- `backend/static/upload.html` и `backend/static/payment.html` остались без изменений: их декомпозиция — отдельный пункт backlog (B1/B2 в расширенном варианте), не входит в «минимальный» E3.
+- Никаких новых зависимостей (сборщика нет, ES-модули не используются).
+
+### Проверено
+- `node --check` на каждом из 5 модулей — чистый синтаксис.
+- Локальный `python3 -m http.server` по `backend/static/`: `/admin.html`, `/css/admin.css` и все пять `/js/admin/*.js` отдаются HTTP 200.
+- Полный аудит глобальных функций, вызываемых из inline `onclick` (`doLogin`, `doLogout`, `refreshList`, `showList`, `showOrderScreen`, `uploadAdminFile`, `initCalcConfig`, `initCalcConfigExpress`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged`, `addKeyToUrl`) — все 12 определены в модулях. `window.actionBtns` по-прежнему выставляется в `renderActions`.
+
+### Связано с roadmap
+- [Раздел E3](plans/2026-04-20-audit-section-3-maintainability-roadmap.md) — «минимальный» сценарий закрыт. Для среднего/полного варианта (бандлер + ES-модули + тесты на UI) потребуется отдельная задача.
+- DoD выполнен: «`admin.html` уменьшился до <30 КБ (skeleton + подключение модулей)».
+
+### Откат
+- `git revert` ветки `refactor/audit-e3-admin-html-modules`: удаляет новые `css/admin.css` и `js/admin/*.js`, восстанавливает inline-версию `admin.html`.
+
+---
+
 ## [2026-04-22] — Фаза E2: Vitest-тесты на транспортный слой фронта
 
 ### Добавлено
