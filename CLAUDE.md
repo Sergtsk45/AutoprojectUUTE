@@ -77,7 +77,7 @@ AutoprojectUUTE/
 │   │   ├── core/          # config.py, database.py, celery_app.py, auth.py
 │   │   ├── models/        # models.py — SQLAlchemy ORM + enums
 │   │   ├── schemas/       # Pydantic схемы запросов/ответов
-│   │   ├── services/      # Бизнес-логика: order_service, email_service, tu_parser, tasks
+│   │   ├── services/      # Бизнес-логика: order_service, email/ (+ shim email_service.py), tu_parser, tasks
 │   │   └── main.py        # FastAPI app, роутеры, статика, SPA
 │   ├── alembic/           # Миграции БД
 │   ├── templates/         # Jinja2 шаблоны email + образцы документов
@@ -560,7 +560,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 **Backlog / технический долг:**
 - Безопасность: ограничить CORS до доменов, перевести `verify_admin_key` на `secrets.compare_digest`, отказаться от `?_k=` в публичных URL, убрать дефолты секретов из `config.py`, добавить rate-limit на `/landing/*`.
-- Декомпозиция «толстых» модулей: `services/tasks/` (пакет, фаза D1.b), `services/email_service.py`, `services/contract_generator.py`.
+- Декомпозиция «толстых» модулей: `services/tasks/` (пакет, D1.b), `services/email/` + shim `email_service.py` (D2), `services/contract_generator.py` (D3).
 - Удаление legacy-статусов / нормализация enum после миграции данных.
 - Типизация JSONB-полей (`parsed_params`, `survey_data`, `company_requisites`) Pydantic-моделями.
 - CI (pytest + ruff + mypy + eslint), error-tracking (Sentry/Glitchtip), генерация TypeScript-клиента из OpenAPI.

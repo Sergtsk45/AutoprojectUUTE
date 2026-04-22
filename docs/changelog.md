@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-04-22] — Фаза D2: `email_service.py` → пакет `services/email/`
+
+### Добавлено
+- Пакет [`backend/app/services/email/`](../backend/app/services/email/):
+  - [`smtp.py`](../backend/app/services/email/smtp.py) — `build_mime_message`, `send_smtp_message` (единая точка SSL/STARTTLS + login + `send_message`), `send_email`.
+  - [`idempotency.py`](../backend/app/services/email/idempotency.py) — `has_successful_email`, `log_email` (логи по клиентским письмам с `order.client_email`).
+  - [`renderers.py`](../backend/app/services/email/renderers.py) — Jinja2, `COMMON_CONTEXT`, все `render_*` (в т.ч. уведомления инженеру: ТУ, документы, подписанный договор).
+  - [`service.py`](../backend/app/services/email/service.py) — все `send_*` и оркестрация.
+- Re-export публичного API в [`__init__.py`](../backend/app/services/email/__init__.py). Совместимость: тонкий [`email_service.py`](../backend/app/services/email_service.py) — `from .email import *` (импорты `app.services.email_service` не меняются).
+
+### Изменено
+- `send_kp_request_notification` вместо дублирования блока try/except + SMTP вызывает общий `send_smtp_message` (поведение доставки то же, логирование — через слой `smtp`).
+
+### Проверено
+- `ruff check app/services/email app/services/email_service.py` ✓, `mypy app/services/email app/services/email_service.py` ✓, `pytest` 47/47 (с `SMTP_PASSWORD`, `ADMIN_API_KEY`, `OPENROUTER_API_KEY` в окружении).
+
+---
+
 ## [2026-04-22] — Фаза D1.b: `services/tasks.py` → пакет `services/tasks/`
 
 ### Добавлено
@@ -24,7 +42,7 @@
 - `ruff` ✓, `mypy --strict` ✓, `pytest tests/ -q` → 47/47 (вкл. smoke registry).
 
 ### Следующий шаг
-- **D2** (roadmap) — декомпозиция `email_service.py` при необходимости.
+- **D3** (roadmap) — декомпозиция `contract_generator.py` при необходимости.
 
 ---
 
