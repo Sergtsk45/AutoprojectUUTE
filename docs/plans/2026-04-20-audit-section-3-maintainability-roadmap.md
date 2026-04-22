@@ -96,7 +96,7 @@ graph TD
 | A4 | Frontend: `.env.example`, имя пакета, vitest-skeleton | M | 0.5 | L | 4 |
 | B1 | Pydantic-схемы для JSONB, `TypeAdapter` в ORM | H | 3 | M | 5 |
 | B2 | Нормализация `FileCategory` → snake_case lowercase + миграция | H | 2 | M | 6 |
-| B3 | Переименование старых миграций + индексы `(status, created_at)` | M | 1 | L | 7 |
+| B3 ✅ | Переименование старых миграций + индексы `(status, created_at)` | M | 1 | L | 7 — **сделано 2026-04-22** (индексы добавлены миграцией `20260422_uute_add_listing_indexes.py`, 2 файла переименованы под соглашение `YYYYMMDD_uute_*`) |
 | C1 | Data-миграция legacy-статусов в актуальные | H | 2 | M | 8 |
 | C2 | Удаление legacy из enum + упрощение `ALLOWED_TRANSITIONS` | M | 1 | M | 9 |
 | D1 | Декомпозиция `tasks.py` → `services/tasks/*.py` | H | 4 | M | 10 |
