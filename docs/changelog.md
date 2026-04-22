@@ -1,5 +1,28 @@
 # Changelog
 
+## [2026-04-22] — Фаза D1.a: Явные `name=` для всех Celery-задач (подготовка к декомпозиции)
+
+### Изменено
+- **`backend/app/services/tasks.py`** — всем 23 Celery-задачам добавлен параметр `name="app.services.tasks.<funcname>"` в декораторе `@celery_app.task`. До этого Celery вычислял имя автоматически как `<module>.<funcname>`; при будущем перемещении функций в подмодули (D1.b) имена в registry сломались бы (`beat_schedule` и сообщения в очереди завязаны на полные имена).
+
+### Зачем
+Подготовительный шаг перед декомпозицией «толстого» `services/tasks.py` (1717 строк, 70 КБ) на пакет `tasks/{_common, tu_parsing, client_response, contract_flow, post_project_flow, reminders}.py` — roadmap фаза D1. Отдельный атомарный PR, чтобы снизить риск: даже если D1.b задержится или отменится, защита имён уже в проде.
+
+### Проверено
+- `celery_app.tasks.keys()` — все 23 задачи зарегистрированы по именам `app.services.tasks.*` (совпадают с именами до изменения).
+- `beat_schedule` ссылается на `send_reminders`, `process_due_info_requests`, `send_final_payment_reminders_after_rso_scan` — все три имени сохранились.
+- `ruff` ✓, `mypy --strict` ✓, `pytest tests/ -q` → 46/46.
+
+### Не меняется
+- Поведение задач (retries, delays, логика).
+- Имена задач в registry (строки совпадают до символа).
+- API или БД.
+
+### Следующий шаг
+- **D1.b** — собственно декомпозиция `tasks.py` на 6 подмодулей (`_common`, `tu_parsing`, `client_response`, `contract_flow`, `post_project_flow`, `reminders`) + `__init__.py` с re-export'ами для backward-compat.
+
+---
+
 ## [2026-04-22] — Фаза B3: Alembic — чистые имена + индексы для листинга
 
 ### Добавлено
@@ -26,7 +49,7 @@
 - **EXPLAIN до/после** — собирается на проде после миграции (см. PR description).
 
 ### Следующий шаг
-- **B4** по roadmap: единое имя pipeline (`uute-pipeline`) и явный неймспейс для всех модулей.
+- **Фаза C** по roadmap: упрощение стейт-машины — удаление legacy-статусов (`data_complete`, `generating_project`, `review`, `awaiting_contract`) из `OrderStatus`. По § 13.1 roadmap C1+C2 можно объединить в один PR, так как legacy-заявок в проде нет.
 
 ## [2026-04-21] — Фаза B2.a: Нормализация `FileCategory` (non-breaking)
 
