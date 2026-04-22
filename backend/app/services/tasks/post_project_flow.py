@@ -76,14 +76,11 @@ def _send_post_project_delivery(
     default_retry_delay=30,
 )
 def send_completed_project(self, order_id: str):
-    """Отправка готового проекта клиенту.
+    """Отправка готового проекта клиенту (ADVANCE_PAID → AWAITING_FINAL_PAYMENT).
 
     Находит сгенерированный PDF проекта в файлах заявки,
     генерирует DOCX сопроводительного письма в РСО,
     отправляет клиенту письмом с вложениями.
-
-    Новая ветка: ADVANCE_PAID → AWAITING_FINAL_PAYMENT.
-    Legacy-ветка: REVIEW → COMPLETED.
     """
     oid = uuid.UUID(order_id)
     logger.info("send_completed_project: order=%s", oid)
@@ -94,7 +91,7 @@ def send_completed_project(self, order_id: str):
         order = _get_order(session, oid)
         if order is None:
             return
-        if order.status not in (OrderStatus.REVIEW, OrderStatus.ADVANCE_PAID):
+        if order.status != OrderStatus.ADVANCE_PAID:
             logger.warning(
                 "send_completed_project: order=%s статус %s, пропускаем",
                 oid,
@@ -125,16 +122,11 @@ def send_completed_project(self, order_id: str):
         )
 
         if success:
-            if order.status == OrderStatus.ADVANCE_PAID:
-                _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
-                logger.info(
-                    "Проект отправлен клиенту: order=%s → awaiting_final_payment",
-                    oid,
-                )
-            else:
-                # Legacy-сценарий старых заявок.
-                _transition(session, order, OrderStatus.COMPLETED)
-                logger.info("Проект отправлен клиенту: order=%s → completed", oid)
+            _transition(session, order, OrderStatus.AWAITING_FINAL_PAYMENT)
+            logger.info(
+                "Проект отправлен клиенту: order=%s → awaiting_final_payment",
+                oid,
+            )
         else:
             logger.error("Не удалось отправить проект для order=%s", oid)
             try:

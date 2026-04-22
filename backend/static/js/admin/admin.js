@@ -210,20 +210,13 @@
     }
 
     async function approveProject(orderId, currentStatus) {
-      const isLegacyReview = currentStatus === 'review';
-      const confirmText = isLegacyReview
-        ? 'Одобрить проект и запустить оплату для клиента?'
-        : 'Отправить клиенту готовый проект? Действие доступно только после подтверждения аванса.';
-      if (!confirm(confirmText)) return;
+      if (!confirm('Отправить клиенту готовый проект? Действие доступно только после подтверждения аванса.')) return;
       const actionBtns = document.querySelectorAll('[id^="action_btn_"]');
       actionBtns.forEach(b => { b.disabled = true; });
       showOrderAlert('info', 'Выполняется…');
       try {
         await apiJSON(`/pipeline/${orderId}/approve`, { method: 'POST' });
-        const successText = isLegacyReview
-          ? 'Проект одобрен. Клиенту отправлено уведомление об оплате.'
-          : 'Готовый проект отправлен клиенту. Ожидаем перехода в следующий статус.';
-        showOrderAlert('success', successText);
+        showOrderAlert('success', 'Готовый проект отправлен клиенту. Ожидаем перехода в следующий статус.');
         startPaymentFlowPoll(currentStatus);
       } catch (e) {
         showOrderAlert('error', 'Ошибка: ' + e.message);
@@ -324,7 +317,7 @@
       const items = [
         { label: 'Всего заявок', value: stats.total, color: '#2563eb' },
         { label: 'Новых', value: stats.by_status?.new || 0, color: '#9e9e9e' },
-        { label: 'На проверке', value: stats.by_status?.review || 0, color: '#f9a825' },
+        { label: 'Договор отправлен', value: stats.by_status?.contract_sent || 0, color: '#f57c00' },
         { label: 'Ошибки', value: stats.by_status?.error || 0, color: '#f44336' },
         { label: 'Завершены', value: stats.by_status?.completed || 0, color: '#4caf50' },
       ];
@@ -562,14 +555,7 @@
     function renderProgress(currentStatus) {
       const steps = document.getElementById('progressSteps');
       const isError = currentStatus === 'error';
-      const LEGACY_STATUS_ORDER = [
-        'new','tu_parsing','tu_parsed','waiting_client_info',
-        'client_info_received','data_complete','generating_project','review',
-        'awaiting_contract','contract_sent','advance_paid','awaiting_final_payment',
-        'rso_remarks_received',
-        'completed'
-      ];
-      const progressOrder = STATUS_ORDER.includes(currentStatus) ? STATUS_ORDER : LEGACY_STATUS_ORDER;
+      const progressOrder = STATUS_ORDER;
       const curIdx = progressOrder.indexOf(currentStatus);
 
       steps.innerHTML = progressOrder.map((s, idx) => {
@@ -683,14 +669,13 @@
         });
       }
 
-      const approveAllowed = status === 'advance_paid' || status === 'review';
+      const approveAllowed = status === 'advance_paid';
       if (approveAllowed) {
         const hasProjectPdf = (order.files || []).some(
           f => f.category === 'generated_project'
         );
-        const isLegacyReview = status === 'review';
         buttons.push({
-          label: isLegacyReview ? '✓ Одобрить и запустить оплату' : '✓ Отправить готовый проект',
+          label: '✓ Отправить готовый проект',
           cls: 'btn-success',
           disabled: !hasProjectPdf,
           title: hasProjectPdf

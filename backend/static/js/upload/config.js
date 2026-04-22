@@ -40,14 +40,12 @@
     /** Статусы после успешного парсинга ТУ (ожидание можно завершить). */
     const POST_PARSE_STATUSES = new Set([
       'tu_parsed', 'waiting_client_info', 'client_info_received',
-      'data_complete', 'generating_project', 'review', 'contract_sent',
-      'advance_paid', 'awaiting_final_payment', 'completed',
+      'contract_sent', 'advance_paid', 'awaiting_final_payment', 'completed',
     ]);
 
     /** Custom: опросник редактируемый, возможна догрузка документов. */
     const CUSTOM_EDITABLE_STATUSES = [
       'tu_parsed', 'waiting_client_info', 'client_info_received',
-      'data_complete', 'generating_project',
     ];
 
     let parsingPollTimer = null;

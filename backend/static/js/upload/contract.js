@@ -75,7 +75,7 @@
         return;
       }
       const missing = data.missing_params || [];
-      if (missing.length > 0 && ['tu_parsed', 'data_complete', 'generating_project'].includes(st)) {
+      if (missing.length > 0 && st === 'tu_parsed') {
         showUploadCardForDocs();
       }
     }
