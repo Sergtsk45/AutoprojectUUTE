@@ -27,11 +27,12 @@ logger = logging.getLogger(__name__)
 def send_info_request_email(self, order_id: str):
     """Отправка письма клиенту с запросом недостающей информации.
 
-    Вызывается:
-    - по таймеру: apply_async(..., countdown=INFO_REQUEST_AUTO_DELAY_SECONDS) из check_data_completeness;
-    - резервно: process_due_info_requests (Beat), если отложенная задача не отработала.
+    Вызывается из `process_due_info_requests` (Beat, каждые 5 мин) — это единственный
+    источник отложенной отправки после фазы D5 audit-roadmap. Идемпотентна:
+    не шлёт дубликат при ручной отправке инженером ранее.
 
-    Идемпотентна: не шлёт дубликат при ручной отправке инженером ранее.
+    Также допустима ручная постановка из админ-эндпоинта (внутри `with_for_update`,
+    с проверкой `waiting_client_info_at + 24 ч`).
     """
     from datetime import datetime, timedelta, timezone
 

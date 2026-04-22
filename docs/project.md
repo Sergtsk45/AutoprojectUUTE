@@ -64,6 +64,17 @@
 
 CI-гуард [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (`forbid SyncSession() in backend/app/api/`) и smoke-тест [`tests/test_async_sync_boundary.py`](../backend/tests/test_async_sync_boundary.py) падают при попытке вернуть `SyncSession()` в async-роутеры.
 
+## Гарантии Celery (фаза D5)
+
+С **фазы D5 (2026-04-22)** в [`backend/app/core/celery_app.py`](../backend/app/core/celery_app.py) зафиксированы:
+
+- `task_acks_late = True` — задача подтверждается только после успешного выполнения; при потере воркера во время работы сообщение возвращается в очередь.
+- `task_reject_on_worker_lost = True` — Redis-broker сам переотдаёт задачу другому воркеру при OOM/SIGKILL (а не оставляет её в pending до `visibility_timeout`).
+- `broker_transport_options.visibility_timeout = 3600` (1 час). Раньше было 86400 — это требовалось под `apply_async(countdown=86400)` для info_request, но «потерянная» acks_late-задача тогда висела сутки.
+- Beat-джоба `process-due-info-requests` тикает каждые 5 минут — это **единственный** источник отложенного `send_info_request_email`. В `check_data_completeness` больше нет `apply_async(countdown=…)`. Идемпотентность — через `has_successful_email`.
+
+Регрессия защищена smoke-тестом [`tests/test_celery_hardening.py`](../backend/tests/test_celery_hardening.py): он валит CI, если в `backend/app/` появится `countdown=86400` или если кто-то изменит `visibility_timeout`/`task_reject_on_worker_lost`.
+
 ## Генерация договора (DOCX)
 
 Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). Для договора используется компактная вёрстка: базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы DOCX оставался плотным и ближе к согласованному шаблону.

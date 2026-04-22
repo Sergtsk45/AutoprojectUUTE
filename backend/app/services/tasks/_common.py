@@ -24,7 +24,10 @@ from app.models.models import (
 
 logger = logging.getLogger(__name__)
 
-# Задержка перед первой автоотправкой письма «запрос документов» (info_request), сек.
+# Порог времени (сек) от перехода в `waiting_client_info`, после которого
+# Beat-джоба `process_due_info_requests` отправит клиенту info_request.
+# До D5 значение использовалось как `apply_async(countdown=…)` — теперь
+# семантика хранится только в Beat-фильтре и в проверке `due` внутри задачи.
 INFO_REQUEST_AUTO_DELAY_SECONDS = 24 * 60 * 60
 FINAL_PAYMENT_REMINDER_DELAY_DAYS = 15
 

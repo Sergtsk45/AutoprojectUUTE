@@ -15,12 +15,21 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="Europe/Moscow",
     enable_utc=True,
-    # Повторные попытки при падении воркера
+    # Гарантии доставки (audit D5):
+    # acks_late=True — задача подтверждается только после успешного выполнения
+    #                  (при OOM/SIGKILL воркера сообщение возвращается в очередь).
+    # reject_on_worker_lost=True — Redis-broker сам переотдаст задачу другому
+    #                  воркеру при потере соединения (вместо тихой потери).
     task_acks_late=True,
+    task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
-    # visibility_timeout >= максимального countdown задачи (24 ч = 86400 с),
-    # иначе Redis переотдаёт неподтверждённую задачу раньше, чем она выполнится.
-    broker_transport_options={"visibility_timeout": 86400},
+    # D5: visibility_timeout снижен с 24 ч до 1 ч.
+    # Раньше нужен был 86400 с под `apply_async(countdown=86400)` для info_request,
+    # но эта схема убрана: отложенные info_request теперь ставит исключительно
+    # Beat-джоба `process_due_info_requests` (каждые 5 мин), а не sleep в очереди.
+    # Длинный visibility_timeout приводил к тому, что любая acks_late-задача,
+    # которую воркер не успевал подтвердить, висела сутки — заменили на 1 ч.
+    broker_transport_options={"visibility_timeout": 3600},
     # Автообнаружение задач
     task_routes={
         "app.services.tasks.*": {"queue": "default"},
@@ -34,7 +43,9 @@ celery_app.conf.update(
         },
         "process-due-info-requests": {
             "task": "app.services.tasks.process_due_info_requests",
-            "schedule": crontab(minute="*/15"),
+            # D5: было `*/15`. Снизили до 5 мин, т.к. это единственный источник
+            # отложенного info_request (раньше был ещё точечный `apply_async(countdown=86400)`).
+            "schedule": crontab(minute="*/5"),
             "options": {"queue": "default"},
         },
         "send-final-payment-reminders-after-rso-scan": {

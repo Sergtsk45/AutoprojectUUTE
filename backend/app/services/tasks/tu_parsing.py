@@ -15,7 +15,6 @@ from app.services.param_labels import compute_client_document_missing
 
 from . import client_response
 from ._common import (
-    INFO_REQUEST_AUTO_DELAY_SECONDS,
     SyncSession,
     _get_order,
     _transition,
@@ -175,16 +174,14 @@ def check_data_completeness(self, order_id: str):
             oid,
             missing,
         )
-        client_response.send_info_request_email.apply_async(
-            args=[order_id],
-            countdown=INFO_REQUEST_AUTO_DELAY_SECONDS,
-        )
+        # D5: больше не ставим `send_info_request_email` через
+        # `apply_async(countdown=86400)`. Задача с 24-часовой задержкой висела в Redis
+        # и требовала `visibility_timeout=86400` — это ломало гарантии acks_late
+        # для всех остальных задач (потерянная задача висела сутки).
+        # Теперь отложенный info_request — единственно через Beat-джобу
+        # `process_due_info_requests` (каждые 5 мин), которая фильтрует заявки по
+        # `waiting_client_info_at + 24 ч` и `has_successful_email`-идемпотентности.
         client_response.notify_engineer_tu_parsed.delay(order_id)
-        logger.info(
-            "check_data_completeness: send_info_request_email с задержкой %s с, order=%s",
-            INFO_REQUEST_AUTO_DELAY_SECONDS,
-            oid,
-        )
         logger.info(
             "check_data_completeness: notify_engineer_tu_parsed поставлена в очередь, order=%s",
             oid,
