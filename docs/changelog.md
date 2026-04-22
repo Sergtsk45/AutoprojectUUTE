@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-04-22] — Фаза D4: Async/sync граница — убран `SyncSession()` из async-роутеров
+
+### Добавлено
+- Celery-задача [`notify_engineer_new_order`](../backend/app/services/tasks/client_response.py) — асинхронное уведомление инженера о новой заявке. Регистрируется под именем `app.services.tasks.notify_engineer_new_order`.
+- Хелпер [`app.services.email.manual_send.manual_send_email_sync`](../backend/app/services/email/manual_send.py) и исключение `ManualSendError` — переиспользуемая sync-обёртка над `SyncSession + SMTP` для админской ручной отправки; вызывается через `asyncio.to_thread` из `POST /emails/{order_id}/send`.
+- CI-шаг `forbid SyncSession() in backend/app/api/` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — падает при появлении `SyncSession()` в async-роутерах.
+- Smoke-тесты [`tests/test_async_sync_boundary.py`](../backend/tests/test_async_sync_boundary.py): запрет `SyncSession()` в `app/api/`, регистрация задачи, `ManualSendError(404)` на отсутствующей заявке.
+
+### Изменено
+- [`backend/app/api/landing.py`](../backend/app/api/landing.py):
+  - `POST /landing/order` больше не открывает `SyncSession()` в async-обработчике — уведомление инженеру уходит best-effort через `notify_engineer_new_order.delay(...)`; event loop не блокируется.
+  - `POST /landing/sample-request`, `/partnership`, `/kp-request` — SMTP-вызовы выполняются через `await asyncio.to_thread(...)`. UX ответа не меняется (`success=True` как раньше; `/kp-request` по-прежнему отвечает 500, если SMTP упал).
+- [`backend/app/api/emails.py`](../backend/app/api/emails.py): `POST /emails/{order_id}/send` делегирует sync-часть хелперу `manual_send_email_sync` через `asyncio.to_thread`; 404/409/400 пробрасываются через `ManualSendError` → `HTTPException`. Ответ остаётся синхронным (админ получает `success`/`message` в том же запросе).
+
+### UX/контракт API
+- `POST /landing/order`: было — уведомление уходило (или падало с exception в try/except) до ответа 201; теперь уходит асинхронно. **Гарантия атомарности email+заявка ослаблена**, но: (а) `try/except` уже глушил ошибки SMTP; (б) при недоступности брокера `.delay()` обёрнут в `try/except` — создание заявки не падает.
+- Остальные эндпоинты сохраняют прежние статусы ответа и тело.
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy` ✓, `pytest tests/` 50/50 (добавлены 3 новых теста).
+- CI-parity прогон в Docker (python:3.12-slim) — все шаги зелёные.
+
+### Связано с roadmap
+- [Раздел D4](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`rg SyncSession backend/app/api/` = 0 совпадений» выполнен. Следующий шаг — D5 (Celery hardening).
+
+---
+
 ## [2026-04-22] — Фаза D3: `contract_generator.py` → пакет `services/contract/`
 
 ### Добавлено

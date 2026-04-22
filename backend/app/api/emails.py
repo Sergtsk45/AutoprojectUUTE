@@ -1,15 +1,16 @@
 """Эндпоинты для работы с email: предпросмотр, ручная отправка, лог."""
 
+import asyncio
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import verify_admin_key
 from app.core.database import get_db
-from app.models import OrderStatus, EmailType
+from app.models import EmailType
 from app.schemas import EmailLogResponse
 from app.services import OrderService
 
@@ -110,54 +111,25 @@ async def manual_send_email(
     - повторной отправки, если автоматическая не дошла
     - отправки уведомления об ошибке с кастомным текстом
     """
-    from app.services.email_service import (
-        has_successful_email,
-        send_info_request,
-        send_reminder,
-        send_project,
-        send_error_notification,
-    )
-
-    # Используем синхронную сессию, т.к. email_service синхронный
-    from app.services.tasks import SyncSession
+    from app.services.email import ManualSendError, manual_send_email_sync
 
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    with SyncSession() as sync_session:
-        # Перезагружаем order в синхронной сессии
-        from app.services.tasks import _get_order
-
-        sync_order = _get_order(sync_session, order_id)
-        if sync_order is None:
-            raise HTTPException(status_code=404, detail="Заявка не найдена")
-
-        if data.email_type == EmailType.INFO_REQUEST:
-            if has_successful_email(sync_session, order_id, EmailType.INFO_REQUEST):
-                raise HTTPException(
-                    status_code=409,
-                    detail="Запрос клиенту уже отправлялся",
-                )
-            success = send_info_request(sync_session, sync_order)
-        elif data.email_type == EmailType.REMINDER:
-            if has_successful_email(sync_session, order_id, EmailType.REMINDER):
-                raise HTTPException(
-                    status_code=409,
-                    detail="Напоминание уже отправлялось",
-                )
-            success = send_reminder(sync_session, sync_order)
-        elif data.email_type == EmailType.PROJECT_DELIVERY:
-            success = send_project(sync_session, sync_order)
-        elif data.email_type == EmailType.ERROR_NOTIFICATION:
-            success = send_error_notification(
-                sync_session,
-                sync_order,
-                error_description=data.error_description or "Ошибка при обработке заявки",
-                action_required=data.action_required,
-            )
-        else:
-            raise HTTPException(status_code=400, detail=f"Неизвестный тип: {data.email_type}")
+    # D4: blocking SyncSession + SMTP выполняются в thread pool,
+    # чтобы не блокировать FastAPI event loop. Функциональные ошибки
+    # (404/409/400) прилетают через ManualSendError.
+    try:
+        success = await asyncio.to_thread(
+            manual_send_email_sync,
+            order_id,
+            data.email_type,
+            data.error_description,
+            data.action_required,
+        )
+    except ManualSendError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     return ManualSendResponse(
         success=success,

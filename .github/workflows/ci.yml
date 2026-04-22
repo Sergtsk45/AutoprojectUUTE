@@ -46,6 +46,15 @@ jobs:
       - name: mypy
         run: mypy --config-file backend/pyproject.toml backend/app
 
+      # D4: запрещаем блокирующий SyncSession() в async-роутерах.
+      # Все тяжёлые sync-операции живут в Celery-задачах или в app/services/*.
+      - name: forbid SyncSession() in backend/app/api/
+        run: |
+          if grep -rn --include='*.py' 'SyncSession()' backend/app/api/; then
+            echo '::error::SyncSession() запрещён в backend/app/api/ (audit D4). Вынесите sync-работу в Celery-задачу или app/services/*.'
+            exit 1
+          fi
+
   # =================================================================
   # Backend тесты (pytest).
   # =================================================================

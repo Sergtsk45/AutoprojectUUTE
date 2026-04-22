@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Фаза D4 — Async/sync граница в API (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Из `backend/app/api/landing.py` и `backend/app/api/emails.py` убран блокирующий `SyncSession()` в async-обработчиках. Уведомление инженеру о новой заявке вынесено в Celery-задачу `notify_engineer_new_order`; остальные SMTP-вызовы (`sample-request`, `partnership`, `kp-request`) обёрнуты в `asyncio.to_thread`. Админская ручная отправка `POST /emails/{order_id}/send` делегируется новому sync-хелперу `manual_send_email_sync` и запускается через `asyncio.to_thread`.
+- **Шаги выполнения**:
+  - [x] Новая Celery-задача `notify_engineer_new_order` в `tasks/client_response.py`, re-export из пакета `tasks/`
+  - [x] `landing.POST /order`: `notify_engineer_new_order.delay(...)` вместо `with SyncSession()`
+  - [x] `landing.POST /sample-request | /partnership | /kp-request`: `await asyncio.to_thread(...)` для SMTP
+  - [x] `emails.POST /{order_id}/send`: `asyncio.to_thread(manual_send_email_sync, ...)` + `ManualSendError → HTTPException`
+  - [x] Новый модуль `app/services/email/manual_send.py` (+ re-export в `app.services.email`)
+  - [x] CI-шаг `forbid SyncSession() in backend/app/api/` в `.github/workflows/ci.yml`
+  - [x] `tests/test_async_sync_boundary.py` (3 smoke-кейса) + обновлён `test_celery_tasks_package.py` (24 задачи)
+  - [x] ruff ✓, mypy ✓, pytest 50/50 (локально и в CI-parity на Python 3.12)
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`
+- **Зависимости**: D1.b (пакет `tasks/`), D2 (пакет `email/`).
+- **Разблокирует**: D5 (Celery hardening).
+
 ## Задача: Фаза D3 — Декомпозиция `contract_generator.py` + уборка дубликата `tasks.py` (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Монолит `contract_generator.py` (~1.3K строк) разбит на пакет `app/services/contract/` (`number_format`, `tu_embed`, `docx_utils`, `contract_docx`, `invoice`, `__init__.py`). `contract_generator.py` — re-export. Удалён дублирующий `tasks.py` (остаток доочистки после D1.b).

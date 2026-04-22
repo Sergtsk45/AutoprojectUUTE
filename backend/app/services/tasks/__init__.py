@@ -14,6 +14,7 @@ from ._common import (  # noqa: F401
 )
 from .client_response import (  # noqa: F401
     notify_engineer_client_documents_received,
+    notify_engineer_new_order,
     notify_engineer_tu_parsed,
     process_client_response,
     process_due_info_requests,
@@ -57,6 +58,7 @@ __all__ = [  # explicit for re-exports / type checkers
     "initiate_payment_flow",
     "notify_client_after_rso_scan",
     "notify_engineer_client_documents_received",
+    "notify_engineer_new_order",
     "notify_engineer_rso_remarks_received",
     "notify_engineer_rso_scan_received",
     "notify_engineer_signed_contract",

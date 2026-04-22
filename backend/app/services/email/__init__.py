@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from .idempotency import has_successful_email
+from .manual_send import ManualSendError, manual_send_email_sync
 from .renderers import (
     render_advance_received,
     render_client_documents_received,
@@ -46,6 +47,8 @@ from .smtp import send_email
 
 __all__ = [
     "has_successful_email",
+    "ManualSendError",
+    "manual_send_email_sync",
     "send_email",
     "render_info_request",
     "render_reminder",

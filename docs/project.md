@@ -54,6 +54,16 @@
 
 С **фазы D3 (2026-04-22)** логика вынесена из [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) в пакет [`backend/app/services/contract/`](../backend/app/services/contract/): `number_format` (пропись, формат рублей), `tu_embed` (PyMuPDF → PNG, лимит 25 МБ), `docx_utils` (таблицы/параграфы), `contract_docx` (текст договора и приложений), `invoice` (счёт). Публичный API прежний: `generate_contract`, `generate_contract_number`, `generate_invoice` — через shim `contract_generator` или `from app.services.contract import …`.
 
+## Async/sync граница в API (фаза D4)
+
+С **фазы D4 (2026-04-22)** в async-роутерах `backend/app/api/` **запрещено** открывать `with SyncSession()` или вызывать синхронный SMTP напрямую — это блокировало event loop на секунды. Правила:
+
+- **Fire-and-forget уведомления** (`POST /landing/order`) → Celery-задача `notify_engineer_new_order.delay(...)`. Гарантии атомарности email+записи ослаблены сознательно: при недоступности брокера `.delay()` глушится, создание заявки не падает.
+- **Inline-SMTP с результатом в ответе** (`POST /landing/sample-request | /partnership | /kp-request`) → `await asyncio.to_thread(send_*, ...)`. Event loop свободен, UX-контракт сохранён (например, `kp-request` по-прежнему возвращает 500 на неудачный SMTP).
+- **Админская ручная отправка** (`POST /emails/{order_id}/send`) → `asyncio.to_thread(manual_send_email_sync, ...)`. `SyncSession + SMTP` живут в выделенном хелпере [`app/services/email/manual_send.py`](../backend/app/services/email/manual_send.py); функциональные ошибки транспортируются через `ManualSendError(status_code, detail)` → `HTTPException`.
+
+CI-гуард [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (`forbid SyncSession() in backend/app/api/`) и smoke-тест [`tests/test_async_sync_boundary.py`](../backend/tests/test_async_sync_boundary.py) падают при попытке вернуть `SyncSession()` в async-роутеры.
+
 ## Генерация договора (DOCX)
 
 Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). Для договора используется компактная вёрстка: базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы DOCX оставался плотным и ближе к согласованному шаблону.
