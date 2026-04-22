@@ -1,5 +1,26 @@
 # Task tracker
 
+## Задача: Фаза E3 (минимальный вариант) — декомпозиция `admin.html` на модули (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: `backend/static/admin.html` (2873 строки, ~127 KB) разрезан на HTML-скелет + внешний CSS + 5 JS-файлов в `backend/static/js/admin/`. JS-модули подключаются как обычные `<script>` (не ES-модули) — это сохраняет все 15 inline `onclick`/`onchange` в HTML без переписывания: функции остаются в глобальной области. Поведение админки не изменилось.
+- **Шаги выполнения**:
+  - [x] Ветка `refactor/audit-e3-admin-html-modules`, каталоги `backend/static/css/` и `backend/static/js/admin/`
+  - [x] `css/admin.css` — весь прежний inline `<style>` (~586 строк, ~18 KB)
+  - [x] `js/admin/config.js` — `API_BASE`, `ORDER_ID_URL_RE`, `STATUS_*`, `POST_PARSE_STATUSES`, `SURVEY_*`, глобальное состояние поллингов
+  - [x] `js/admin/utils.js` — `statusBadge`/`orderTypeBadge`, форматтеры дат/чисел, `esc`, `addKeyToUrl`, `isParsedParamsEmpty`, `showOrderAlert`
+  - [x] `js/admin/views-parsed.js` — рендер parsed-params, survey, сравнительная таблица (`cmp*`, `buildParsedParamsTablesHtml`, `renderParsedParams`, `renderSurveyData`, все `*FromParams`)
+  - [x] `js/admin/views-calc.js` — настроечная БД вычислителя (`loadCalcConfig`, `renderCalcConfig`, `renderCalcGroups`, `initCalcConfig*`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged` + UI-state)
+  - [x] `js/admin/admin.js` — auth, `apiFetch`/`apiJSON`, навигация, 4 поллинга, `approveProject`, список заявок, карточка заявки, действия (`renderActions`/`runAction`/`sendEmail`/`uploadAdminFile`), `DOMContentLoaded`
+  - [x] `admin.html` → skeleton + `<link rel="stylesheet">` + 5 `<script>` (порядок: config → utils → views-parsed → views-calc → admin). Размер 129 645 → 13 131 байт (−90%).
+  - [x] `node --check` на каждом из 5 модулей — чистый синтаксис
+  - [x] Все 12 функций, вызываемых из inline `onclick` (`doLogin`, `doLogout`, `refreshList`, `showList`, `showOrderScreen`, `uploadAdminFile`, `initCalcConfig*`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged`, `addKeyToUrl`), присутствуют в глобальной области
+  - [x] Smoke-тест через `python3 -m http.server`: 200 OK на `/admin.html` и все 5 JS + CSS
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`, `CLAUDE.md`, ✅ в roadmap
+- **Зависимости**: нет (чистый refactor без изменения API).
+- **Разблокирует**: дальнейшую декомпозицию `upload.html` (2322 строки) и `payment.html` (992 строки) по тому же сценарию; подключение eslint/prettier к `backend/static/js/`; потенциальную миграцию на Vite-сборку.
+- **Риски**: низкие. Поведение не затронуто, код перенесён 1-в-1. Единственный риск — порядок подключения `<script>` и опечатки в путях — проверены через smoke-тест.
+- **Rollback**: `git revert` ветки `refactor/audit-e3-admin-html-modules`.
+
 ## Задача: Фаза E2 — Vitest-тесты на транспортный слой фронта (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Vitest-покрытие фронта расширено с 5 до 15 тестов. Новый модуль `frontend/src/api.test.ts` фиксирует контракт фронт ↔ бэкенд для всех 4 публичных эндпоинтов лендинга: URL, метод, заголовки, сериализация, разбор ошибок (strings detail / FastAPI validation `[{msg}]` / HTTP fallback), multipart без ручного Content-Type, override `VITE_API_BASE_URL`. Тесты не требуют `@testing-library/react` и `jsdom` — используют нативные в Node 20 `fetch`/`FormData`.
