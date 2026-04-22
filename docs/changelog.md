@@ -1,5 +1,33 @@
 # Changelog
 
+## [2026-04-22] — Фаза B3: Alembic — чистые имена + индексы для листинга
+
+### Добавлено
+- Alembic-миграция [`20260422_uute_add_listing_indexes.py`](../backend/alembic/versions/20260422_uute_add_listing_indexes.py) — создаёт 3 индекса `CREATE INDEX CONCURRENTLY IF NOT EXISTS` (безопасно в проде, не блокирует таблицу):
+  - `ix_orders_created_at_desc` — сортировка «по новизне» в админском listing.
+  - `ix_orders_status_created_at_desc` — композитный под `WHERE status = ? ORDER BY created_at DESC` (топ-кейс).
+  - `ix_order_files_order_id_category` — под частый паттерн `[f for f in order.files if f.category.value == "tu"]` (см. `tasks.py`, `landing.py`).
+  - Downgrade — reversible (`DROP INDEX CONCURRENTLY IF EXISTS`).
+  - Защита `if bind.dialect.name != "postgresql": return` — миграция no-op на SQLite/тестах.
+
+### Изменено
+- **Переименованы две Alembic-миграции** под соглашение `YYYYMMDD_uute_<описание>.py` (см. CLAUDE.md). Revision ID внутри файлов **не меняются**, чтобы не ломать уже применённую историю в `alembic_version`:
+  - `8867df9549c4_add_order_type_and_survey_data.py` → `20260403_uute_add_order_type_and_survey_data.py` (revision = `8867df9549c4` сохранён).
+  - `rename_standard_to_custom_order_type.py` → `20260403_uute_rename_order_type_value_to_custom.py` (revision = `rename_standard_to_custom` сохранён).
+- **`backend/app/models/models.py`** — добавлены `__table_args__` с `Index(...)`-декларациями на `Order` (2 индекса) и `OrderFile` (1 индекс). SQLAlchemy metadata теперь синхронизирована с БД — это подготовка к будущей initial-миграции (`chore/alembic-initial-migration`).
+
+### Проверено (локально)
+- `ruff check` + `ruff format --check` + `mypy --strict` по `app/` — чисто.
+- `alembic.ScriptDirectory.walk_revisions()` — одна голова (`20260422_uute_listing_idx`), цепочка длиной 14, без дубликатов и веток.
+- `pytest tests/ -q` — 46/46 зелёных.
+
+### Деплой
+- **Migration runtime** — первые два индекса `CONCURRENTLY` создаются параллельно чтению, ожидаемое время на ~10k заявок <1 сек. Третий индекс на `order_files` — аналогично.
+- **EXPLAIN до/после** — собирается на проде после миграции (см. PR description).
+
+### Следующий шаг
+- **B4** по roadmap: единое имя pipeline (`uute-pipeline`) и явный неймспейс для всех модулей.
+
 ## [2026-04-21] — Фаза B2.a: Нормализация `FileCategory` (non-breaking)
 
 ### Добавлено
