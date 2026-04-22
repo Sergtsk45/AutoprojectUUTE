@@ -1,5 +1,22 @@
 # Task tracker
 
+## Задача: Фаза E1 — Typed API через `openapi-typescript` (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Фронт переведён на автогенерируемые TS-типы из OpenAPI-спеки бэкенда. Рукопашные `interface OrderRequest/OrderCreatedResponse/SimpleResponse` в `frontend/src/api.ts` заменены на `components['schemas'][…]` из `frontend/src/api/types.ts`, который собирается скриптом `scripts/generate-api-types.sh` из текущего FastAPI-приложения. Добавлен CI-job `api-types-drift`: любое изменение Pydantic-схем без перегенерации клиента роняет билд.
+- **Шаги выполнения**:
+  - [x] Добавлена dev-зависимость `openapi-typescript@7.4.4` в `frontend/package.json`
+  - [x] Скрипт `scripts/generate-api-types.sh`: `app.openapi()` → `openapi.json` → `types.ts`
+  - [x] Закоммичены `frontend/src/api/openapi.json` и `types.ts` (+ README в каталоге)
+  - [x] `frontend/src/api.ts` переписан на сгенерированные типы; контракт с компонентами (`EmailModal.tsx`, `KpRequestModal.tsx`) сохранён
+  - [x] CI-job `api-types-drift` в `.github/workflows/ci.yml` (регенерация + `git diff --exit-code`)
+  - [x] `tsc --noEmit` ✓, `npm run lint` ✓, `npm test` (5/5) ✓, `npm run build` ✓
+  - [x] Backend без изменений: `ruff`, `ruff format --check`, `pytest` (63/63) — зелёные
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`, `CLAUDE.md`
+- **Зависимости**: B1.c (строгая типизация JSONB → точные OpenAPI-схемы) — смержена.
+- **Разблокирует**: E3/E4 (декомпозиция фронта), будущие фичи админки на React.
+- **Риски**: низкие. Контракт публичного API не меняется, артефакты детерминированные, CI-drift-check ловит рассинхрон сразу при PR.
+- **Rollback**: `git revert` ветки `feat/audit-e1-typed-api`. Никаких изменений БД/ENV/бэк-кода.
+
 ## Задача: Фаза B1.c — Строгая типизация `OrderResponse` и публичных DTO (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: JSONB-поля в `OrderResponse`, `UploadPageInfo`, `PaymentPageInfo` переведены со свободных `dict | None` на строгие Pydantic-модели из `app.schemas.jsonb` (`TUParsedData`, `SurveyData`, `CompanyRequisites`). Для маркера ошибки парсинга карточки предприятия (`{"error": "..."}`) выделен отдельный DTO `CompanyRequisitesError`; поле `company_requisites` — Union из этих двух моделей. `build_order_response` переписан: больше не вызывает `OrderResponse.model_validate(order)`, строит DTO вручную через accessor'ы `app.repositories.order_jsonb.*` — на грязных JSONB возвращает `None` + WARNING (поведение сохранено с B1.b).

@@ -104,7 +104,7 @@ graph TD
 | D3 | Декомпозиция `contract_generator.py` → `services/contract/*.py` | H | 3 | M | 12 |
 | D4 | Async/sync граница: убрать `SyncSession()` из async-роутеров | H | 2 | M | 13 |
 | D5 | Celery: убрать `visibility_timeout=86400`, `task_reject_on_worker_lost=True` | M | 1 | M | 14 |
-| E1 | Typed API через `openapi-typescript`, генерация клиента | H | 1 | L | Параллельно, после A |
+| E1 ✅ | Typed API через `openapi-typescript`, генерация клиента | H | 1 | L | Параллельно, после A — **сделано 2026-04-22** |
 | E2 | Vitest + тесты на критические утилиты фронта | M | 1 | L | Параллельно |
 | E3 | `admin.html` — декомпозиция на модули (минимально, без миграции на React) | M | 3 | M | После E1 |
 | E4 | `upload.html` — аналогично | L | 2 | M | После E3 |
@@ -542,21 +542,17 @@ backend/app/services/contract/
 
 ## 9. Фаза E — Frontend
 
-### E1. Typed API через `openapi-typescript`
+### E1. Typed API через `openapi-typescript` ✅ (2026-04-22)
 
-**Проблема.** `frontend/src/api.ts` вручную дублирует Pydantic-схемы. Рассинхрон гарантирован при любом изменении бэкенда.
+**Проблема.** `frontend/src/api.ts` вручную дублировал Pydantic-схемы. Рассинхрон гарантирован при любом изменении бэкенда.
 
-**Решение.**
-- В `backend/` хранится `openapi.json` (автогенерируется FastAPI на `/openapi.json`).
-- Скрипт `scripts/generate-api-types.sh`:
-  ```bash
-  curl -s http://localhost:8000/openapi.json > frontend/src/api/openapi.json
-  npx openapi-typescript frontend/src/api/openapi.json -o frontend/src/api/types.ts
-  ```
-- Обёртка-клиент на базе `fetch` с генерированными типами.
-- Проверка в CI: diff между актуальным `types.ts` и свежесгенерированным → non-empty = fail.
+**Решение (реализовано).**
+- Скрипт [`scripts/generate-api-types.sh`](../../scripts/generate-api-types.sh) — без поднятия HTTP-сервера: импортирует FastAPI `app` и вызывает `app.openapi()` напрямую, затем `openapi-typescript`.
+- Артефакты [`frontend/src/api/openapi.json`](../../frontend/src/api/openapi.json) и [`frontend/src/api/types.ts`](../../frontend/src/api/types.ts) коммитятся в репо.
+- [`frontend/src/api.ts`](../../frontend/src/api.ts) использует `components['schemas'][…]` вместо ручных интерфейсов. Сигнатуры публичных функций сохранены — компоненты не трогали.
+- CI-job `api-types-drift` в [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml): перегенерация + `git diff --exit-code`.
 
-**DoD.** Любое переименование поля в Pydantic → frontend-билд падает с типизированной ошибкой.
+**DoD выполнен.** Любое переименование поля в Pydantic → фронт-билд падает по TS-ошибке, CI — по drift-check.
 
 **Risk.** Низкий.
 

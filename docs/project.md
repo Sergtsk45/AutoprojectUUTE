@@ -68,6 +68,26 @@
 - `missing_params` сознательно оставлен `list[str] | None` — в БД могут встречаться legacy-коды (`floor_plan`, `connection_scheme` и т. п.), которые чинятся только через `fix_legacy_client_document_params` на upload-странице. Переход на `list[FileCategory]` отложен до финальной data-миграции legacy-кодов.
 - OpenAPI теперь описывает точную структуру — это разблокирует **E1** (typed API через `openapi-typescript`).
 
+## Typed API во фронтенде (фаза E1)
+
+С **фазы E1 (2026-04-22)** TS-клиент фронтенда построен на автогенерируемых типах из OpenAPI-спеки бэкенда. Процесс:
+
+1. [`scripts/generate-api-types.sh`](../scripts/generate-api-types.sh) импортирует FastAPI-приложение (`from app.main import app`) и экспортирует `app.openapi()` в [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json).
+2. `openapi-typescript@7.4.4` (dev-зависимость `frontend/package.json`) превращает `openapi.json` в [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) — типы `paths`, `operations`, `components.schemas`.
+3. [`frontend/src/api.ts`](../frontend/src/api.ts) использует `components['schemas'][…]` и предоставляет публичные функции (`requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`) — их сигнатуры не меняются для React-компонентов.
+
+Оба артефакта (`openapi.json`, `types.ts`) **коммитятся в репо** — они источник правды для TS-клиента. CI-job `api-types-drift` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) регенерирует их и падает при `git diff --exit-code`: Pydantic-схемы не могут измениться без перегенерации клиента. README в [`frontend/src/api/`](../frontend/src/api/README.md) объясняет процесс обновления для разработчика.
+
+```mermaid
+flowchart LR
+  A[Pydantic schemas<br/>backend/app/*.py] -->|FastAPI app.openapi()| B[openapi.json]
+  B -->|openapi-typescript| C[types.ts]
+  C -->|re-exports| D[frontend/src/api.ts]
+  D --> E[EmailModal.tsx<br/>KpRequestModal.tsx]
+  B -. drift check .-> CI[CI: api-types-drift job]
+  C -. drift check .-> CI
+```
+
 ## Async/sync граница в API (фаза D4)
 
 С **фазы D4 (2026-04-22)** в async-роутерах `backend/app/api/` **запрещено** открывать `with SyncSession()` или вызывать синхронный SMTP напрямую — это блокировало event loop на секунды. Правила:
