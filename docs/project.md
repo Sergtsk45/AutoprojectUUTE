@@ -88,6 +88,8 @@ flowchart LR
   C -. drift check .-> CI
 ```
 
+Транспортный слой [`frontend/src/api.ts`](../frontend/src/api.ts) покрыт unit-тестами в [`frontend/src/api.test.ts`](../frontend/src/api.test.ts) (фаза E2): URL/метод/заголовки/тело для каждого эндпоинта, разбор ошибок FastAPI (string `detail` / validation `[{msg}]` / HTTP fallback), multipart-контракт `kp-request` (без ручного Content-Type), override `VITE_API_BASE_URL`. Fetch мокируется через `vi.stubGlobal` — новых зависимостей не добавлено (`fetch`/`FormData` нативны в Node 20).
+
 ## Async/sync граница в API (фаза D4)
 
 С **фазы D4 (2026-04-22)** в async-роутерах `backend/app/api/` **запрещено** открывать `with SyncSession()` или вызывать синхронный SMTP напрямую — это блокировало event loop на секунды. Правила:

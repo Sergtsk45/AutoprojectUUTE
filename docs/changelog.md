@@ -1,5 +1,34 @@
 # Changelog
 
+## [2026-04-22] — Фаза E2: Vitest-тесты на транспортный слой фронта
+
+### Добавлено
+- Новый тест-модуль [`frontend/src/api.test.ts`](../frontend/src/api.test.ts) (10 тестов): покрытие публичных функций `requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`. Зафиксированы:
+  - URL/метод/заголовки/сериализация тела JSON для всех JSON-эндпоинтов;
+  - контракт multipart-запроса `kp-request` (Content-Type **не** ставится вручную — только браузер/Undici со своим boundary);
+  - разбор ошибок FastAPI: строковый `detail`, валидационный массив `detail=[{msg}]`, HTTP-fallback на невалидном JSON;
+  - override `VITE_API_BASE_URL` через `vi.stubEnv` + динамический импорт модуля.
+
+### Изменено
+- Итог vitest: `npm test` теперь прогоняет 15 тестов (было 5 — только `utils/pricing.test.ts`).
+
+### Не затронуто
+- Никаких новых зависимостей — тесты используют встроенный в Node 20 `fetch`/`FormData` и штатный `vi.stubGlobal` из vitest 2.1. `@testing-library/react` оставлен на будущую фазу (тесты компонентов вне scope E2).
+- `vitest.config` без изменений (`environment: 'node'` достаточен, `jsdom` не подключался).
+
+### Проверено
+- `vitest run` — 15/15 зелёных, 2 тест-файла.
+- `tsc --noEmit`, `npm run lint`, `npm run build` — зелёные.
+
+### Связано с roadmap
+- [Раздел E2](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`npm test` в CI зелёный на >0 тестов» — выполнен (5 → 15).
+- Фронт-тесты уже гоняются в CI-job `frontend` (`npm test`), отдельный шаг не нужен.
+
+### Откат
+- `git revert` ветки `feat/audit-e2-frontend-tests`. Удаление файла `src/api.test.ts` возвращает vitest на исходные 5 тестов.
+
+---
+
 ## [2026-04-22] — Фаза E1: Typed API через `openapi-typescript`
 
 ### Добавлено
