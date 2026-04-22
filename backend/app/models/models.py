@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -240,6 +241,15 @@ class Order(Base):
 
     __tablename__ = "orders"
 
+    # Индексы под типичные запросы админского листинга (фаза B3, 2026-04-22).
+    # Миграция `20260422_uute_listing_idx` создаёт их `CONCURRENTLY` в проде.
+    # Объявление здесь — чтобы SQLAlchemy metadata и autogenerate были
+    # синхронизированы (актуально для будущей initial-миграции).
+    __table_args__ = (
+        Index("ix_orders_created_at_desc", "created_at"),
+        Index("ix_orders_status_created_at_desc", "status", "created_at"),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     status = Column(
         Enum(OrderStatus, name="order_status"),
@@ -326,6 +336,11 @@ class OrderFile(Base):
     """Файл, привязанный к заявке."""
 
     __tablename__ = "order_files"
+
+    # Композитный индекс под «файлы заявки X категории Y» — частый паттерн
+    # в `tasks.py` (`[f for f in order.files if f.category.value == "tu"]`)
+    # и в `landing.py`. Фаза B3 (2026-04-22).
+    __table_args__ = (Index("ix_order_files_order_id_category", "order_id", "category"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(

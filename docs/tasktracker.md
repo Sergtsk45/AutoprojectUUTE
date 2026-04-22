@@ -1,5 +1,19 @@
 # Task tracker
 
+## Задача: Фаза B3 — Alembic: чистые имена + индексы для листинга (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Переименованы две миграции под соглашение `YYYYMMDD_uute_*.py` (revision ID внутри сохранены — история прода не рвётся). Добавлены три индекса под типичные запросы админки (`orders(status, created_at DESC)` и аналогичные). Миграция — `CREATE INDEX CONCURRENTLY IF NOT EXISTS`, безопасно в проде.
+- **Шаги выполнения**:
+  - [x] Переименование `8867df9549c4_add_order_type_and_survey_data.py` → `20260403_uute_add_order_type_and_survey_data.py`
+  - [x] Переименование `rename_standard_to_custom_order_type.py` → `20260403_uute_rename_order_type_value_to_custom.py`
+  - [x] Новая миграция `20260422_uute_add_listing_indexes.py` с тремя `CONCURRENTLY`-индексами (+ downgrade)
+  - [x] `__table_args__` в `Order` и `OrderFile` — синхронизация SQLAlchemy metadata с БД
+  - [x] Проверка графа: `alembic.ScriptDirectory.walk_revisions()` → 1 голова, цепочка из 14 без веток
+  - [x] Локально: ruff ✓, mypy --strict ✓, pytest 46/46 ✓
+- **Зависимости**: B2.a — смержена и на проде.
+- **Риски**: низкие. `CONCURRENTLY` не блокирует таблицу, индексы создаются idempotent (`IF NOT EXISTS`).
+- **Деплой на проде**: после миграции прогнать `EXPLAIN ANALYZE SELECT * FROM orders WHERE status='NEW' ORDER BY created_at DESC LIMIT 50;` — ожидается `Index Scan Backward using ix_orders_status_created_at_desc`.
+
 ## Задача: Фаза B1.a — Pydantic-схемы для JSONB (каркас) (2026-04-21)
 - **Статус**: Завершена
 - **Описание**: Первый шаг фазы B1 roadmap раздела 3 аудита. Создан каркас типизации JSONB-полей `Order` (`parsed_params`, `survey_data`, `company_requisites`) без изменения поведения runtime. Валидация через `TypeAdapter` при чтении, `extra='ignore'` — терпимость к историческим записям.

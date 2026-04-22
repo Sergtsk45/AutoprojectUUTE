@@ -234,6 +234,12 @@ docker exec -it uute-project-postgres-1 psql -U uute -d uute_db
 
 **Соглашение по именованию миграций:** `YYYYMMDD_uute_<описание>` (например, `20260403_fc_upper`).
 
+**Индексы (фаза B3, 2026-04-22).** В БД уже созданы под частые запросы:
+- `ix_orders_created_at_desc` — сортировка списка заявок «по новизне».
+- `ix_orders_status_created_at_desc` — композитный под админский listing с фильтром по статусу (`WHERE status=? ORDER BY created_at DESC LIMIT ?`).
+- `ix_order_files_order_id_category` — `(order_id, category)` под частый паттерн «файлы заявки X категории Y».
+Декларации в `__table_args__` моделей `Order`/`OrderFile` — metadata синхронизирована с БД. Миграция (`20260422_uute_listing_idx`) создаёт их `CONCURRENTLY` — прод не блокируется. При добавлении новых горячих запросов — сначала проверять планом (`EXPLAIN ANALYZE`), потом добавлять индекс тем же шаблоном (`CONCURRENTLY IF NOT EXISTS`).
+
 ---
 
 ## Фронтенд
