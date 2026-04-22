@@ -1,5 +1,43 @@
 # Changelog
 
+## [2026-04-22] — Фаза C1+C2 (audit): удаление legacy-статусов OrderStatus
+
+### Удалено (breaking change для внутренних потребителей API)
+- Из enum `OrderStatus` удалены три значения, не использующиеся в современном флоу:
+  - `data_complete`
+  - `generating_project`
+  - `review`
+- Из [`backend/app/services/tasks/contract_flow.py`](../backend/app/services/tasks/contract_flow.py) удалены три Celery-task-заглушки: `fill_excel` (`DATA_COMPLETE → GENERATING_PROJECT`), `generate_project` (`GENERATING_PROJECT → REVIEW`) и `initiate_payment_flow` (`REVIEW → AWAITING_CONTRACT`). Все три были `TODO`-заглушками без реальной бизнес-логики (модули 3/4 T-FLEX не реализованы), новые заявки через них не проходили.
+- Из [`backend/app/api/pipeline.py:approve_project`](../backend/app/api/pipeline.py) убрана legacy-ветка «если `status == REVIEW` → `initiate_payment_flow.delay(...)`»; одобрение доступно только в статусе `advance_paid`.
+- Из [`backend/app/services/tasks/post_project_flow.py:send_completed_project`](../backend/app/services/tasks/post_project_flow.py) убрана legacy-ветка «`REVIEW → COMPLETED`»; остался только современный путь `ADVANCE_PAID → AWAITING_FINAL_PAYMENT`.
+- Из [`backend/app/api/landing.py`](../backend/app/api/landing.py) убраны `DATA_COMPLETE`, `GENERATING_PROJECT` из `_SURVEY_SAVE_ALLOWED`.
+- Из админки ([`backend/static/js/admin/config.js`](../backend/static/js/admin/config.js), [`backend/static/js/admin/admin.js`](../backend/static/js/admin/admin.js), [`backend/static/admin.html`](../backend/static/admin.html)) убраны ярлыки/цвета/опции фильтров «Данные собраны», «Генерация проекта», «На проверке»; вместо «На проверке» в сводных карточках теперь «Договор отправлен». Фильтр статусов расширен актуальными значениями (`awaiting_contract`, `contract_sent`, `advance_paid`, `awaiting_final_payment`, `rso_remarks_received`).
+- Из клиентской части ([`backend/static/js/upload/config.js`](../backend/static/js/upload/config.js), [`contract.js`](../backend/static/js/upload/contract.js), [`upload.js`](../backend/static/js/upload/upload.js), [`backend/static/payment.html`](../backend/static/payment.html)) убраны ссылки на 3 удалённых статуса.
+
+### Добавлено
+- [`backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py`](../backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py) — миграция C1+C2:
+  1. Backfill: `UPDATE orders SET status = 'client_info_received' WHERE status IN ('data_complete', 'generating_project', 'review')`. Это безопасный «карантин»: из `CLIENT_INFO_RECEIVED` инженер вручную переведёт заявку дальше. На момент миграции прод-данных в legacy нет.
+  2. Пересоздание типа `order_status`: `CREATE TYPE order_status_new AS ENUM (...)` без 3 legacy, `ALTER TABLE orders ALTER COLUMN status TYPE order_status_new USING status::text::order_status_new`, `DROP TYPE order_status`, `RENAME TO order_status`.
+  3. Downgrade: обратный путь (без восстановления исходного статуса отдельных заявок — колонка-аудит `legacy_status_before_migration` по явному согласованию не добавлялась).
+- [`backend/tests/test_order_status_legacy_cleanup.py`](../backend/tests/test_order_status_legacy_cleanup.py) — smoke-тесты: enum не содержит legacy-значений, `ALLOWED_TRANSITIONS` не ссылается на них, `app.services.tasks` не экспортирует `fill_excel`/`generate_project`/`initiate_payment_flow`.
+- В `ALLOWED_TRANSITIONS` добавлен переход `CLIENT_INFO_RECEIVED → AWAITING_CONTRACT`: ручной перевод заявки в legacy-ветку payment.html (bank_transfer), если инженеру нужно отправить карточку предприятия отдельно — раньше этот путь был только через `initiate_payment_flow`.
+
+### Изменено
+- [`backend/app/models/models.py`](../backend/app/models/models.py): `OrderStatus` теперь содержит 12 значений (было 15), docstring пересобран, `ALLOWED_TRANSITIONS` упрощён (удалены ключи `DATA_COMPLETE`, `GENERATING_PROJECT`, `REVIEW` и ссылки на них в других переходах).
+- [`backend/app/services/tasks/__init__.py`](../backend/app/services/tasks/__init__.py): убраны импорты и `__all__`-записи трёх удалённых task.
+- [`backend/tests/test_celery_tasks_package.py`](../backend/tests/test_celery_tasks_package.py): `expected` обновлён — убраны `fill_excel`/`generate_project`/`initiate_payment_flow`.
+- [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json) + [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) регенерированы: `OrderStatus` = `"new" | "tu_parsing" | ... | "error"` без 3 удалённых значений.
+
+### Сохранено (intentionally)
+- **`AWAITING_CONTRACT` не удаляется** — он активно используется в `payment.html` (экраны «загрузка карточки» + «выбор способа оплаты»), endpoint-ах `/landing/orders/{id}/upload-company-card` + `/select-payment-method` и task `process_company_card_and_send_contract`. Удаление требует продуктового решения по судьбе payment.html-ветки (bank_transfer/YooKassa) — зафиксировано как отдельная задача backlog.
+
+### Критерии приёмки
+- `pytest backend/tests/` — 66 тестов, зелёные.
+- `mypy app/` — success.
+- `ruff check / ruff format --check` — passed.
+- `npx tsc --noEmit` + `npx vitest run` — passed.
+- `node --check` на всех 10 модулях `backend/static/js/{admin,upload}/*.js` — OK.
+
 ## [2026-04-22] — Фаза E4: декомпозиция `upload.html` на модули
 
 ### Добавлено

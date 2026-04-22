@@ -97,8 +97,7 @@ graph TD
 | B1 | Pydantic-схемы для JSONB, `TypeAdapter` в ORM | H | 3 | M | 5 |
 | B2 | Нормализация `FileCategory` → snake_case lowercase + миграция | H | 2 | M | 6 |
 | B3 | Переименование старых миграций + индексы `(status, created_at)` | M | 1 | L | 7 |
-| C1 | Data-миграция legacy-статусов в актуальные | H | 2 | M | 8 |
-| C2 | Удаление legacy из enum + упрощение `ALLOWED_TRANSITIONS` | M | 1 | M | 9 |
+| C1+C2 ✅ | Data-миграция + удаление `data_complete`/`generating_project`/`review` из enum + упрощение `ALLOWED_TRANSITIONS`. `AWAITING_CONTRACT` оставлен (нужен для payment.html) — **сделано 2026-04-22** | H | 1 | M | 8 |
 | D1 | Декомпозиция `tasks.py` → `services/tasks/*.py` | H | 4 | M | 10 |
 | D2 | Декомпозиция `email_service.py` → `services/email/*.py` | H | 3 | M | 11 |
 | D3 | Декомпозиция `contract_generator.py` → `services/contract/*.py` | H | 3 | M | 12 |

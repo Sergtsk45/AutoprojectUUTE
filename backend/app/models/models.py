@@ -29,11 +29,10 @@ class OrderStatus(str, enum.Enum):
     tu_parsing             → ТУ отправлены на парсинг (модуль 1)
     tu_parsed              → параметры извлечены, проверяется полнота
     waiting_client_info    → клиенту отправлен запрос на доп. информацию
-    client_info_received   → клиент прислал ответ, идёт анализ
-    data_complete          → все данные собраны
-    generating_project     → Excel заполнен, T-FLEX генерирует проект
-    review                 → проект готов, ждёт проверки инженером
-    awaiting_contract      → инженер одобрил, ждём реквизиты от клиента
+    client_info_received   → клиент прислал ответ, идёт анализ;
+                             отсюда основной путь в contract_sent
+    awaiting_contract      → legacy-ветка payment.html (ручное оформление):
+                             ждём реквизиты от клиента
     contract_sent          → договор и счёт на 50% отправлены, ждём аванс
     advance_paid           → аванс получен, проект отправлен клиенту
     awaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%
@@ -47,9 +46,6 @@ class OrderStatus(str, enum.Enum):
     TU_PARSED = "tu_parsed"
     WAITING_CLIENT_INFO = "waiting_client_info"
     CLIENT_INFO_RECEIVED = "client_info_received"
-    DATA_COMPLETE = "data_complete"
-    GENERATING_PROJECT = "generating_project"
-    REVIEW = "review"
     AWAITING_CONTRACT = "awaiting_contract"
     CONTRACT_SENT = "contract_sent"
     ADVANCE_PAID = "advance_paid"
@@ -65,7 +61,6 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     OrderStatus.TU_PARSING: [OrderStatus.TU_PARSED, OrderStatus.ERROR],
     OrderStatus.TU_PARSED: [
         OrderStatus.WAITING_CLIENT_INFO,  # если данных не хватает
-        OrderStatus.DATA_COMPLETE,  # если всё есть из ТУ
         OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
@@ -76,21 +71,9 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     ],
     OrderStatus.CLIENT_INFO_RECEIVED: [
         OrderStatus.CONTRACT_SENT,  # новый основной путь: договор отправлен
-        OrderStatus.DATA_COMPLETE,  # всё получено
+        OrderStatus.AWAITING_CONTRACT,  # ручной перевод в legacy payment-ветку
         OrderStatus.WAITING_CLIENT_INFO,  # нужно ещё
         OrderStatus.COMPLETED,  # инженер одобрил вручную
-        OrderStatus.ERROR,
-    ],
-    OrderStatus.DATA_COMPLETE: [
-        OrderStatus.GENERATING_PROJECT,
-        OrderStatus.COMPLETED,
-        OrderStatus.ERROR,
-    ],
-    OrderStatus.GENERATING_PROJECT: [OrderStatus.REVIEW, OrderStatus.COMPLETED, OrderStatus.ERROR],
-    OrderStatus.REVIEW: [
-        OrderStatus.AWAITING_CONTRACT,  # основной путь: запуск оплаты
-        OrderStatus.COMPLETED,  # ручной override инженером
-        OrderStatus.GENERATING_PROJECT,  # возврат на перегенерацию
         OrderStatus.ERROR,
     ],
     OrderStatus.AWAITING_CONTRACT: [

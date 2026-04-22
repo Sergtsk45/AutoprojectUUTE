@@ -682,10 +682,7 @@ export interface paths {
         put?: never;
         /**
          * Approve Project
-         * @description Инженерский approve.
-         *
-         *     Новый поток: advance_paid → отправка проекта клиенту.
-         *     Legacy-совместимость: review → запуск старого платёжного флоу.
+         * @description Инженерский approve: `advance_paid` → отправка проекта клиенту.
          */
         post: operations["approve_project_api_v1_pipeline__order_id__approve_post"];
         delete?: never;
@@ -1628,11 +1625,10 @@ export interface components {
          *     tu_parsing             → ТУ отправлены на парсинг (модуль 1)
          *     tu_parsed              → параметры извлечены, проверяется полнота
          *     waiting_client_info    → клиенту отправлен запрос на доп. информацию
-         *     client_info_received   → клиент прислал ответ, идёт анализ
-         *     data_complete          → все данные собраны
-         *     generating_project     → Excel заполнен, T-FLEX генерирует проект
-         *     review                 → проект готов, ждёт проверки инженером
-         *     awaiting_contract      → инженер одобрил, ждём реквизиты от клиента
+         *     client_info_received   → клиент прислал ответ, идёт анализ;
+         *                              отсюда основной путь в contract_sent
+         *     awaiting_contract      → legacy-ветка payment.html (ручное оформление):
+         *                              ждём реквизиты от клиента
          *     contract_sent          → договор и счёт на 50% отправлены, ждём аванс
          *     advance_paid           → аванс получен, проект отправлен клиенту
          *     awaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%
@@ -1641,7 +1637,7 @@ export interface components {
          *     error                  → ошибка на любом этапе
          * @enum {string}
          */
-        OrderStatus: "new" | "tu_parsing" | "tu_parsed" | "waiting_client_info" | "client_info_received" | "data_complete" | "generating_project" | "review" | "awaiting_contract" | "contract_sent" | "advance_paid" | "awaiting_final_payment" | "rso_remarks_received" | "completed" | "error";
+        OrderStatus: "new" | "tu_parsing" | "tu_parsed" | "waiting_client_info" | "client_info_received" | "awaiting_contract" | "contract_sent" | "advance_paid" | "awaiting_final_payment" | "rso_remarks_received" | "completed" | "error";
         /**
          * OrderStatusUpdate
          * @description Ручная смена статуса (для админки / этапа review).

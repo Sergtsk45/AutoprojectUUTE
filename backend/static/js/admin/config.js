@@ -24,9 +24,6 @@ const STATUS_LABELS = {
   tu_parsed: 'ТУ распарсены',
   waiting_client_info: 'Ожидание клиента',
   client_info_received: 'Ответ получен',
-  data_complete: 'Данные собраны',
-  generating_project: 'Генерация проекта',
-  review: 'На проверке',
   awaiting_contract: 'Ожидание реквизитов',
   contract_sent: 'Договор отправлен',
   advance_paid: 'Аванс получен',
@@ -42,9 +39,6 @@ const STATUS_COLORS = {
   tu_parsed: '#1976d2',
   waiting_client_info: '#ff9800',
   client_info_received: '#f57c00',
-  data_complete: '#66bb6a',
-  generating_project: '#7e57c2',
-  review: '#f9a825',
   awaiting_contract: '#ff9800',
   contract_sent: '#f57c00',
   advance_paid: '#66bb6a',
@@ -63,9 +57,8 @@ const STATUS_ORDER = [
 
 const POST_PARSE_STATUSES = new Set([
   'tu_parsed', 'waiting_client_info', 'client_info_received',
-  'data_complete', 'generating_project', 'review', 'completed',
   'awaiting_contract', 'contract_sent', 'advance_paid', 'awaiting_final_payment',
-  'rso_remarks_received',
+  'rso_remarks_received', 'completed',
 ]);
 
 // Parsing poll state

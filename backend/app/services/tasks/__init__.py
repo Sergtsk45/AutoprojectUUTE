@@ -21,9 +21,6 @@ from .client_response import (  # noqa: F401
     send_info_request_email,
 )
 from .contract_flow import (  # noqa: F401
-    fill_excel,
-    generate_project,
-    initiate_payment_flow,
     parse_company_card_task,
     process_advance_payment,
     process_card_and_contract,
@@ -53,9 +50,6 @@ __all__ = [  # explicit for re-exports / type checkers
     "_normalize_client_requisites",
     "_transition",
     "check_data_completeness",
-    "fill_excel",
-    "generate_project",
-    "initiate_payment_flow",
     "notify_client_after_rso_scan",
     "notify_engineer_client_documents_received",
     "notify_engineer_new_order",

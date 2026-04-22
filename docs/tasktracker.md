@@ -1,5 +1,35 @@
 # Task tracker
 
+## Задача: Фаза C1+C2 — удаление legacy-статусов OrderStatus (2026-04-22)
+- **Статус**: Завершена (частичный scope)
+- **Описание**: Roadmap-фаза C предполагала удаление 4 legacy-статусов (`data_complete`, `generating_project`, `review`, `awaiting_contract`). По итогам разведки удалено только 3 — `AWAITING_CONTRACT` остался, так как активно используется в `payment.html`-ветке оплаты (bank_transfer + YooKassa-заглушка). C1 и C2 слиты в один PR, как предлагал roadmap §13.1.
+- **Scope**:
+  - **Удалено**: `data_complete`, `generating_project`, `review` из enum `OrderStatus` + соответствующие ключи/значения в `ALLOWED_TRANSITIONS`.
+  - **Удалено**: 3 Celery-task-заглушки (`fill_excel`, `generate_project`, `initiate_payment_flow`) — были `TODO`-stubs без логики, в современный флоу никогда не попадали.
+  - **Удалено**: legacy-ветка `REVIEW → initiate_payment_flow` в `pipeline.py:approve_project` и `REVIEW → COMPLETED` в `post_project_flow.py:send_completed_project`.
+  - **Сохранено**: `AWAITING_CONTRACT` и task `process_company_card_and_send_contract` (используются в payment.html-ветке).
+- **Маппинг данных**: `data_complete | generating_project | review → client_info_received` (безопасный «карантин» — из `CLIENT_INFO_RECEIVED` инженер вручную переведёт заявку дальше; см. `ALLOWED_TRANSITIONS[CLIENT_INFO_RECEIVED]`). На момент миграции прод-данных в legacy нет.
+- **Шаги выполнения**:
+  - [x] Ветка `refactor/audit-c1-c2-drop-legacy-statuses` от актуального `main`
+  - [x] Alembic-миграция `20260422_uute_drop_legacy_order_statuses.py`: `UPDATE orders SET status='client_info_received' WHERE status IN (legacy)` + пересоздание типа `order_status` без 3 значений
+  - [x] `models.py`: удалены 3 enum-значения, пересобран docstring, упрощён `ALLOWED_TRANSITIONS` (добавлен ручной переход `CLIENT_INFO_RECEIVED → AWAITING_CONTRACT` как замена удалённому `initiate_payment_flow`)
+  - [x] `landing.py`: `_SURVEY_SAVE_ALLOWED` — убраны `DATA_COMPLETE`, `GENERATING_PROJECT`
+  - [x] `contract_flow.py`: удалены 3 Celery-task (`fill_excel`, `generate_project`, `initiate_payment_flow`)
+  - [x] `tasks/__init__.py`: убраны импорты/экспорты
+  - [x] `pipeline.py:approve_project`: удалена legacy-ветка `REVIEW → initiate_payment_flow.delay()`, импорт `initiate_payment_flow` убран
+  - [x] `post_project_flow.py:send_completed_project`: убрана ветка `REVIEW → COMPLETED`
+  - [x] Фронт (admin + upload): 8 файлов — удалены ссылки на `data_complete`/`generating_project`/`review` в маппингах ярлыков/цветов/переходов
+  - [x] `admin.html`: фильтр статусов — убраны 3 устаревших `<option>`, добавлены актуальные (`awaiting_contract`, `contract_sent`, `advance_paid`, `awaiting_final_payment`, `rso_remarks_received`)
+  - [x] `payment.html`: `PRE_PAYMENT_STATUSES` — убраны 3 статуса
+  - [x] `test_celery_tasks_package.py`: обновлён expected
+  - [x] Новый тест `test_order_status_legacy_cleanup.py` — 3 smoke-теста (enum, ALLOWED_TRANSITIONS, отсутствие task-атрибутов)
+  - [x] Регенерированы `openapi.json` + `types.ts` (через `backend/.venv` с pinned pydantic 2.9.2 / fastapi 0.115.0)
+  - [x] Локально: ruff ✓, ruff format ✓, mypy ✓, pytest 66/66 ✓, npm run lint ✓, npx tsc --noEmit ✓, npx vitest run 15/15 ✓, node --check на 10 модулях ✓
+- **Зависимости**: B3 (смержен).
+- **Разблокирует**: будущую полную зачистку `AWAITING_CONTRACT` вместе с `payment.html` (отдельная продуктовая задача).
+- **Риски**: средние. Удаление Celery-task-имён (`fill_excel`/`generate_project`/`initiate_payment_flow`) без drain очереди в проде теоретически может уронить воркер, если в RabbitMQ/Redis висит сообщение с удалённым именем. На проде задачи никогда не вызывались — риск только теоретический. Миграция требует коротких окон write-lock на `orders` (пересоздание типа enum) — рекомендуется прогнать ночью.
+- **Rollback**: `alembic downgrade -1` (возвращает 3 значения в enum); `git revert` ветки — в коде всё возвращается как было. Данные заявок, переведённых из legacy в `client_info_received`, обратно не восстановятся (колонка-аудит по согласованию не добавлялась; восстановление — из бэкапа БД).
+
 ## Задача: Фаза E4 — декомпозиция `upload.html` на модули (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: `backend/static/upload.html` (2323 строки, ~92 KB) разрезан на HTML-скелет + внешний CSS + 5 JS-файлов в `backend/static/js/upload/`. Применён тот же сценарий, что и в E3 (обычные `<script>`, не ES-модули): единственный inline-хендлер `onclick="toggleSurveyCollapse()"` продолжает работать без правок HTML. Поведение страницы `/upload/<id>` не изменилось.

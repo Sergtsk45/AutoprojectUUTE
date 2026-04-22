@@ -1618,16 +1618,13 @@
         "type": "object"
       },
       "OrderStatus": {
-        "description": "Конечный автомат заявки.\n\nnew                    → клиент загрузил ТУ, заявка создана\ntu_parsing             → ТУ отправлены на парсинг (модуль 1)\ntu_parsed              → параметры извлечены, проверяется полнота\nwaiting_client_info    → клиенту отправлен запрос на доп. информацию\nclient_info_received   → клиент прислал ответ, идёт анализ\ndata_complete          → все данные собраны\ngenerating_project     → Excel заполнен, T-FLEX генерирует проект\nreview                 → проект готов, ждёт проверки инженером\nawaiting_contract      → инженер одобрил, ждём реквизиты от клиента\ncontract_sent          → договор и счёт на 50% отправлены, ждём аванс\nadvance_paid           → аванс получен, проект отправлен клиенту\nawaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%\nrso_remarks_received   → получены замечания РСО, проект возвращён инженеру\ncompleted              → проект отправлен клиенту\nerror                  → ошибка на любом этапе",
+        "description": "Конечный автомат заявки.\n\nnew                    → клиент загрузил ТУ, заявка создана\ntu_parsing             → ТУ отправлены на парсинг (модуль 1)\ntu_parsed              → параметры извлечены, проверяется полнота\nwaiting_client_info    → клиенту отправлен запрос на доп. информацию\nclient_info_received   → клиент прислал ответ, идёт анализ;\n                         отсюда основной путь в contract_sent\nawaiting_contract      → legacy-ветка payment.html (ручное оформление):\n                         ждём реквизиты от клиента\ncontract_sent          → договор и счёт на 50% отправлены, ждём аванс\nadvance_paid           → аванс получен, проект отправлен клиенту\nawaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%\nrso_remarks_received   → получены замечания РСО, проект возвращён инженеру\ncompleted              → проект отправлен клиенту\nerror                  → ошибка на любом этапе",
         "enum": [
           "new",
           "tu_parsing",
           "tu_parsed",
           "waiting_client_info",
           "client_info_received",
-          "data_complete",
-          "generating_project",
-          "review",
           "awaiting_contract",
           "contract_sent",
           "advance_paid",
@@ -4890,7 +4887,7 @@
     },
     "/api/v1/pipeline/{order_id}/approve": {
       "post": {
-        "description": "Инженерский approve.\n\nНовый поток: advance_paid → отправка проекта клиенту.\nLegacy-совместимость: review → запуск старого платёжного флоу.",
+        "description": "Инженерский approve: `advance_paid` → отправка проекта клиенту.",
         "operationId": "approve_project_api_v1_pipeline__order_id__approve_post",
         "parameters": [
           {

@@ -46,7 +46,7 @@
         showUploadAlongsideSurveyIfNeeded(orderData);
         return true;
       }
-      if (status === 'advance_paid' || status === 'awaiting_final_payment' || status === 'review' || status === 'completed') {
+      if (status === 'advance_paid' || status === 'awaiting_final_payment' || status === 'completed') {
         showCompleted();
         return true;
       }
@@ -88,7 +88,7 @@
           }
         } else {
           $surveyCard.style.display = 'none';
-          if (['advance_paid', 'awaiting_final_payment', 'review', 'completed'].includes(orderData.order_status)) {
+          if (['advance_paid', 'awaiting_final_payment', 'completed'].includes(orderData.order_status)) {
             showCompleted();
           }
         }
@@ -423,7 +423,7 @@
             renderCategoryOptions();
             $parsingCard.style.display = 'none';
 
-            if (st === 'review' || st === 'completed') {
+            if (st === 'completed') {
               showCompleted();
               showBanner('success', 'Заявка обновлена.');
               return;

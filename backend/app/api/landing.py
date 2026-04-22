@@ -46,8 +46,6 @@ _SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
         OrderStatus.TU_PARSED,
         OrderStatus.WAITING_CLIENT_INFO,
         OrderStatus.CLIENT_INFO_RECEIVED,
-        OrderStatus.DATA_COMPLETE,
-        OrderStatus.GENERATING_PROJECT,
     }
 )
 

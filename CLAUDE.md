@@ -47,19 +47,23 @@ Internet → Caddy (443/SSL) → uute-backend:8000 (FastAPI)
 
 ### Стейт-машина заявки (OrderStatus)
 
-Полный набор переходов — в `ALLOWED_TRANSITIONS` (`backend/app/models/models.py`). Основной happy-path:
+Полный набор переходов — в `ALLOWED_TRANSITIONS` (`backend/app/models/models.py`). Основной happy-path (после C1/C2 аудита, 2026-04-22):
 
 ```
-new → tu_parsing → tu_parsed ─┬→ waiting_client_info → client_info_received ─┐
-                               └→ data_complete ←──────────────────────────────┘
-data_complete → generating_project → review → awaiting_contract → contract_sent
-              → advance_paid → awaiting_final_payment ─┬→ completed
-                                                       └→ rso_remarks_received → awaiting_final_payment
+new → tu_parsing → tu_parsed → waiting_client_info ⇄ client_info_received
+                                                     → contract_sent → advance_paid
+                                                     → awaiting_final_payment ─┬→ completed
+                                                                              └→ rso_remarks_received
+                                                                              → awaiting_final_payment
+Ветка ручного оформления (bank_transfer payment.html):
+  client_info_received → awaiting_contract → contract_sent → …
 Любой статус → error → new (перезапуск)
 ```
 
+В фазе C1+C2 аудита из enum удалены 3 legacy-значения (`data_complete`, `generating_project`, `review`), не использовавшиеся в современном флоу. См. миграцию `20260422_uute_drop_legacy_order_statuses.py`.
+
 Ключевые статусы оплаты/согласования:
-- `awaiting_contract` — инженер одобрил проект, ожидаем реквизиты клиента
+- `awaiting_contract` — legacy-ветка payment.html (bank_transfer): инженер вручную перевёл сюда, клиент загружает карточку предприятия и выбирает способ оплаты
 - `contract_sent` — договор + счёт на 50 % отправлены, ждём аванс
 - `advance_paid` — аванс получен, проект уехал клиенту
 - `awaiting_final_payment` — ожидаем скан РСО, замечания РСО или оплату остатка
@@ -537,7 +541,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 **Фаза:** Production — полный цикл от лендинга до отправки проекта и обработки замечаний РСО.
 
 **Реализовано (апрель 2026):**
-- Полный цикл стейт-машины: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → data_complete → generating_project → review → awaiting_contract → contract_sent → advance_paid → awaiting_final_payment → completed`, с веткой `rso_remarks_received` для возврата проекта инженеру.
+- Полный цикл стейт-машины: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`, с веткой `rso_remarks_received` для возврата проекта инженеру и отдельной ветвью `client_info_received → awaiting_contract` для ручного оформления через payment.html.
 - Парсинг ТУ через LLM (OpenRouter / `google/gemini-2.5-flash`), типизированные `parsed_params` (`backend/app/schemas/jsonb/tu.py`; `services/tu_schema.py` — backward-compat shim).
 - Сегментация заказов: `OrderType.express` / `OrderType.custom`, опросный лист (`upload.html`) с автозаполнением из ТУ для custom.
 - Категории файлов (`FileCategory.<member>.value`, snake_case lowercase после B2):
