@@ -17,6 +17,9 @@
 ### Проверено
 - `ruff check backend/` ✓, `mypy` (override `app.services.contract.*`, strict) ✓, `pytest` 47/47.
 
+### Исправлено (после CI)
+- `pyproject.toml`: для `app.services.contract.*` в `disable_error_code` добавлен `valid-type` — в CI (Python 3.12) mypy иначе падает на аннотациях `Document` из python-docx (фабрика вместо класса в стабах).
+
 ---
 
 ## [2026-04-22] — Фаза D2: `email_service.py` → пакет `services/email/`

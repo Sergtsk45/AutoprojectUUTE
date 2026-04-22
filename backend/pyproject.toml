@@ -125,7 +125,15 @@ disable_error_code = ["no-untyped-call", "attr-defined", "arg-type", "assignment
 module = ["app.services.contract.*"]
 ignore_errors = false
 strict = true
-disable_error_code = ["no-untyped-call", "attr-defined", "arg-type", "assignment"]
+# valid-type: python-docx экспортирует `Document` как фабрику; mypy 1.11+ (Py 3.12) ругается
+# на аннотации `doc: Document` (см. CI «Backend lint + mypy»).
+disable_error_code = [
+    "no-untyped-call",
+    "attr-defined",
+    "arg-type",
+    "assignment",
+    "valid-type",
+]
 
 # =============================================================================
 # Pytest — тесты backend.
