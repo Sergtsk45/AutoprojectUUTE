@@ -1,5 +1,11 @@
 # УУТЭ Проектировщик — архитектура (фрагмент)
 
+> Технический и продуктовый долг, хвосты завершённых фаз аудита,
+> отложенные решения — в [`docs/backlog.md`](backlog.md). Стратегический
+> план — в
+> [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md).
+> Хронология выполненных задач — в [`docs/tasktracker.md`](tasktracker.md).
+
 ## Публичный фронтенд (React SPA)
 
 Контактные данные и юридические реквизиты на лэндинге задаются в [`frontend/src/constants/siteLegal.ts`](../frontend/src/constants/siteLegal.ts): `SITE_CONTACT` используется в подвале и в секции «Свяжитесь с нами» (`Footer`, `PartnerFormSection`), `SITE_REQUISITES` — только в подвале.

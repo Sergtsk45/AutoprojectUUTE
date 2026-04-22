@@ -448,6 +448,19 @@ chore: bump openai sdk version
 
 ## Документирование изменений
 
+### docs/backlog.md
+
+Единый реестр технического и продуктового долга: незакрытые пункты roadmap
+аудита, хвосты завершённых фаз (backward-compat shim'ы, частичные scope),
+отложенные продуктовые решения. Каждый элемент имеет стабильный ID `BL-XXX`,
+статус (`open` / `deferred` / `blocked` / `accepted` / `done`) и матрицу
+приоритета Impact/Effort/Risk. Формат и шаблон — внутри файла. При закрытии
+пункта статус меняется на `done` со ссылкой на PR; запись остаётся для истории.
+
+Все новые «хвосты» и долги из этого момента — **в `docs/backlog.md`**, а не в
+roadmap или tasktracker. Roadmap — план фаз аудита; tasktracker — хронология
+выполненных/активных задач; backlog — оперативный реестр остатков.
+
 ### docs/changelog.md
 
 Формат записи:
@@ -557,7 +570,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 - Админ-панель `/admin`: список заявок, карточка с парсингом ТУ, опросным листом по секциям, действиями инженера на post-project ветке (отправка исправленного проекта), карточка «Настроечная БД вычислителя» с автозаполнением из ТУ и экспортом PDF.
 - Настроечная БД (`CalculatorConfig`): JSON-шаблоны ТВ7, СПТ-941.20, ЭСКО-Терра М; для express автоинициализация на ЭСКО-Терра; CRUD через `/api/v1/orders/{id}/calculator-config`.
 - React лендинг: калькулятор с двумя вариантами (Экспресс/Индивидуальный), форма заказа (EmailModal) с полем «Город объекта» и модалкой политики конфиденциальности, FAQ, образцы проектов, скачивание опросного листа `/downloads/opros_list_form.pdf`.
-- Auth: `X-Admin-Key` header или `?_k=` query (последний желательно убрать — см. backlog в `docs/changelog.md`).
+- Auth: `X-Admin-Key` header или `?_k=` query (последний желательно убрать — см. [`BL-034`](../docs/backlog.md#bl-034--убрать-_k-query-параметр-для-admin-auth) в backlog).
 
 **Активные направления:**
 - Автоматизация принципиальных схем ИТП (см. [`docs/scheme-generator-roadmap.md`](docs/scheme-generator-roadmap.md), черновики SVG-генераторов уже в `backend/app/services/scheme_*`).

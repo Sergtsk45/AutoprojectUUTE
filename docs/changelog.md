@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-04-22] — docs: единый реестр долга `docs/backlog.md`
+
+### Добавлено
+- [`docs/backlog.md`](backlog.md) — консолидированный реестр технического и
+  продуктового долга: 24 стартовых элемента (категории A — открытые фазы
+  roadmap, B — хвосты завершённых фаз, C — продуктовые развилки,
+  D — вне scope аудита §3). Каждому присвоен стабильный ID `BL-XXX`,
+  статус (`open` / `deferred` / `blocked` / `accepted` / `done`) и матрица
+  Impact/Effort/Risk.
+
+### Изменено
+- [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md):
+  перед `§11 DoD` добавлена сноска о том, что все остаточные долги теперь в
+  `docs/backlog.md`; roadmap остаётся «планом фаз», backlog — «оперативным
+  реестром остатков».
+- [`docs/tasktracker.md`](tasktracker.md): шапка со ссылкой на backlog. Новые
+  хвосты после закрытия задач фиксируются в backlog'е, tasktracker — только
+  хронология активных/закрытых задач.
+- [`docs/project.md`](project.md): шапка со ссылками на backlog, roadmap,
+  tasktracker.
+- [`CLAUDE.md`](../CLAUDE.md): в разделе «Документирование изменений»
+  добавлена подсекция `docs/backlog.md` с описанием формата и правилом
+  «новые долги — только туда». Упоминание backlog у auth `?_k=`
+  перенаправлено с `changelog.md` на конкретную запись
+  [`BL-034`](backlog.md#bl-034--убрать-_k-query-параметр-для-admin-auth).
+
 ## [2026-04-22] — Фаза C1+C2 (audit): удаление legacy-статусов OrderStatus
 
 ### Удалено (breaking change для внутренних потребителей API)
