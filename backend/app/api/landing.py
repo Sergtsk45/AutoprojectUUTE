@@ -18,9 +18,8 @@ from app.core.config import settings
 from app.models import FileCategory, OrderStatus, OrderType, PaymentMethod
 from app.post_project_state import derive_post_project_flags
 from app.repositories.order_jsonb import (
-    get_company_requisites_dict,
-    get_parsed_params_dict,
-    get_survey_data_dict,
+    get_parsed_params,
+    get_survey_data,
     set_survey_data,
 )
 from app.schemas.jsonb import SurveyData
@@ -34,6 +33,7 @@ from app.schemas import (
     PaymentPageInfo,
     PipelineResponse,
     UploadPageInfo,
+    company_requisites_for_response,
 )
 from pydantic import ValidationError
 
@@ -268,17 +268,16 @@ async def get_upload_page_info(
     else:
         missing = order.missing_params or []
 
-    # Для custom-заказов отдаём клиенту валидированные parsed_params / survey_data.
-    # На невалидных исторических записях accessor вернёт `{}` (+ WARNING в лог) —
-    # фронт отобразит пустой опрос вместо падения страницы.
-    parsed_params: dict | None = None
-    survey_data: dict | None = None
-    if order.order_type == OrderType.CUSTOM:
-        validated_parsed = get_parsed_params_dict(order)
-        if validated_parsed:
-            parsed_params = validated_parsed
-        if order.survey_data is not None:
-            survey_data = get_survey_data_dict(order)
+    # Для custom-заказов отдаём клиенту типизированные parsed_params / survey_data.
+    # На невалидных исторических записях accessor вернёт `None` (+ WARNING в лог) —
+    # фронт отобразит пустой опрос вместо падения страницы. Для express-заказов
+    # поля не актуальны (парсер не запускается) и остаются `None`.
+    parsed_params = get_parsed_params(order) if order.order_type == OrderType.CUSTOM else None
+    survey_data = (
+        get_survey_data(order)
+        if order.order_type == OrderType.CUSTOM and order.survey_data is not None
+        else None
+    )
 
     return UploadPageInfo(
         order_id=order.id,
@@ -288,28 +287,12 @@ async def get_upload_page_info(
         contract_number=order.contract_number,
         payment_amount=order.payment_amount,
         advance_amount=order.advance_amount,
-        company_requisites=_company_requisites_for_response(order),
+        company_requisites=company_requisites_for_response(order),
         missing_params=missing,
         files_uploaded=files,
         parsed_params=parsed_params,
         survey_data=survey_data,
     )
-
-
-def _company_requisites_for_response(order) -> dict | None:
-    """Готовит `company_requisites` для публичных DTO.
-
-    Специальный случай: записи-маркеры вида `{"error": "..."}` пропускаются «как есть»
-    (фронт показывает ошибку распознавания). Нормальные реквизиты — проходят через
-    Pydantic-валидацию (`extra='ignore'` чистит мусорные ключи).
-    """
-    raw = order.company_requisites
-    if not raw:
-        return None
-    if isinstance(raw, dict) and raw.get("error"):
-        return raw
-    validated = get_company_requisites_dict(order)
-    return validated or None
 
 
 @router.post(
@@ -467,7 +450,7 @@ async def get_payment_page_info(
         payment_method=order.payment_method.value if order.payment_method else None,
         payment_amount=order.payment_amount,
         advance_amount=order.advance_amount,
-        company_requisites=_company_requisites_for_response(order),
+        company_requisites=company_requisites_for_response(order),
         payment_requisites={
             "company_full_name": settings.company_full_name,
             "company_inn": settings.company_inn,

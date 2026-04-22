@@ -1,5 +1,49 @@
 # Changelog
 
+## [2026-04-22] — Фаза B1.c: строгая типизация `OrderResponse` и публичных DTO
+
+### Добавлено
+- Новая Pydantic-модель [`CompanyRequisitesError`](../backend/app/schemas/jsonb/company.py) — маркер неудачного парсинга «Карточки предприятия» (`{"error": "..."}`). Выделена отдельно, чтобы Union-тип `OrderResponse.company_requisites` точно описывал оба варианта в OpenAPI и TS-клиентах.
+- Алиас `CompanyRequisitesResponse = CompanyRequisites | CompanyRequisitesError` в [`app.schemas.schemas`](../backend/app/schemas/schemas.py) — общее имя для всех DTO.
+- Хелпер `company_requisites_for_response(order)` в `app.schemas.schemas` — единая точка сборки `company_requisites` из ORM-объекта: `None` / `CompanyRequisitesError` / `CompanyRequisites` (через accessor с WARN+None на грязных данных).
+- Тест-модуль [`tests/test_order_response_typing.py`](../backend/tests/test_order_response_typing.py) (11 тестов): проверка типизации полей, happy-path, error-маркер, legacy `missing_params`, невалидные `parsed_params` / `survey_data` (→ `None` + WARNING).
+
+### Изменено
+- [`OrderResponse`](../backend/app/schemas/schemas.py):
+  - `parsed_params: dict | None` → `parsed_params: TUParsedData | None`
+  - `survey_data: dict | None` → `survey_data: SurveyData | None`
+  - `company_requisites: dict | None` → `company_requisites: CompanyRequisites | CompanyRequisitesError | None`
+  - `missing_params: list | None` → `missing_params: list[str] | None` (сознательно сохранено как plain-строки — в БД бывают legacy-коды `floor_plan`/`connection_scheme`/и т.п., которые чинятся только на upload-странице через `fix_legacy_client_document_params`).
+- [`UploadPageInfo`](../backend/app/schemas/schemas.py) и [`PaymentPageInfo`](../backend/app/schemas/schemas.py) — те же JSONB-поля строго типизированы.
+- `build_order_response` переписан: больше **не вызывает** `OrderResponse.model_validate(order)` — строит DTO вручную через accessor'ы `app.repositories.order_jsonb.*`, которые уже валидируют JSONB и возвращают `None` + WARNING на невалидных исторических записях. Это устраняет риск падения ответа при грязных данных после смены типов.
+- [`backend/app/api/landing.py`](../backend/app/api/landing.py): локальный `_company_requisites_for_response` удалён (используется общий `company_requisites_for_response`). Чтение `parsed_params`/`survey_data` в `upload-page` — через `get_parsed_params`/`get_survey_data` (типизированные модели).
+
+### UX/контракт API
+- **Фронт-контракт сохранён.** Все ключи JSON-ответов остаются прежними:
+  - `payment.html` / `admin.html` — читают `data.company_requisites.error`: при ошибке парсинга бэкенд отдаёт `{"error": "..."}` (`CompanyRequisitesError.model_dump()` выдаёт ровно этот dict).
+  - `admin.html` — читает `order.parsed_params.object.object_address` и т. п.: `TUParsedData.model_dump()` публикует те же вложенные ключи.
+- **OpenAPI теперь строже.** Для внешних потребителей OpenAPI-схема описывает точную структуру JSONB; поля, не входящие в Pydantic-модели (`extra='ignore'`), при сериализации фильтруются. Для LLM-парсера это не критично — Pydantic-модели `TUParsedData`/`SurveyData`/`CompanyRequisites` полностью покрывают ожидаемые ключи.
+- **Новое поведение на грязных данных.** Если в БД исторически невалидный `parsed_params`/`survey_data`, в ответе API соответствующее поле будет `null` (раньше — возвращался исходный dict «как есть»). В логе — WARNING с причиной. Для custom-заказов это означает пустой опрос на фронте вместо падения страницы (сохранено поведение B1.b).
+
+### Не затронуто
+- `OrderListItem` — без JSONB-полей, типизация не меняется.
+- `PipelineResponse`, `OrderCreate`, `FileResponse`, `EmailLogResponse` — без изменений.
+- `missing_params` — остаётся `list[str] | None` (см. выше причину). Переход на `list[FileCategory]` увязан с финальной data-миграцией legacy-кодов в БД и в scope B1.c не входит.
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy --config-file backend/pyproject.toml backend/app` ✓ (55 файлов).
+- `pytest backend/tests/` — 61/61 (добавлены 11 новых тестов).
+- CI-parity прогон в Docker `python:3.12-slim`: все шаги зелёные.
+
+### Связано с roadmap
+- [Раздел B1.c](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «строгие Pydantic-схемы на JSONB в OrderResponse» — выполнен для `parsed_params`/`survey_data`/`company_requisites`. `missing_params` — открытый вопрос, зависит от B2.c (финальная миграция legacy-кодов).
+- Разблокирует **E1** (typed API через `openapi-typescript`): TS-клиент теперь получает полноценные типы JSONB-полей вместо `Record<string, unknown>`.
+
+### Rollback
+- `git revert` коммита возвращает `dict | None` в DTO и старый `build_order_response`. Схемы в БД не затрагивались — откат данных не требуется.
+
+---
+
 ## [2026-04-22] — Фаза B2.b: удаление legacy UPPER_CASE у `FileCategory` (BREAKING CHANGE API)
 
 ### Удалено

@@ -1,5 +1,26 @@
 # Task tracker
 
+## Задача: Фаза B1.c — Строгая типизация `OrderResponse` и публичных DTO (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: JSONB-поля в `OrderResponse`, `UploadPageInfo`, `PaymentPageInfo` переведены со свободных `dict | None` на строгие Pydantic-модели из `app.schemas.jsonb` (`TUParsedData`, `SurveyData`, `CompanyRequisites`). Для маркера ошибки парсинга карточки предприятия (`{"error": "..."}`) выделен отдельный DTO `CompanyRequisitesError`; поле `company_requisites` — Union из этих двух моделей. `build_order_response` переписан: больше не вызывает `OrderResponse.model_validate(order)`, строит DTO вручную через accessor'ы `app.repositories.order_jsonb.*` — на грязных JSONB возвращает `None` + WARNING (поведение сохранено с B1.b).
+- **Шаги выполнения**:
+  - [x] Новая модель `CompanyRequisitesError` в `app/schemas/jsonb/company.py` + экспорт
+  - [x] Типы в `OrderResponse` / `UploadPageInfo` / `PaymentPageInfo` (`parsed_params`, `survey_data`, `company_requisites`)
+  - [x] Алиас `CompanyRequisitesResponse` + хелпер `company_requisites_for_response` в `app.schemas.schemas`
+  - [x] Рефакторинг `build_order_response` (accessor-based, без `model_validate(order)`)
+  - [x] `app/api/landing.py`: удалён локальный `_company_requisites_for_response`, используется общий хелпер; чтение JSONB через `get_parsed_params` / `get_survey_data` (типизированно)
+  - [x] `tests/test_order_response_typing.py` (11 тестов): типизация полей, happy-path, error-маркер, legacy `missing_params`, грязные данные → `None`
+  - [x] `ruff check` ✓, `ruff format --check` ✓, `mypy app` ✓
+  - [x] `pytest tests/` — 61/61 локально и в Docker `python:3.12-slim` (CI parity)
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`, `CLAUDE.md`
+- **Зависимости**: B1.a (каркас Pydantic-схем), B1.b (accessor'ы) — смержены.
+- **Риски**: средние.
+  - Новый OpenAPI-контракт строже: поля, не входящие в `TUParsedData`/`SurveyData`/`CompanyRequisites`, фильтруются при сериализации (`extra='ignore'`). Внешним потребителям API, которые читали неканонические ключи — они исчезнут.
+  - Для грязных исторических записей `parsed_params`/`survey_data` в ответе теперь `null` вместо исходного dict. Фронт-компоненты админки и upload-страницы штатно обрабатывают `null` (проверка `isParsedParamsEmpty`, ветки для express/custom).
+  - `missing_params` сознательно оставлен `list[str] | None` — legacy-коды типа `floor_plan`/`connection_scheme` в БД ещё встречаются и чинятся только на upload-странице; переход на `list[FileCategory]` увязан с финальной data-миграцией (выделено в B2.c).
+- **Rollback**: `git revert` коммита. Откат данных не требуется — БД не затрагивалась.
+- **Следующий шаг**: E1 — typed API через `openapi-typescript` для автогенерации TS-клиента. Теперь JSONB-поля в OpenAPI описаны строго, TS-типы будут полноценными (не `Record<string, unknown>`).
+
 ## Задача: Фаза B2.b — Удаление legacy UPPER_CASE у `FileCategory` (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Удалён B2.a compat-shim `FileCategory._missing_` и `_B2_LEGACY_ALIASES` / `_canonicalize` в `backend/app/services/param_labels.py`. После B2.b API строго принимает только канонические snake_case lowercase значения; запросы вида `?category=BALANCE_ACT` теперь отвечают **422 Unprocessable Entity** (BREAKING CHANGE). Данные в `orders.missing_params` уже мигрированы в B2.a (Alembic `20260421_uute_fc_lower_missing`). PG-enum `file_category` (метки на `order_files.category`) не затрагивается — labels по-прежнему UPPER_CASE-имена членов Python.
@@ -162,15 +183,7 @@
 
 
 ## Задача: Фаза B1.c — Строгая типизация `OrderResponse` (плановая)
-- **Статус**: Не начата
-- **Описание**: Привести Pydantic-схему `OrderResponse` (и родственные DTO) к строгой типизации JSONB-полей вместо `dict | None`. Breaking change для фронта — делать в связке с **E1** (typed API через openapi-typescript), чтобы TS-клиент автоматически подхватил новые типы.
-- **Шаги выполнения**:
-  - [ ] Заменить `parsed_params: dict | None` на `parsed_params: TUParsedData | None` в `OrderResponse` и наследниках
-  - [ ] Аналогично `survey_data`, `company_requisites`, `missing_params: list[FileCategory]`
-  - [ ] Обновить OpenAPI-схему
-  - [ ] Проверить admin.html / upload.html / payment.html — ключи те же, но фронт переходит на типизированный клиент (E1)
-- **Зависимости**: B1.a (каркас) + E1 (typed API). Делать вместе с E1.
-- **Риски**: средние. Для внешних клиентов — строгая валидация ответа; для нашего фронта — типовой апгрейд.
+- **Статус**: Завершена 2026-04-22 (см. запись «Фаза B1.c — Строгая типизация `OrderResponse`…» в начале файла).
 
 ## Задача: Фаза A4 — Frontend baseline (2026-04-21)
 - **Статус**: Завершена

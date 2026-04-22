@@ -58,6 +58,16 @@
 
 С **фазы D3 (2026-04-22)** логика вынесена из [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) в пакет [`backend/app/services/contract/`](../backend/app/services/contract/): `number_format` (пропись, формат рублей), `tu_embed` (PyMuPDF → PNG, лимит 25 МБ), `docx_utils` (таблицы/параграфы), `contract_docx` (текст договора и приложений), `invoice` (счёт). Публичный API прежний: `generate_contract`, `generate_contract_number`, `generate_invoice` — через shim `contract_generator` или `from app.services.contract import …`.
 
+## Типизация JSONB в API-ответах (фаза B1.c)
+
+С **фазы B1.c (2026-04-22)** Pydantic-схемы ответов API строго типизируют JSONB-поля. Было `parsed_params: dict | None` — стало `parsed_params: TUParsedData | None` в [`OrderResponse`](../backend/app/schemas/schemas.py), `UploadPageInfo`, `PaymentPageInfo`. Аналогично `survey_data: SurveyData | None` и `company_requisites: CompanyRequisites | CompanyRequisitesError | None` (Union учитывает маркер неудачного парсинга карточки предприятия — `{"error": "..."}`).
+
+Ключевые инварианты:
+- `build_order_response(order)` строит DTO **вручную** через accessor'ы `app.repositories.order_jsonb.*` — без `OrderResponse.model_validate(order)`. На невалидных исторических JSONB accessor логирует WARNING и возвращает `None`, поэтому ответ API не падает.
+- Фронт-контракт сохранён: `model_dump()` по-прежнему возвращает те же ключи — `payment.html` / `admin.html` читают `data.company_requisites.error` как раньше.
+- `missing_params` сознательно оставлен `list[str] | None` — в БД могут встречаться legacy-коды (`floor_plan`, `connection_scheme` и т. п.), которые чинятся только через `fix_legacy_client_document_params` на upload-странице. Переход на `list[FileCategory]` отложен до финальной data-миграции legacy-кодов.
+- OpenAPI теперь описывает точную структуру — это разблокирует **E1** (typed API через `openapi-typescript`).
+
 ## Async/sync граница в API (фаза D4)
 
 С **фазы D4 (2026-04-22)** в async-роутерах `backend/app/api/` **запрещено** открывать `with SyncSession()` или вызывать синхронный SMTP напрямую — это блокировало event loop на секунды. Правила:

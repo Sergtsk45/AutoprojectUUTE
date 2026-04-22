@@ -562,6 +562,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 - Безопасность: ограничить CORS до доменов, перевести `verify_admin_key` на `secrets.compare_digest`, отказаться от `?_k=` в публичных URL, убрать дефолты секретов из `config.py`, добавить rate-limit на `/landing/*`.
 - Декомпозиция «толстых» модулей: `services/tasks/` (пакет, D1.b), `services/email/` + shim `email_service.py` (D2), `services/contract/` + shim `contract_generator.py` (D3).
 - Async/sync граница (D4, 2026-04-22): в `backend/app/api/` **запрещён** `SyncSession()` — проверяется CI и тестом. Уведомления best-effort идут через Celery (`notify_engineer_new_order`); SMTP с inline-результатом — через `asyncio.to_thread`. Admin-эндпоинт `/emails/{id}/send` делегирует sync-часть в `app.services.email.manual_send.manual_send_email_sync`.
+- Типизация JSONB-полей API (B1.c, 2026-04-22): `OrderResponse`/`UploadPageInfo`/`PaymentPageInfo` отдают `parsed_params: TUParsedData | None`, `survey_data: SurveyData | None`, `company_requisites: CompanyRequisites | CompanyRequisitesError | None`. `build_order_response` строит DTO через accessor'ы `app.repositories.order_jsonb` (без `model_validate(order)`), на грязных данных — `None` + WARNING. `missing_params` остаётся `list[str] | None` (в БД ещё бывают legacy-коды).
 - Удаление legacy-статусов / нормализация enum после миграции данных.
 - Типизация JSONB-полей (`parsed_params`, `survey_data`, `company_requisites`) Pydantic-моделями.
 - CI (pytest + ruff + mypy + eslint), error-tracking (Sentry/Glitchtip), генерация TypeScript-клиента из OpenAPI.
