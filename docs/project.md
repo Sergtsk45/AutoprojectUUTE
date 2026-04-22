@@ -42,6 +42,10 @@
 
 Подробный трекер (в архиве): [`docs/archive/2026-Q2/smart-survey-tasktracker.md`](archive/2026-Q2/smart-survey-tasktracker.md).
 
+## Celery-задачи (`app.services.tasks`)
+
+С **фазы D1.b (2026-04-22)** код вынесен из одного файла в пакет [`backend/app/services/tasks/`](../backend/app/services/tasks/): `_common` (синхронная сессия, хелперы вложений), `tu_parsing`, `client_response`, `contract_flow`, `post_project_flow`, `reminders`. Публичный импорт прежний: `from app.services.tasks import start_tu_parsing`, `SyncSession`, `_get_order`. У каждой задачи в декораторе зафиксировано явное `name="app.services.tasks.<funcname>"` (фаза D1.a) — смена файла в пакете не меняет имя в Redis/beat.
+
 ## Генерация договора (DOCX)
 
 Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). Для договора используется компактная вёрстка: базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы DOCX оставался плотным и ближе к согласованному шаблону.
