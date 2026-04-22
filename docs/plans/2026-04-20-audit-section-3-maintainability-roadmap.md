@@ -105,7 +105,7 @@ graph TD
 | D4 | Async/sync граница: убрать `SyncSession()` из async-роутеров | H | 2 | M | 13 |
 | D5 | Celery: убрать `visibility_timeout=86400`, `task_reject_on_worker_lost=True` | M | 1 | M | 14 |
 | E1 ✅ | Typed API через `openapi-typescript`, генерация клиента | H | 1 | L | Параллельно, после A — **сделано 2026-04-22** |
-| E2 | Vitest + тесты на критические утилиты фронта | M | 1 | L | Параллельно |
+| E2 ✅ | Vitest + тесты на критические утилиты фронта | M | 1 | L | Параллельно — **сделано 2026-04-22** |
 | E3 | `admin.html` — декомпозиция на модули (минимально, без миграции на React) | M | 3 | M | После E1 |
 | E4 | `upload.html` — аналогично | L | 2 | M | После E3 |
 | F1 | Унификация PG-драйвера на `psycopg[binary] v3` | M | 2 | H | Последним |
@@ -558,11 +558,17 @@ backend/app/services/contract/
 
 ---
 
-### E2. Vitest + тесты
+### E2. Vitest + тесты ✅ (2026-04-22)
 
-**Решение.** Добавить vitest + `@testing-library/react`. Первые тесты — на калькулятор тарифов (чистая функция), модалку опросного листа, утилиты форматирования.
+**Что сделано.** Vitest уже был установлен (5 тестов на `utils/pricing.ts`). Добавлен новый модуль [`frontend/src/api.test.ts`](../../frontend/src/api.test.ts) (10 тестов) — фиксирует контракт транспортного слоя:
+- URL/метод/заголовки/сериализация тела для `requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`;
+- разбор ошибок FastAPI: строковый `detail`, валидационный массив `[{msg}]`, HTTP-fallback;
+- multipart-контракт `kp-request` (Content-Type не ставится вручную);
+- override `VITE_API_BASE_URL` через `vi.stubEnv` + динамический импорт модуля.
 
-**DoD.** `npm test` в CI зелёный на >0 тестов.
+**Решение не требует `@testing-library/react` и `jsdom`:** Node 20 содержит нативные `fetch`/`FormData`, мок делается через `vi.stubGlobal`. Компонентные тесты (модалки) — отложены до фазы E3/E4, когда в них появится нетривиальная логика.
+
+**DoD выполнен.** `npm test` в CI зелёный, 15/15 тестов (было 5).
 
 ---
 

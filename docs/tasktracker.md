@@ -1,5 +1,19 @@
 # Task tracker
 
+## Задача: Фаза E2 — Vitest-тесты на транспортный слой фронта (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Vitest-покрытие фронта расширено с 5 до 15 тестов. Новый модуль `frontend/src/api.test.ts` фиксирует контракт фронт ↔ бэкенд для всех 4 публичных эндпоинтов лендинга: URL, метод, заголовки, сериализация, разбор ошибок (strings detail / FastAPI validation `[{msg}]` / HTTP fallback), multipart без ручного Content-Type, override `VITE_API_BASE_URL`. Тесты не требуют `@testing-library/react` и `jsdom` — используют нативные в Node 20 `fetch`/`FormData`.
+- **Шаги выполнения**:
+  - [x] `frontend/src/api.test.ts` (10 тестов) — 4 describe-блока по функциям + API_BASE override
+  - [x] Fetch-моки через `vi.stubGlobal('fetch', vi.fn())`
+  - [x] `vitest run` — 15/15 (прирост 5 → 15)
+  - [x] `tsc --noEmit`, `npm run lint`, `npm run build` — зелёные
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`, `CLAUDE.md`, плашка ✅ в roadmap
+- **Зависимости**: E1 (типы `OrderRequest`/`SimpleResponse`/… из сгенерированного `types.ts` импортируются в тестах).
+- **Разблокирует**: E3/E4 (можно рефакторить компоненты, уверенно зная, что транспортный слой не сломан).
+- **Риски**: низкие. Тесты живут в существующем CI-job `frontend`, новая зависимость не добавлена.
+- **Rollback**: `git revert` ветки `feat/audit-e2-frontend-tests`.
+
 ## Задача: Фаза E1 — Typed API через `openapi-typescript` (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Фронт переведён на автогенерируемые TS-типы из OpenAPI-спеки бэкенда. Рукопашные `interface OrderRequest/OrderCreatedResponse/SimpleResponse` в `frontend/src/api.ts` заменены на `components['schemas'][…]` из `frontend/src/api/types.ts`, который собирается скриптом `scripts/generate-api-types.sh` из текущего FastAPI-приложения. Добавлен CI-job `api-types-drift`: любое изменение Pydantic-схем без перегенерации клиента роняет билд.
