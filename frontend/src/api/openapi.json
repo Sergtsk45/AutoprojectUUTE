@@ -1,0 +1,5455 @@
+{
+  "components": {
+    "schemas": {
+      "AdditionalRequirements": {
+        "description": "Дополнительные требования из ТУ.",
+        "properties": {
+          "approval_organization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Организация для согласования проекта",
+            "title": "Approval Organization"
+          },
+          "gcs_module": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Требуется модуль ГСМ для передачи данных",
+            "title": "Gcs Module"
+          },
+          "notes": {
+            "description": "Дополнительные примечания и требования из ТУ",
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "pre_survey_required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Требуется акт предпроектного обследования",
+            "title": "Pre Survey Required"
+          }
+        },
+        "title": "AdditionalRequirements",
+        "type": "object"
+      },
+      "ApplicantInfo": {
+        "description": "Данные заявителя (потребителя).",
+        "properties": {
+          "applicant_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Почтовый адрес заявителя",
+            "title": "Applicant Address"
+          },
+          "applicant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Наименование заявителя",
+            "title": "Applicant Name"
+          },
+          "contact_person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Контактное лицо",
+            "title": "Contact Person"
+          }
+        },
+        "title": "ApplicantInfo",
+        "type": "object"
+      },
+      "Body_client_upload_company_card_api_v1_landing_orders__order_id__upload_company_card_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_client_upload_company_card_api_v1_landing_orders__order_id__upload_company_card_post",
+        "type": "object"
+      },
+      "Body_client_upload_file_api_v1_pipeline__order_id__client_upload_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_client_upload_file_api_v1_pipeline__order_id__client_upload_post",
+        "type": "object"
+      },
+      "Body_client_upload_rso_remarks_api_v1_landing_orders__order_id__upload_rso_remarks_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_client_upload_rso_remarks_api_v1_landing_orders__order_id__upload_rso_remarks_post",
+        "type": "object"
+      },
+      "Body_client_upload_rso_scan_api_v1_landing_orders__order_id__upload_rso_scan_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_client_upload_rso_scan_api_v1_landing_orders__order_id__upload_rso_scan_post",
+        "type": "object"
+      },
+      "Body_client_upload_signed_contract_api_v1_landing_orders__order_id__upload_signed_contract_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_client_upload_signed_contract_api_v1_landing_orders__order_id__upload_signed_contract_post",
+        "type": "object"
+      },
+      "Body_client_upload_tu_api_v1_landing_orders__order_id__upload_tu_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_client_upload_tu_api_v1_landing_orders__order_id__upload_tu_post",
+        "type": "object"
+      },
+      "Body_kp_request_api_v1_landing_kp_request_post": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "organization": {
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Organization",
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "minLength": 5,
+            "title": "Phone",
+            "type": "string"
+          },
+          "responsible_name": {
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Responsible Name",
+            "type": "string"
+          },
+          "tu_file": {
+            "format": "binary",
+            "title": "Tu File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization",
+          "responsible_name",
+          "phone",
+          "email",
+          "tu_file"
+        ],
+        "title": "Body_kp_request_api_v1_landing_kp_request_post",
+        "type": "object"
+      },
+      "Body_upload_file_api_v1_orders__order_id__files_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_file_api_v1_orders__order_id__files_post",
+        "type": "object"
+      },
+      "CalcConfigUpdateBody": {
+        "properties": {
+          "params": {
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "params"
+        ],
+        "title": "CalcConfigUpdateBody",
+        "type": "object"
+      },
+      "CompanyRequisites": {
+        "description": "Реквизиты организации, извлечённые из карточки предприятия.\n\nХранится в `Order.company_requisites` (JSONB) вместе с метаданными парсинга\n(`parse_confidence`, `warnings`). `extra='ignore'` — чтобы старые записи с\nдополнительными ключами (от предыдущих версий промпта) не ломали чтение.",
+        "properties": {
+          "actual_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Фактический адрес (если отличается)",
+            "title": "Actual Address"
+          },
+          "bank_name": {
+            "default": "",
+            "description": "Наименование банка",
+            "title": "Bank Name",
+            "type": "string"
+          },
+          "bik": {
+            "default": "",
+            "description": "БИК (9 цифр)",
+            "title": "Bik",
+            "type": "string"
+          },
+          "corr_account": {
+            "default": "",
+            "description": "Корреспондентский счёт (20 цифр)",
+            "title": "Corr Account",
+            "type": "string"
+          },
+          "director_name": {
+            "default": "",
+            "description": "ФИО руководителя полностью",
+            "title": "Director Name",
+            "type": "string"
+          },
+          "director_position": {
+            "default": "Генеральный директор",
+            "description": "Должность (Генеральный директор / Директор / ИП)",
+            "title": "Director Position",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email",
+            "title": "Email"
+          },
+          "full_name": {
+            "default": "",
+            "description": "Полное наименование с ОПФ (ООО «Теплосеть»)",
+            "title": "Full Name",
+            "type": "string"
+          },
+          "inn": {
+            "default": "",
+            "description": "ИНН (10 цифр юрлицо, 12 цифр ИП)",
+            "title": "Inn",
+            "type": "string"
+          },
+          "kpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "КПП (9 цифр, только юрлица)",
+            "title": "Kpp"
+          },
+          "legal_address": {
+            "default": "",
+            "description": "Юридический адрес",
+            "title": "Legal Address",
+            "type": "string"
+          },
+          "ogrn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ОГРН (13 цифр) или ОГРНИП (15 цифр)",
+            "title": "Ogrn"
+          },
+          "parse_confidence": {
+            "default": 0.0,
+            "description": "Уверенность парсера",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Parse Confidence",
+            "type": "number"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Телефон",
+            "title": "Phone"
+          },
+          "settlement_account": {
+            "default": "",
+            "description": "Расчётный счёт (20 цифр)",
+            "title": "Settlement Account",
+            "type": "string"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Краткое наименование",
+            "title": "Short Name"
+          },
+          "warnings": {
+            "description": "Предупреждения парсера",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "title": "CompanyRequisites",
+        "type": "object"
+      },
+      "CompanyRequisitesError": {
+        "description": "Маркер неудачного парсинга «Карточки предприятия».\n\nПопадает в `Order.company_requisites` (JSONB) когда парсер не смог извлечь\nреквизиты (PDF нечитаем, сканирование низкого качества и т.п.). Фронт\nадминки (`admin.html`) и страница оплаты (`payment.html`) распознают этот\nмаркер по полю `error` и показывают баннер «Ошибка распознавания».\n\nВыделен в отдельную схему (фаза B1.c, 2026-04-22), чтобы типизация\n`OrderResponse.company_requisites` была точной: либо валидные\n`CompanyRequisites`, либо этот маркер, либо `None`.",
+        "properties": {
+          "error": {
+            "description": "Сообщение об ошибке парсинга",
+            "title": "Error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "CompanyRequisitesError",
+        "type": "object"
+      },
+      "ConnectionScheme": {
+        "description": "Схема подключения.",
+        "properties": {
+          "connection_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "зависимая",
+                  "независимая",
+                  "неизвестно"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип присоединения",
+            "title": "Connection Type"
+          },
+          "heating_system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Система отопления: отопление, ГВС, вентиляция и т.д.",
+            "title": "Heating System"
+          },
+          "system_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "закрытая",
+                  "открытая",
+                  "закрытая_двухтрубная",
+                  "закрытая_четырёхтрубная",
+                  "открытая_двухтрубная",
+                  "открытая_четырёхтрубная",
+                  "двухтрубная",
+                  "четырёхтрубная",
+                  "неизвестно"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип системы теплоснабжения",
+            "title": "System Type"
+          }
+        },
+        "title": "ConnectionScheme",
+        "type": "object"
+      },
+      "CoolantParams": {
+        "description": "Параметры теплоносителя.",
+        "properties": {
+          "heating_season": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Отопительный сезон, например '2024/2025'",
+            "title": "Heating Season"
+          },
+          "return_pressure_kgcm2": {
+            "anyOf": [
+              {
+                "maximum": 25.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Расчётное давление в обратном, кг/см²",
+            "title": "Return Pressure Kgcm2"
+          },
+          "return_temp": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 30.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Температура обратки (макс), °C",
+            "title": "Return Temp"
+          },
+          "supply_pressure_kgcm2": {
+            "anyOf": [
+              {
+                "maximum": 25.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Расчётное давление в подающем, кг/см²",
+            "title": "Supply Pressure Kgcm2"
+          },
+          "supply_temp": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": 50.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Температура подачи (макс), °C",
+            "title": "Supply Temp"
+          },
+          "temp_schedule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Температурный график, например '150/70' или '117.2/70'",
+            "title": "Temp Schedule"
+          }
+        },
+        "title": "CoolantParams",
+        "type": "object"
+      },
+      "EmailLogResponse": {
+        "description": "Лог отправленного письма.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email_type": {
+            "$ref": "#/components/schemas/EmailType"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "recipient": {
+            "title": "Recipient",
+            "type": "string"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email_type",
+          "recipient",
+          "subject",
+          "sent_at",
+          "error_message",
+          "created_at"
+        ],
+        "title": "EmailLogResponse",
+        "type": "object"
+      },
+      "EmailType": {
+        "enum": [
+          "info_request",
+          "reminder",
+          "project_delivery",
+          "error_notification",
+          "sample_delivery",
+          "new_order_notification",
+          "tu_parsed_notification",
+          "client_documents_received",
+          "partnership_request",
+          "survey_reminder",
+          "project_ready_payment",
+          "contract_delivery",
+          "signed_contract_notification",
+          "advance_received",
+          "final_payment_request",
+          "final_payment_received"
+        ],
+        "title": "EmailType",
+        "type": "string"
+      },
+      "FileCategory": {
+        "description": "Категории загружаемых файлов.\n\nЕдиный канонический формат `.value` — **snake_case lowercase**\n(фаза B2.a 2026-04-21, B2.b 2026-04-22). До B2 значения\n`BALANCE_ACT`/`CONNECTION_PLAN` хранились в UPPER_CASE; переведены в\nlowercase. С B2.b совместимый shim `_missing_` удалён — API теперь\nотвергает uppercase-варианты с **422 Unprocessable Entity**.\n\nВ PostgreSQL тип `file_category` — метки совпадают с **именами** членов\nPython (`TU`, `BALANCE_ACT`, …), а не с `.value`. SQLAlchemy без\n`values_callable` persist имена, поэтому смена `.value` не требует\nAlembic-миграции enum. Значения `.value` используются для API,\nquery-параметров и сегментов пути в хранилище\n(`upload_dir/<order_id>/<category.value>/...`).",
+        "enum": [
+          "tu",
+          "balance_act",
+          "connection_plan",
+          "heat_point_plan",
+          "heat_scheme",
+          "generated_excel",
+          "generated_project",
+          "other",
+          "company_card",
+          "signed_contract",
+          "contract",
+          "invoice",
+          "final_invoice",
+          "rso_scan",
+          "rso_remarks"
+        ],
+        "title": "FileCategory",
+        "type": "string"
+      },
+      "FileResponse": {
+        "description": "Информация о загруженном файле.",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/FileCategory"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "original_filename": {
+            "title": "Original Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "original_filename",
+          "content_type",
+          "file_size",
+          "created_at"
+        ],
+        "title": "FileResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HeatLoads": {
+        "description": "Тепловые нагрузки (Гкал/ч).",
+        "properties": {
+          "heating_load": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Отопление, Гкал/ч",
+            "title": "Heating Load"
+          },
+          "hot_water_load": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ГВС, Гкал/ч",
+            "title": "Hot Water Load"
+          },
+          "total_load": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Общая договорная тепловая нагрузка, Гкал/ч",
+            "title": "Total Load"
+          },
+          "ventilation_load": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Вентиляция, Гкал/ч",
+            "title": "Ventilation Load"
+          }
+        },
+        "title": "HeatLoads",
+        "type": "object"
+      },
+      "ManualSendRequest": {
+        "properties": {
+          "action_required": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Required"
+          },
+          "email_type": {
+            "$ref": "#/components/schemas/EmailType"
+          },
+          "error_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Description"
+          }
+        },
+        "required": [
+          "email_type"
+        ],
+        "title": "ManualSendRequest",
+        "type": "object"
+      },
+      "ManualSendResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "ManualSendResponse",
+        "type": "object"
+      },
+      "MeteringRequirements": {
+        "description": "Требования к узлу учёта и приборам.",
+        "properties": {
+          "archive_capacity_daily": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ёмкость архива суточного, месяцев",
+            "title": "Archive Capacity Daily"
+          },
+          "archive_capacity_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ёмкость архива часового, суток",
+            "title": "Archive Capacity Hours"
+          },
+          "archive_capacity_monthly": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ёмкость архива месячного, лет",
+            "title": "Archive Capacity Monthly"
+          },
+          "data_interface": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Интерфейс передачи данных (RS-485, GSM модем и т.д.)",
+            "title": "Data Interface"
+          },
+          "flowmeter_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Рекомендуемые расходомеры",
+            "title": "Flowmeter Model"
+          },
+          "heat_calculator_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Рекомендуемый тепловычислитель",
+            "title": "Heat Calculator Model"
+          },
+          "heat_meter_class": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Класс точности теплосчётчика (не ниже)",
+            "title": "Heat Meter Class"
+          },
+          "meter_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Место установки узла учёта (на вводе, в ИТП и т.д.)",
+            "title": "Meter Location"
+          },
+          "pressure_sensor_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Рекомендуемые датчики давления",
+            "title": "Pressure Sensor Model"
+          },
+          "temp_sensor_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Рекомендуемые датчики температуры",
+            "title": "Temp Sensor Model"
+          }
+        },
+        "title": "MeteringRequirements",
+        "type": "object"
+      },
+      "ObjectInfo": {
+        "description": "Данные об объекте.",
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Город",
+            "title": "City"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Адрес объекта теплоснабжения",
+            "title": "Object Address"
+          },
+          "object_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип объекта: МКД, нежилое здание, промышленное и т.д.",
+            "title": "Object Type"
+          }
+        },
+        "title": "ObjectInfo",
+        "type": "object"
+      },
+      "OrderCreate": {
+        "description": "Создание заявки — данные из формы на лендинге.",
+        "properties": {
+          "client_email": {
+            "examples": [
+              "ivanov@example.ru"
+            ],
+            "format": "email",
+            "title": "Client Email",
+            "type": "string"
+          },
+          "client_name": {
+            "examples": [
+              "Иванов И.И."
+            ],
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Client Name",
+            "type": "string"
+          },
+          "client_organization": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "ООО Теплосеть"
+            ],
+            "title": "Client Organization"
+          },
+          "client_phone": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "+7 999 123-45-67"
+            ],
+            "title": "Client Phone"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "г. Москва, ул. Строителей, д. 5"
+            ],
+            "title": "Object Address"
+          },
+          "object_city": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "Москва"
+            ],
+            "title": "Object City"
+          },
+          "order_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Type"
+          }
+        },
+        "required": [
+          "client_name",
+          "client_email"
+        ],
+        "title": "OrderCreate",
+        "type": "object"
+      },
+      "OrderCreatedResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "string"
+          },
+          "upload_url": {
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "upload_url",
+          "message"
+        ],
+        "title": "OrderCreatedResponse",
+        "type": "object"
+      },
+      "OrderListItem": {
+        "description": "Краткая информация о заявке для списка.",
+        "properties": {
+          "client_email": {
+            "title": "Client Email",
+            "type": "string"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Address"
+          },
+          "object_city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object City"
+          },
+          "order_type": {
+            "$ref": "#/components/schemas/OrderType"
+          },
+          "payment_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Amount"
+          },
+          "payment_method": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "order_type",
+          "client_name",
+          "client_email",
+          "object_address",
+          "object_city",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OrderListItem",
+        "type": "object"
+      },
+      "OrderRequest": {
+        "properties": {
+          "circuits": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuits"
+          },
+          "client_email": {
+            "format": "email",
+            "title": "Client Email",
+            "type": "string"
+          },
+          "client_name": {
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Client Name",
+            "type": "string"
+          },
+          "client_organization": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Organization"
+          },
+          "client_phone": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Phone"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Address"
+          },
+          "object_city": {
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Object City",
+            "type": "string"
+          },
+          "order_type": {
+            "default": "express",
+            "pattern": "^(express|custom)$",
+            "title": "Order Type",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          }
+        },
+        "required": [
+          "client_name",
+          "client_email",
+          "object_city"
+        ],
+        "title": "OrderRequest",
+        "type": "object"
+      },
+      "OrderResponse": {
+        "description": "Ответ API — полная информация о заявке.\n\nJSONB-поля (`parsed_params`, `survey_data`, `company_requisites`) с B1.c\nтипизированы строго. Валидация происходит в `build_order_response` через\naccessor'ы `app.repositories.order_jsonb.*` — невалидные исторические\nзаписи становятся `None` (+ WARNING в лог), а `OrderResponse` не падает.\n\nПоле `missing_params: list[str] | None` сохранено как plain-строки:\nв БД возможны legacy-коды (`floor_plan`, `connection_scheme` и т. п.),\nкоторые сервис `fix_legacy_client_document_params` приводит к канонике\nтолько при открытии страницы загрузки клиентом. Для админки эти коды\nиногда важно видеть «как есть».",
+        "properties": {
+          "advance_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Advance Amount"
+          },
+          "advance_paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Advance Paid At"
+          },
+          "awaiting_rso_feedback": {
+            "default": false,
+            "title": "Awaiting Rso Feedback",
+            "type": "boolean"
+          },
+          "client_email": {
+            "title": "Client Email",
+            "type": "string"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "client_organization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Organization"
+          },
+          "client_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Phone"
+          },
+          "company_requisites": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanyRequisites"
+              },
+              {
+                "$ref": "#/components/schemas/CompanyRequisitesError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Requisites"
+          },
+          "contract_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/EmailLogResponse"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileResponse"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "final_invoice_available": {
+            "default": false,
+            "title": "Final Invoice Available",
+            "type": "boolean"
+          },
+          "final_paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Paid At"
+          },
+          "has_rso_remarks": {
+            "default": false,
+            "title": "Has Rso Remarks",
+            "type": "boolean"
+          },
+          "has_rso_scan": {
+            "default": false,
+            "title": "Has Rso Scan",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "info_request_earliest_auto_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Info Request Earliest Auto At"
+          },
+          "info_request_sent": {
+            "default": false,
+            "title": "Info Request Sent",
+            "type": "boolean"
+          },
+          "missing_params": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Params"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Address"
+          },
+          "object_city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object City"
+          },
+          "order_type": {
+            "$ref": "#/components/schemas/OrderType"
+          },
+          "parsed_params": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TUParsedData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payment_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Amount"
+          },
+          "payment_method": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reminder_sent": {
+            "default": false,
+            "title": "Reminder Sent",
+            "type": "boolean"
+          },
+          "retry_count": {
+            "title": "Retry Count",
+            "type": "integer"
+          },
+          "reviewer_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Comment"
+          },
+          "rso_scan_received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rso Scan Received At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "survey_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SurveyData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "order_type",
+          "client_name",
+          "client_email",
+          "client_phone",
+          "client_organization",
+          "object_address",
+          "object_city",
+          "parsed_params",
+          "missing_params",
+          "survey_data",
+          "retry_count",
+          "reviewer_comment",
+          "created_at",
+          "updated_at",
+          "files",
+          "emails"
+        ],
+        "title": "OrderResponse",
+        "type": "object"
+      },
+      "OrderStatus": {
+        "description": "Конечный автомат заявки.\n\nnew                    → клиент загрузил ТУ, заявка создана\ntu_parsing             → ТУ отправлены на парсинг (модуль 1)\ntu_parsed              → параметры извлечены, проверяется полнота\nwaiting_client_info    → клиенту отправлен запрос на доп. информацию\nclient_info_received   → клиент прислал ответ, идёт анализ\ndata_complete          → все данные собраны\ngenerating_project     → Excel заполнен, T-FLEX генерирует проект\nreview                 → проект готов, ждёт проверки инженером\nawaiting_contract      → инженер одобрил, ждём реквизиты от клиента\ncontract_sent          → договор и счёт на 50% отправлены, ждём аванс\nadvance_paid           → аванс получен, проект отправлен клиенту\nawaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%\nrso_remarks_received   → получены замечания РСО, проект возвращён инженеру\ncompleted              → проект отправлен клиенту\nerror                  → ошибка на любом этапе",
+        "enum": [
+          "new",
+          "tu_parsing",
+          "tu_parsed",
+          "waiting_client_info",
+          "client_info_received",
+          "data_complete",
+          "generating_project",
+          "review",
+          "awaiting_contract",
+          "contract_sent",
+          "advance_paid",
+          "awaiting_final_payment",
+          "rso_remarks_received",
+          "completed",
+          "error"
+        ],
+        "title": "OrderStatus",
+        "type": "string"
+      },
+      "OrderStatusUpdate": {
+        "description": "Ручная смена статуса (для админки / этапа review).",
+        "properties": {
+          "reviewer_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Comment"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "OrderStatusUpdate",
+        "type": "object"
+      },
+      "OrderType": {
+        "enum": [
+          "express",
+          "custom"
+        ],
+        "title": "OrderType",
+        "type": "string"
+      },
+      "ParsedDataResponse": {
+        "description": "Результат парсинга ТУ.",
+        "properties": {
+          "missing_params": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Params"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "parse_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parse Confidence"
+          },
+          "parsed_params": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parsed Params"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warnings"
+          }
+        },
+        "required": [
+          "order_id",
+          "status",
+          "parsed_params",
+          "missing_params",
+          "parse_confidence",
+          "warnings"
+        ],
+        "title": "ParsedDataResponse",
+        "type": "object"
+      },
+      "PartnershipRequest": {
+        "properties": {
+          "company": {
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Company",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "minLength": 5,
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "company",
+          "email",
+          "phone"
+        ],
+        "title": "PartnershipRequest",
+        "type": "object"
+      },
+      "PaymentMethod": {
+        "enum": [
+          "bank_transfer",
+          "online_card"
+        ],
+        "title": "PaymentMethod",
+        "type": "string"
+      },
+      "PaymentMethodRequest": {
+        "properties": {
+          "payment_method": {
+            "pattern": "^(bank_transfer|online_card)$",
+            "title": "Payment Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_method"
+        ],
+        "title": "PaymentMethodRequest",
+        "type": "object"
+      },
+      "PaymentPageInfo": {
+        "description": "Информация для страницы оплаты клиентом.\n\n`company_requisites` с B1.c — строгий Union. Фронт `payment.html` по-прежнему\nпроверяет `data.company_requisites && data.company_requisites.error` — при\nошибке парсинга бэкенд отдаёт `CompanyRequisitesError` (`{\"error\": \"...\"}`)\nи флоу остаётся прежним.",
+        "properties": {
+          "advance_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Advance Amount"
+          },
+          "awaiting_rso_feedback": {
+            "default": false,
+            "title": "Awaiting Rso Feedback",
+            "type": "boolean"
+          },
+          "client_email": {
+            "title": "Client Email",
+            "type": "string"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "company_requisites": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanyRequisites"
+              },
+              {
+                "$ref": "#/components/schemas/CompanyRequisitesError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Requisites"
+          },
+          "contract_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Number"
+          },
+          "files_uploaded": {
+            "items": {
+              "$ref": "#/components/schemas/FileResponse"
+            },
+            "title": "Files Uploaded",
+            "type": "array"
+          },
+          "final_invoice_available": {
+            "default": false,
+            "title": "Final Invoice Available",
+            "type": "boolean"
+          },
+          "has_rso_remarks": {
+            "default": false,
+            "title": "Has Rso Remarks",
+            "type": "boolean"
+          },
+          "has_rso_scan": {
+            "default": false,
+            "title": "Has Rso Scan",
+            "type": "boolean"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Address"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "order_status": {
+            "title": "Order Status",
+            "type": "string"
+          },
+          "order_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Type"
+          },
+          "payment_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Amount"
+          },
+          "payment_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Method"
+          },
+          "payment_requisites": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Requisites"
+          },
+          "rso_scan_received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rso Scan Received At"
+          }
+        },
+        "required": [
+          "order_id",
+          "client_name",
+          "client_email",
+          "object_address",
+          "order_status",
+          "files_uploaded"
+        ],
+        "title": "PaymentPageInfo",
+        "type": "object"
+      },
+      "PipelineParams": {
+        "description": "Параметры трубопроводов.",
+        "properties": {
+          "pipe_inner_diameter_mm": {
+            "anyOf": [
+              {
+                "maximum": 1400.0,
+                "minimum": 10.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Внутренний (условный) диаметр, мм",
+            "title": "Pipe Inner Diameter Mm"
+          },
+          "pipe_outer_diameter_mm": {
+            "anyOf": [
+              {
+                "maximum": 1420.0,
+                "minimum": 15.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Наружный диаметр подающего/обратного, мм",
+            "title": "Pipe Outer Diameter Mm"
+          }
+        },
+        "title": "PipelineParams",
+        "type": "object"
+      },
+      "PipelineResponse": {
+        "description": "Ответ эндпоинтов пайплайна и публичного submit на лендинге.",
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "message",
+          "order_id"
+        ],
+        "title": "PipelineResponse",
+        "type": "object"
+      },
+      "RSOInfo": {
+        "description": "Данные ресурсоснабжающей организации.",
+        "properties": {
+          "rso_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Адрес РСО",
+            "title": "Rso Address"
+          },
+          "rso_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email РСО",
+            "title": "Rso Email"
+          },
+          "rso_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Наименование РСО",
+            "title": "Rso Name"
+          },
+          "rso_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Телефон РСО",
+            "title": "Rso Phone"
+          },
+          "rso_website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Сайт РСО",
+            "title": "Rso Website"
+          }
+        },
+        "title": "RSOInfo",
+        "type": "object"
+      },
+      "RetriggerResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "RetriggerResponse",
+        "type": "object"
+      },
+      "SampleRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "SampleRequest",
+        "type": "object"
+      },
+      "SimpleResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "SimpleResponse",
+        "type": "object"
+      },
+      "SurveyData": {
+        "description": "Опросный лист клиента для custom-заказов.\n\nКлючи синхронизированы с `collectSurveyData()` в `backend/static/upload.html`.\nВсе поля опциональные: UI валидирует обязательные поля на клиенте; бэкенд\nпринимает частично заполненный опрос (для сохранения черновика).",
+        "properties": {
+          "accuracy_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Класс точности",
+            "title": "Accuracy Class"
+          },
+          "building_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип здания (жилое/нежилое/…)",
+            "title": "Building Type"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Город",
+            "title": "City"
+          },
+          "comments": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Комментарии клиента",
+            "title": "Comments"
+          },
+          "connection_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип присоединения",
+            "title": "Connection Type"
+          },
+          "construction_year": {
+            "anyOf": [
+              {
+                "maximum": 2100.0,
+                "minimum": 1800.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Год постройки",
+            "title": "Construction Year"
+          },
+          "distance_to_vru": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Расстояние до ВРУ, м",
+            "title": "Distance To Vru"
+          },
+          "floors": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Этажность",
+            "title": "Floors"
+          },
+          "flow_meter_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип расходомера (электромагнитный/ультразвуковой/…)",
+            "title": "Flow Meter Type"
+          },
+          "has_filters": {
+            "anyOf": [
+              {
+                "enum": [
+                  "yes",
+                  "no"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Есть фильтры",
+            "title": "Has Filters"
+          },
+          "has_mud_separators": {
+            "anyOf": [
+              {
+                "enum": [
+                  "yes",
+                  "no"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Есть грязевики",
+            "title": "Has Mud Separators"
+          },
+          "heat_load_heating": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Отопление, Гкал/ч",
+            "title": "Heat Load Heating"
+          },
+          "heat_load_hw": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ГВС, Гкал/ч",
+            "title": "Heat Load Hw"
+          },
+          "heat_load_tech": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Технологические, Гкал/ч",
+            "title": "Heat Load Tech"
+          },
+          "heat_load_total": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Общая тепловая нагрузка, Гкал/ч",
+            "title": "Heat Load Total"
+          },
+          "heat_load_vent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Вентиляция, Гкал/ч",
+            "title": "Heat Load Vent"
+          },
+          "heat_supply_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Источник теплоснабжения (ТЭЦ, котельная, …)",
+            "title": "Heat Supply Source"
+          },
+          "manufacturer": {
+            "anyOf": [
+              {
+                "enum": [
+                  "teplovizor",
+                  "vzlyot",
+                  "tekon",
+                  "elf",
+                  "logika",
+                  "shkala",
+                  "karat",
+                  "magika",
+                  "other"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Производитель тепловычислителя",
+            "title": "Manufacturer"
+          },
+          "manufacturer_other": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Производитель (если manufacturer='other')",
+            "title": "Manufacturer Other"
+          },
+          "meter_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Место установки узла учёта",
+            "title": "Meter Location"
+          },
+          "pipe_dn_return": {
+            "anyOf": [
+              {
+                "maximum": 1500.0,
+                "minimum": 10.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DN обратного, мм",
+            "title": "Pipe Dn Return"
+          },
+          "pipe_dn_supply": {
+            "anyOf": [
+              {
+                "maximum": 1500.0,
+                "minimum": 10.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "DN подающего, мм",
+            "title": "Pipe Dn Supply"
+          },
+          "pressure_return": {
+            "anyOf": [
+              {
+                "maximum": 30.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Давление в обратном, кг/см²",
+            "title": "Pressure Return"
+          },
+          "pressure_supply": {
+            "anyOf": [
+              {
+                "maximum": 30.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Давление в подающем, кг/см²",
+            "title": "Pressure Supply"
+          },
+          "return_temp": {
+            "anyOf": [
+              {
+                "maximum": 150.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Температура обратки, °C",
+            "title": "Return Temp"
+          },
+          "rso_requirements": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Требования РСО",
+            "title": "Rso Requirements"
+          },
+          "supply_temp": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Температура подачи, °C",
+            "title": "Supply Temp"
+          },
+          "system_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тип системы теплоснабжения",
+            "title": "System Type"
+          },
+          "tcw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Код конфигурации (устаревший ключ)",
+            "title": "Tcw"
+          }
+        },
+        "title": "SurveyData",
+        "type": "object"
+      },
+      "TUDocumentInfo": {
+        "description": "Реквизиты документа ТУ.",
+        "properties": {
+          "signatory_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ФИО подписанта",
+            "title": "Signatory Name"
+          },
+          "signatory_position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Должность подписанта",
+            "title": "Signatory Position"
+          },
+          "tu_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Дата выдачи ТУ (ДД.ММ.ГГГГ)",
+            "title": "Tu Date"
+          },
+          "tu_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Номер ТУ",
+            "title": "Tu Number"
+          },
+          "tu_response_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "На основании заявки №... от ...",
+            "title": "Tu Response To"
+          },
+          "tu_valid_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Действует с (ДД.ММ.ГГГГ)",
+            "title": "Tu Valid From"
+          },
+          "tu_valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Действует по (ДД.ММ.ГГГГ)",
+            "title": "Tu Valid To"
+          }
+        },
+        "title": "TUDocumentInfo",
+        "type": "object"
+      },
+      "TUParsedData": {
+        "description": "Полная структура данных, извлечённых из технических условий.\n\nХранится в `Order.parsed_params` (JSONB). Заполняется LLM-парсером.",
+        "properties": {
+          "additional": {
+            "$ref": "#/components/schemas/AdditionalRequirements"
+          },
+          "applicant": {
+            "$ref": "#/components/schemas/ApplicantInfo"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/ConnectionScheme"
+          },
+          "coolant": {
+            "$ref": "#/components/schemas/CoolantParams"
+          },
+          "document": {
+            "$ref": "#/components/schemas/TUDocumentInfo"
+          },
+          "heat_loads": {
+            "$ref": "#/components/schemas/HeatLoads"
+          },
+          "metering": {
+            "$ref": "#/components/schemas/MeteringRequirements"
+          },
+          "object": {
+            "$ref": "#/components/schemas/ObjectInfo"
+          },
+          "parse_confidence": {
+            "default": 0.0,
+            "description": "Общая уверенность парсера (0–1)",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Parse Confidence",
+            "type": "number"
+          },
+          "pipeline": {
+            "$ref": "#/components/schemas/PipelineParams"
+          },
+          "raw_text": {
+            "default": "",
+            "description": "Исходный текст из PDF (для отладки)",
+            "title": "Raw Text",
+            "type": "string"
+          },
+          "rso": {
+            "$ref": "#/components/schemas/RSOInfo"
+          },
+          "warnings": {
+            "description": "Предупреждения парсера (нечитаемые фрагменты, несоответствия)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "title": "TUParsedData",
+        "type": "object"
+      },
+      "UploadPageInfo": {
+        "description": "Информация для страницы загрузки файлов клиентом.\n\nJSONB-поля типизированы (B1.c). `company_requisites` — `CompanyRequisites`\nдля валидных реквизитов либо `CompanyRequisitesError` для маркера ошибки\nпарсинга карточки (фронт `upload.html` этот маркер по нынешнему коду\nне показывает, но контракт совпадает с `PaymentPageInfo`).",
+        "properties": {
+          "advance_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Advance Amount"
+          },
+          "client_name": {
+            "title": "Client Name",
+            "type": "string"
+          },
+          "company_requisites": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompanyRequisites"
+              },
+              {
+                "$ref": "#/components/schemas/CompanyRequisitesError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Requisites"
+          },
+          "contract_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Number"
+          },
+          "files_uploaded": {
+            "items": {
+              "$ref": "#/components/schemas/FileResponse"
+            },
+            "title": "Files Uploaded",
+            "type": "array"
+          },
+          "missing_params": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Params",
+            "type": "array"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "order_status": {
+            "title": "Order Status",
+            "type": "string"
+          },
+          "order_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Type"
+          },
+          "parsed_params": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TUParsedData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payment_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Amount"
+          },
+          "survey_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SurveyData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "order_id",
+          "client_name",
+          "order_status",
+          "missing_params",
+          "files_uploaded"
+        ],
+        "title": "UploadPageInfo",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "in": "header",
+        "name": "X-Admin-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Сервис автоматизированного проектирования узлов учёта тепловой энергии",
+    "title": "УУТЭ Проектировщик",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/admin": {
+      "get": {
+        "description": "Админ-панель для инженера.",
+        "operationId": "admin_page_admin_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Admin Page"
+      }
+    },
+    "/api/v1/admin/files/{file_id}/download": {
+      "get": {
+        "description": "Скачать файл заявки по его ID.",
+        "operationId": "download_file_api_v1_admin_files__file_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Download File",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{order_id}/calc-config": {
+      "get": {
+        "description": "Получить конфиг вычислителя для заявки или шаблон если конфиг не инициализирован.",
+        "operationId": "get_calc_config_api_v1_admin_orders__order_id__calc_config_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Calc Config",
+        "tags": [
+          "calculator-config"
+        ]
+      },
+      "patch": {
+        "description": "Обновить параметры конфига вычислителя.",
+        "operationId": "update_calc_config_api_v1_admin_orders__order_id__calc_config_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalcConfigUpdateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Update Calc Config",
+        "tags": [
+          "calculator-config"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{order_id}/calc-config/export-pdf": {
+      "post": {
+        "description": "Экспортировать настроечную БД вычислителя в PDF.",
+        "operationId": "export_calc_config_pdf_api_v1_admin_orders__order_id__calc_config_export_pdf_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Export Calc Config Pdf",
+        "tags": [
+          "calculator-config"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{order_id}/calc-config/init": {
+      "post": {
+        "description": "Инициализировать или переинициализировать конфиг вычислителя.",
+        "operationId": "init_calc_config_api_v1_admin_orders__order_id__calc_config_init_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "default": {},
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Init Calc Config",
+        "tags": [
+          "calculator-config"
+        ]
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "description": "Простая статистика для дашборда.",
+        "operationId": "get_stats_api_v1_admin_stats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Stats",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/emails/{order_id}/log": {
+      "get": {
+        "operationId": "get_email_log_api_v1_emails__order_id__log_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmailLogResponse"
+                  },
+                  "title": "Response Get Email Log Api V1 Emails  Order Id  Log Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Лог отправленных писем по заявке",
+        "tags": [
+          "emails"
+        ]
+      }
+    },
+    "/api/v1/emails/{order_id}/preview/info-request": {
+      "get": {
+        "operationId": "preview_info_request_api_v1_emails__order_id__preview_info_request_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Предпросмотр письма «Запрос документов»",
+        "tags": [
+          "emails"
+        ]
+      }
+    },
+    "/api/v1/emails/{order_id}/preview/project-delivery": {
+      "get": {
+        "operationId": "preview_project_delivery_api_v1_emails__order_id__preview_project_delivery_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Предпросмотр письма «Проект готов»",
+        "tags": [
+          "emails"
+        ]
+      }
+    },
+    "/api/v1/emails/{order_id}/preview/reminder": {
+      "get": {
+        "operationId": "preview_reminder_api_v1_emails__order_id__preview_reminder_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Предпросмотр письма-напоминания",
+        "tags": [
+          "emails"
+        ]
+      }
+    },
+    "/api/v1/emails/{order_id}/send": {
+      "post": {
+        "description": "Ручная отправка письма по заявке.\n\nПолезно для:\n- повторной отправки, если автоматическая не дошла\n- отправки уведомления об ошибке с кастомным текстом",
+        "operationId": "manual_send_email_api_v1_emails__order_id__send_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualSendResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Ручная отправка письма (админка)",
+        "tags": [
+          "emails"
+        ]
+      }
+    },
+    "/api/v1/landing/kp-request": {
+      "post": {
+        "description": "Сценарий D: Запрос коммерческого предложения.\n\nПринимает контактные данные и файл ТУ, отправляет письмо инженеру.\nЗаявка в БД не создаётся.",
+        "operationId": "kp_request_api_v1_landing_kp_request_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_kp_request_api_v1_landing_kp_request_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Kp Request",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/order": {
+      "post": {
+        "description": "Сценарий B: Клиент заказывает проект.\n\nСоздаёт заявку в БД, уведомляет инженера (Celery, best-effort),\nвозвращает ссылку на upload-страницу.",
+        "operationId": "create_order_from_landing_api_v1_landing_order_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCreatedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Order From Landing",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/payment-page": {
+      "get": {
+        "description": "Информация для страницы оплаты клиентом.",
+        "operationId": "get_payment_page_info_api_v1_landing_orders__order_id__payment_page_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentPageInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Payment Page Info",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/select-payment-method": {
+      "post": {
+        "description": "Клиент выбрал метод оплаты.\n\nДля bank_transfer: сохраняет метод, запускает генерацию договора и счёта.\nДля online_card: сохраняет метод, создаёт платёж в YooKassa.",
+        "operationId": "select_payment_method_api_v1_landing_orders__order_id__select_payment_method_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentMethodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Select Payment Method",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/submit": {
+      "post": {
+        "description": "Публичный запуск парсинга ТУ после загрузки файла (страница upload.html).\n\nТе же проверки, что у ``POST /pipeline/{id}/start``, без админского ключа.",
+        "operationId": "client_submit_new_order_api_v1_landing_orders__order_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Submit New Order",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/survey": {
+      "post": {
+        "description": "Публичное сохранение данных опросного листа (только для custom-заказов).",
+        "operationId": "save_survey_api_v1_landing_orders__order_id__survey_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Survey",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/upload-company-card": {
+      "post": {
+        "description": "Загрузка карточки предприятия клиентом (страница payment.html).\n\nПринимает PDF, DOC, DOCX, JPG, PNG. Запускает парсинг реквизитов.",
+        "operationId": "client_upload_company_card_api_v1_landing_orders__order_id__upload_company_card_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_client_upload_company_card_api_v1_landing_orders__order_id__upload_company_card_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload Company Card",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/upload-page": {
+      "get": {
+        "description": "Информация для клиентской страницы загрузки файлов.\n\nКлиент получает ссылку в письме:\nhttps://yourdomain.ru/upload/<order_id>",
+        "operationId": "get_upload_page_info_api_v1_landing_orders__order_id__upload_page_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadPageInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Upload Page Info",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/upload-rso-remarks": {
+      "post": {
+        "description": "Загрузка замечаний РСО после получения проекта.",
+        "operationId": "client_upload_rso_remarks_api_v1_landing_orders__order_id__upload_rso_remarks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_client_upload_rso_remarks_api_v1_landing_orders__order_id__upload_rso_remarks_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload Rso Remarks",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/upload-rso-scan": {
+      "post": {
+        "description": "Загрузка скана письма с входящим номером РСО.",
+        "operationId": "client_upload_rso_scan_api_v1_landing_orders__order_id__upload_rso_scan_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_client_upload_rso_scan_api_v1_landing_orders__order_id__upload_rso_scan_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload Rso Scan",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/upload-signed-contract": {
+      "post": {
+        "description": "Публичная загрузка подписанного договора клиентом.",
+        "operationId": "client_upload_signed_contract_api_v1_landing_orders__order_id__upload_signed_contract_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_client_upload_signed_contract_api_v1_landing_orders__order_id__upload_signed_contract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload Signed Contract",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/orders/{order_id}/upload-tu": {
+      "post": {
+        "description": "Публичная загрузка ТУ для новой заявки (страница upload.html).\n\nПринимает только категорию TU; заявка должна быть в статусе ``new``.",
+        "operationId": "client_upload_tu_api_v1_landing_orders__order_id__upload_tu_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_client_upload_tu_api_v1_landing_orders__order_id__upload_tu_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload Tu",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/partnership": {
+      "post": {
+        "description": "Сценарий C: Запрос на партнёрство.\n\nПересылает данные на почту инженера.",
+        "operationId": "partnership_request_api_v1_landing_partnership_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnershipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Partnership Request",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/landing/sample-request": {
+      "post": {
+        "description": "Сценарий A: Клиент запросил образец проекта.\n\nОтправляет PDF-образец на email (если файл есть),\nили просто подтверждение.",
+        "operationId": "request_sample_api_v1_landing_sample_request_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SampleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Sample",
+        "tags": [
+          "landing"
+        ]
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "description": "Список заявок (для админки).",
+        "operationId": "list_orders_api_v1_orders_get",
+        "parameters": [
+          {
+            "description": "Фильтр по статусу",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OrderStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по статусу",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrderListItem"
+                  },
+                  "title": "Response List Orders Api V1 Orders Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Orders",
+        "tags": [
+          "orders"
+        ]
+      },
+      "post": {
+        "description": "Создать заявку.\n\nВызывается формой на лендинге после того, как клиент\nзаполнил контактные данные.",
+        "operationId": "create_order_api_v1_orders_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Create Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}": {
+      "get": {
+        "description": "Получить полную информацию о заявке.",
+        "operationId": "get_order_api_v1_orders__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/files": {
+      "get": {
+        "description": "Получить файлы заявки.",
+        "operationId": "list_files_api_v1_orders__order_id__files_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FileCategory"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FileResponse"
+                  },
+                  "title": "Response List Files Api V1 Orders  Order Id  Files Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Files",
+        "tags": [
+          "orders"
+        ]
+      },
+      "post": {
+        "description": "Загрузить файл к заявке.\n\nИспользуется:\n- клиентом при создании заявки (ТУ)\n- клиентом через страницу загрузки (план, схема)\n- системой для сохранения сгенерированных файлов",
+        "operationId": "upload_file_api_v1_orders__order_id__files_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Категория файла",
+            "in": "query",
+            "name": "category",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FileCategory",
+              "description": "Категория файла"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_file_api_v1_orders__order_id__files_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Upload File",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{order_id}/status": {
+      "patch": {
+        "description": "Сменить статус заявки.\n\nИспользуется:\n- оркестратором (Celery-задачи) для автоматических переходов\n- инженером на этапе review для одобрения / возврата",
+        "operationId": "update_order_status_api_v1_orders__order_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Update Order Status",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/parsing/{order_id}/result": {
+      "get": {
+        "description": "Просмотр извлечённых параметров из ТУ.\n\nВозвращает parsed_params, missing_params, confidence и warnings.\nДоступно после перехода в статус tu_parsed.",
+        "operationId": "get_parsing_result_api_v1_parsing__order_id__result_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParsedDataResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Результат парсинга ТУ",
+        "tags": [
+          "parsing"
+        ]
+      }
+    },
+    "/api/v1/parsing/{order_id}/retrigger": {
+      "post": {
+        "description": "Перезапустить парсинг ТУ.\n\nПолезно если:\n- Первый парсинг дал низкий confidence\n- LLM-сервис был недоступен\n- Загружен новый файл ТУ",
+        "operationId": "retrigger_parsing_api_v1_parsing__order_id__retrigger_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetriggerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Перезапустить парсинг ТУ",
+        "tags": [
+          "parsing"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/approve": {
+      "post": {
+        "description": "Инженерский approve.\n\nНовый поток: advance_paid → отправка проекта клиенту.\nLegacy-совместимость: review → запуск старого платёжного флоу.",
+        "operationId": "approve_project_api_v1_pipeline__order_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Approve Project",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/client-upload": {
+      "post": {
+        "description": "Загрузка файла клиентом через страницу upload-page.\n\nОтличие от /orders/{id}/files: после загрузки проверяет,\nнужно ли ещё что-то, и обновляет стейт-машину.",
+        "operationId": "client_upload_file_api_v1_pipeline__order_id__client_upload_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Категория файла",
+            "in": "query",
+            "name": "category",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FileCategory",
+              "description": "Категория файла"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_client_upload_file_api_v1_pipeline__order_id__client_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload File",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/client-upload-done": {
+      "post": {
+        "description": "Клиент завершил загрузку файлов.\n\nКнопка «Готово» на странице upload-page.\nЗапускает проверку полноты данных.",
+        "operationId": "client_upload_done_api_v1_pipeline__order_id__client_upload_done_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Client Upload Done",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/confirm-advance": {
+      "post": {
+        "description": "Инженер подтверждает получение аванса.\n\nДоступно только в статусе contract_sent.\nЗапускает process_advance_payment — перевод в advance_paid.",
+        "operationId": "confirm_advance_payment_api_v1_pipeline__order_id__confirm_advance_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Confirm Advance Payment",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/confirm-final": {
+      "post": {
+        "description": "Инженер подтверждает получение остатка оплаты.\n\nДоступно только в статусе awaiting_final_payment.\nПереводит заявку в completed.",
+        "operationId": "confirm_final_payment_api_v1_pipeline__order_id__confirm_final_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Confirm Final Payment",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/resend-corrected-project": {
+      "post": {
+        "description": "Инженер повторно отправляет исправленный проект клиенту.",
+        "operationId": "resend_corrected_project_endpoint_api_v1_pipeline__order_id__resend_corrected_project_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Resend Corrected Project Endpoint",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{order_id}/start": {
+      "post": {
+        "description": "Запустить обработку заявки (после загрузки ТУ).\n\nВызывается лендингом после того, как клиент:\n1. Заполнил форму → POST /api/v1/orders\n2. Загрузил ТУ → POST /api/v1/orders/{id}/files?category=tu\n3. Нажал «Отправить» → POST /api/v1/pipeline/{id}/start",
+        "operationId": "start_pipeline_api_v1_pipeline__order_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "_k",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": " K"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Start Pipeline",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/payment/{order_id}": {
+      "get": {
+        "description": "Страница оплаты для клиента.\n\nКлиент получает ссылку в письме:\nhttps://yourdomain.ru/payment/<order_id>",
+        "operationId": "payment_page_payment__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Payment Page"
+      }
+    },
+    "/upload/{order_id}": {
+      "get": {
+        "description": "Страница загрузки документов для клиента.\n\nКлиент получает ссылку в письме:\nhttps://yourdomain.ru/upload/<order_id>",
+        "operationId": "upload_page_upload__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Page"
+      }
+    },
+    "/{full_path}": {
+      "get": {
+        "description": "Статика из сборки (PDF в /downloads/, …) или React SPA.",
+        "operationId": "serve_spa__full_path__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "full_path",
+            "required": true,
+            "schema": {
+              "title": "Full Path",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Serve Spa"
+      }
+    }
+  }
+}

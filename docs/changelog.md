@@ -1,5 +1,41 @@
 # Changelog
 
+## [2026-04-22] — Фаза E1: Typed API через `openapi-typescript`
+
+### Добавлено
+- Dev-зависимость [`openapi-typescript@7.4.4`](https://github.com/openapi-ts/openapi-typescript) в [`frontend/package.json`](../frontend/package.json).
+- Скрипт [`scripts/generate-api-types.sh`](../scripts/generate-api-types.sh): импортирует FastAPI-приложение, экспортирует `app.openapi()` в `frontend/src/api/openapi.json` и регенерирует `frontend/src/api/types.ts`. Идемпотентен, работает с dummy-ENV (SMTP/ADMIN/OPENROUTER) — схемы не инициализируют внешние ресурсы. Автоматически подхватывает `backend/.venv/bin/python` и падает с понятной инструкцией, если версии `pydantic`/`fastapi` не совпадают с `backend/requirements.txt` (разные Pydantic-версии по-разному ставят `additionalProperties` в OpenAPI — это ломало CI-job).
+- Сгенерированные артефакты [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json) (~155 KB) и [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) (~121 KB) — **коммитятся в репо**, источник правды для TS-клиента. README в том же каталоге объясняет контракт и процесс обновления.
+- CI-job `api-types-drift` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml): перегенерирует артефакты и падает по `git diff --exit-code`, если Pydantic-схема поменялась, а скрипт не прогнали. Fail-инструкция печатает первые 120 строк diff для диагностики.
+
+### Изменено
+- [`frontend/src/api.ts`](../frontend/src/api.ts) переписан: ручные `interface OrderRequest/OrderCreatedResponse/SimpleResponse` заменены на алиасы `components['schemas'][…]` из сгенерированного `types.ts`. Публичные функции (`requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`) сохранили сигнатуры — компоненты `EmailModal.tsx` / `KpRequestModal.tsx` не меняются. Ошибки API теперь разбираются единообразно (`handleJsonResponse`) — нет копипасты try/catch.
+- В [`frontend/package-lock.json`](../frontend/package-lock.json) URL артефактов переведены на `registry.npmjs.org` (integrity-хеши идентичны).
+
+### UX/контракт API
+- **Публичный контракт фронта без изменений.** Все 4 вызова лендинга работают как раньше: те же URL, те же поля запроса. Фронт-билд теперь падает по TS-ошибке, если бэк поменяет схему без регенерации клиента.
+- **Закрыт классический рассинхрон** между ручной `OrderRequest` в старом `api.ts` и Pydantic на бэке (OpenAPI помечает `order_type` обязательным с дефолтом `express`; сгенерированный тип это фиксирует — фронт уже и так всегда отправляет `order_type`).
+
+### Не затронуто
+- Backend-код (`app/*.py`) **не менялся** — E1 — чисто инструментация фронта и CI.
+- Legacy-страницы на Jinja (`admin.html`, `upload.html`, `payment.html`) — они не импортируют `frontend/src/api.ts` и типы, продолжают работать через собственный JS.
+- Ручные тесты `pricing.test.ts` — без изменений.
+
+### Проверено
+- Backend: `ruff check`, `ruff format --check`, `pytest backend/tests/` (63/63) — всё зелёное.
+- Frontend: `tsc --noEmit`, `npm run lint`, `npm test` (5/5), `npm run build` — зелёные.
+- `scripts/generate-api-types.sh` идемпотентен: повторный прогон не выдаёт diff.
+
+### Связано с roadmap
+- [Раздел E1](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «Typed API через openapi-typescript, CI-drift-check» — выполнен.
+- Разблокировано предыдущей фазой B1.c: в OpenAPI теперь точно описаны `company_requisites`, `parsed_params`, `survey_data` — при следующих итерациях TS-клиент получит эти структуры «бесплатно».
+- Следующий логичный шаг — E3/E4 (декомпозиция React-компонентов и legacy HTML).
+
+### Откат
+- `git revert` ветки `feat/audit-e1-typed-api`. Никаких миграций БД или ENV-изменений не внесено; CI-job без ветки просто отключается.
+
+---
+
 ## [2026-04-22] — Фаза B1.c: строгая типизация `OrderResponse` и публичных DTO
 
 ### Добавлено

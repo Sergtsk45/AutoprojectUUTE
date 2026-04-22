@@ -136,6 +136,61 @@ jobs:
         run: npm run build
 
   # =================================================================
+  # API types drift (E1, 2026-04-22).
+  #
+  # Регенерируем `frontend/src/api/openapi.json` и `types.ts` из текущего
+  # FastAPI-приложения. Если закоммиченные артефакты отличаются —
+  # `git diff --exit-code` падает: это значит, что Pydantic-схемы поменяли,
+  # а `scripts/generate-api-types.sh` не прогнали. Фикс: запустить скрипт
+  # локально и закоммитить обновлённые файлы.
+  # =================================================================
+  api-types-drift:
+    name: API types drift (openapi-typescript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/pyproject.toml
+
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Regenerate API types
+        env:
+          ADMIN_API_KEY: "ci-dummy-0123456789abcdef"
+          SMTP_PASSWORD: "ci-dummy"
+          OPENROUTER_API_KEY: "ci-dummy-xxxxxxxxxx"
+        run: ./scripts/generate-api-types.sh
+
+      - name: Check no drift
+        run: |
+          if ! git diff --exit-code --name-only frontend/src/api/openapi.json frontend/src/api/types.ts; then
+            echo '::error::API-типы рассинхронизированы с бэкендом. Запустите `./scripts/generate-api-types.sh` и закоммитьте обновления.'
+            git --no-pager diff -- frontend/src/api/openapi.json frontend/src/api/types.ts | head -120
+            exit 1
+          fi
+
+  # =================================================================
   # Pre-commit: единая проверка всех хуков через pre-commit action cache.
   # =================================================================
   pre-commit:
