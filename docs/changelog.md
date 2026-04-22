@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-04-22] — Фаза D3: `contract_generator.py` → пакет `services/contract/`
+
+### Добавлено
+- Пакет [`backend/app/services/contract/`](../backend/app/services/contract/):
+  - [`number_format.py`](../backend/app/services/contract/number_format.py) — пропись сумм, `fmt_rub`, `ru_date`, `extract_city`.
+  - [`tu_embed.py`](../backend/app/services/contract/tu_embed.py) — растр PDF ТУ в PNG, лимит размера DOCX, `TU_DPI_LADDER`.
+  - [`docx_utils.py`](../backend/app/services/contract/docx_utils.py) — таблицы и параграфы python-docx для договора.
+  - [`contract_docx.py`](../backend/app/services/contract/contract_docx.py) — контекст, разделы 1–15, приложения, `generate_contract`, `generate_contract_number`.
+  - [`invoice.py`](../backend/app/services/contract/invoice.py) — `generate_invoice`.
+- Re-export: [`__init__.py`](../backend/app/services/contract/__init__.py). Совместимость: тонкий [`contract_generator.py`](../backend/app/services/contract_generator.py) — re-export из пакета (импорты `app.services.contract_generator` без смены путей в вызовах).
+
+### Изменено
+- **Удалён** дублирующий модуль `backend/app/services/tasks.py` (лог-дубликат рядом с пакетом `tasks/` после D1.b; `import app.services.tasks` по-прежнему ведёт в пакет `tasks/`).
+
+### Проверено
+- `ruff check backend/` ✓, `mypy` (override `app.services.contract.*`, strict) ✓, `pytest` 47/47.
+
+### Исправлено (после CI)
+- `pyproject.toml`: для `app.services.contract.*` в `disable_error_code` добавлен `valid-type` — в CI (Python 3.12) mypy иначе падает на аннотациях `Document` из python-docx (фабрика вместо класса в стабах).
+
+---
+
 ## [2026-04-22] — Фаза D2: `email_service.py` → пакет `services/email/`
 
 ### Добавлено
@@ -42,7 +64,7 @@
 - `ruff` ✓, `mypy --strict` ✓, `pytest tests/ -q` → 47/47 (вкл. smoke registry).
 
 ### Следующий шаг
-- **D3** (roadmap) — декомпозиция `contract_generator.py` при необходимости.
+- **D4** (roadmap) — async/sync граница в API.
 
 ---
 

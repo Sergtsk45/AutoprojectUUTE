@@ -77,7 +77,7 @@ AutoprojectUUTE/
 │   │   ├── core/          # config.py, database.py, celery_app.py, auth.py
 │   │   ├── models/        # models.py — SQLAlchemy ORM + enums
 │   │   ├── schemas/       # Pydantic схемы запросов/ответов
-│   │   ├── services/      # Бизнес-логика: order_service, email/ (+ shim email_service.py), tu_parser, tasks
+│   │   ├── services/      # order_service, email/, contract/ (+ shims email_service, contract_generator), tu_parser, tasks
 │   │   └── main.py        # FastAPI app, роутеры, статика, SPA
 │   ├── alembic/           # Миграции БД
 │   ├── templates/         # Jinja2 шаблоны email + образцы документов
@@ -96,7 +96,7 @@ AutoprojectUUTE/
 │   ├── tasktracker.md           # Активные/недавние задачи
 │   ├── project.md               # Архитектурные заметки
 │   ├── calculator-config-design.md   # Дизайн настроечной БД вычислителя
-│   ├── kontrakt_ukute_template.md    # Текстовый шаблон договора (используется contract_generator)
+│   ├── kontrakt_ukute_template.md    # Текстовый шаблон договора (сборка в `app.services.contract`)
 │   ├── scheme-generator-roadmap.md   # Активный roadmap по принципиальным схемам
 │   ├── templates/                    # CSV/MD-шаблоны (опросный лист и пр.)
 │   └── archive/2026-Q2/              # Завершённые task-трекеры и реализованные планы
@@ -547,7 +547,7 @@ docker compose -f docker-compose.prod.yml up -d --build
   - В PG enum `file_category` метки — **имена членов Python** (`TU`, `BALANCE_ACT`, …), а не `.value`. SQLAlchemy без `values_callable` persist имена.
   - `FileCategory._missing_` (B2.a compat-shim) принимает устаревшие UPPER_CASE значения с `WARNING` в лог. В B2.b будет удалён → 422 на uppercase.
 - Публичные эндпоинты лендинга (`/api/v1/landing/...`): создание заявки, upload ТУ/документов, опросный лист, страница оплаты `/payment/{id}`, загрузка скана РСО и замечаний.
-- Договор: `contract_generator.py` собирает DOCX по шаблону `docs/kontrakt_ukute_template.md` с встраиванием PDF ТУ в Приложение 2 (PyMuPDF, лестница DPI, fallback ~25 МБ).
+- Договор: пакет `app.services.contract` (shim `contract_generator.py`) собирает DOCX по шаблону `docs/kontrakt_ukute_template.md` с встраиванием PDF ТУ в Приложение 2 (PyMuPDF, лестница DPI, fallback ~25 МБ).
 - Email-уведомления (Jinja2 + SMTP Яндекс): запрос данных, напоминания, отправка готового проекта, уведомления инженеру (новая заявка, ТУ распарсены, документы клиента получены, скан РСО), уведомление о замечаниях РСО, повторная отправка исправленного проекта.
 - Celery Beat: ежедневные напоминания, отложенный `info_request` через 24 ч, 15-дневный reminder по финальной оплате.
 - Админ-панель `/admin`: список заявок, карточка с парсингом ТУ, опросным листом по секциям, действиями инженера на post-project ветке (отправка исправленного проекта), карточка «Настроечная БД вычислителя» с автозаполнением из ТУ и экспортом PDF.
@@ -560,7 +560,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 **Backlog / технический долг:**
 - Безопасность: ограничить CORS до доменов, перевести `verify_admin_key` на `secrets.compare_digest`, отказаться от `?_k=` в публичных URL, убрать дефолты секретов из `config.py`, добавить rate-limit на `/landing/*`.
-- Декомпозиция «толстых» модулей: `services/tasks/` (пакет, D1.b), `services/email/` + shim `email_service.py` (D2), `services/contract_generator.py` (D3).
+- Декомпозиция «толстых» модулей: `services/tasks/` (пакет, D1.b), `services/email/` + shim `email_service.py` (D2), `services/contract/` + shim `contract_generator.py` (D3).
 - Удаление legacy-статусов / нормализация enum после миграции данных.
 - Типизация JSONB-полей (`parsed_params`, `survey_data`, `company_requisites`) Pydantic-моделями.
 - CI (pytest + ruff + mypy + eslint), error-tracking (Sentry/Glitchtip), генерация TypeScript-клиента из OpenAPI.

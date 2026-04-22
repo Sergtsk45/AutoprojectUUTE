@@ -1,5 +1,16 @@
 # Task tracker
 
+## Задача: Фаза D3 — Декомпозиция `contract_generator.py` + уборка дубликата `tasks.py` (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Монолит `contract_generator.py` (~1.3K строк) разбит на пакет `app/services/contract/` (`number_format`, `tu_embed`, `docx_utils`, `contract_docx`, `invoice`, `__init__.py`). `contract_generator.py` — re-export. Удалён дублирующий `tasks.py` (остаток доочистки после D1.b).
+- **Шаги выполнения**:
+  - [x] Вынесены модули по roadmap D3
+  - [x] `mypy` strict-override для `app.services.contract.*`
+  - [x] Удалён `backend/app/services/tasks.py`
+  - [x] `docs/changelog.md`, `docs/project.md`, `docs/tasktracker.md`
+  - [x] ruff ✓, mypy ✓, pytest 47/47
+- **Разблокирует**: D4 (async/sync в API) по roadmap.
+
 ## Задача: Фаза D2 — Декомпозиция `email_service.py` (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Монолитный `email_service.py` (~1K строк) разбит на пакет `app/services/email/` (`smtp`, `idempotency`, `renderers`, `service`, `__init__.py`). Публичный API через `app.services.email_service` сохранён (re-export). `send_kp_request_notification` переведён на общий `send_smtp_message`.
@@ -12,7 +23,7 @@
   - [x] `docs/changelog.md`, `docs/project.md`, `docs/tasktracker.md`, `CLAUDE.md`
   - [x] ruff ✓, mypy ✓, pytest 47/47
 - **Зависимости**: D1.b (желательно смержен для единого audit-контекста; на функциональность email не влияет).
-- **Разблокирует**: D3 (`contract_generator.py`) по roadmap §3.
+- **Разблокирует**: D3 (`contract_generator.py`) — выполнена 2026-04-22.
 
 ## Задача: Фаза D1.a — Явные `name=` для Celery-задач (2026-04-22)
 - **Статус**: Завершена
