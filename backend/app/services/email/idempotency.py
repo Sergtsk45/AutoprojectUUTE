@@ -1,8 +1,8 @@
 """
- * @file: idempotency.py
- * @description: Проверка успешных отправок и запись в email_log.
- * @dependencies: app.models.models (EmailLog, EmailType, Order)
- * @created: 2026-04-22
+* @file: idempotency.py
+* @description: Проверка успешных отправок и запись в email_log.
+* @dependencies: app.models.models (EmailLog, EmailType, Order)
+* @created: 2026-04-22
 """
 
 from __future__ import annotations

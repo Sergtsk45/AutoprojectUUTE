@@ -1,8 +1,8 @@
 """
- * @file: renderers.py
- * @description: Jinja2-рендеринг HTML-писем и контекстов для шаблонов.
- * @dependencies: app.core.config, app.models.Order, app.services.param_labels
- * @created: 2026-04-22
+* @file: renderers.py
+* @description: Jinja2-рендеринг HTML-писем и контекстов для шаблонов.
+* @dependencies: app.core.config, app.models.Order, app.services.param_labels
+* @created: 2026-04-22
 """
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
 """
- * @file: service.py
- * @description: Высокоуровневый API: рендер + SMTP + лог в БД.
- * @dependencies: .smtp, .idempotency, .renderers, app.models, app.core.config
- * @created: 2026-04-22
+* @file: service.py
+* @description: Высокоуровневый API: рендер + SMTP + лог в БД.
+* @dependencies: .smtp, .idempotency, .renderers, app.models, app.core.config
+* @created: 2026-04-22
 """
 
 from __future__ import annotations

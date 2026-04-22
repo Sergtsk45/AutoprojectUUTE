@@ -1,8 +1,8 @@
 """
- * @file: __init__.py
- * @description: Пакет email: SMTP, рендеры, идемпотентность, высокоуровневый API.
- * @dependencies: .smtp, .idempotency, .renderers, .service
- * @created: 2026-04-22
+* @file: __init__.py
+* @description: Пакет email: SMTP, рендеры, идемпотентность, высокоуровневый API.
+* @dependencies: .smtp, .idempotency, .renderers, .service
+* @created: 2026-04-22
 """
 
 from __future__ import annotations

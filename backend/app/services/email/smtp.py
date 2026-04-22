@@ -1,8 +1,8 @@
 """
- * @file: smtp.py
- * @description: Сборка MIME и доставка через SMTP (SSL / STARTTLS).
- * @dependencies: app.core.config.settings
- * @created: 2026-04-22
+* @file: smtp.py
+* @description: Сборка MIME и доставка через SMTP (SSL / STARTTLS).
+* @dependencies: app.core.config.settings
+* @created: 2026-04-22
 """
 
 from __future__ import annotations
