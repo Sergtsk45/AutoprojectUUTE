@@ -144,6 +144,40 @@ def process_due_info_requests():
     )
 
 
+@celery_app.task(name="app.services.tasks.notify_engineer_new_order")
+def notify_engineer_new_order(
+    order_id: str,
+    *,
+    circuits: int | None = None,
+    price: int | None = None,
+    order_type: str | None = None,
+) -> None:
+    """Уведомляет инженера о новой заявке (fire-and-forget из async-роутера).
+
+    D4: заменяет синхронный `SyncSession()`+SMTP внутри `POST /landing/order`.
+    Event loop не блокируется; при падении SMTP письмо просто не уходит,
+    заявка всё равно считается созданной (поведение совпадает с прежним
+    `try/except` в роутере).
+    """
+    from app.services.email_service import send_new_order_notification
+
+    oid = uuid.UUID(order_id)
+    logger.info("notify_engineer_new_order: order=%s", oid)
+
+    with SyncSession() as session:
+        order = _get_order(session, oid)
+        if order is None:
+            logger.warning("notify_engineer_new_order: order %s не найден", oid)
+            return
+        send_new_order_notification(
+            session,
+            order,
+            circuits=circuits,
+            price=price,
+            order_type=order_type,
+        )
+
+
 @celery_app.task(name="app.services.tasks.notify_engineer_tu_parsed")
 def notify_engineer_tu_parsed(order_id: str):
     """Уведомляет инженера после успешного парсинга загруженного ТУ."""

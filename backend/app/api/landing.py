@@ -3,6 +3,7 @@
 Публичные (без авторизации) — вызываются фронтендом.
 """
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -26,7 +27,7 @@ from app.schemas.jsonb import SurveyData
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.email_service import send_kp_request_notification
-from app.services.tasks import start_tu_parsing
+from app.services.tasks import notify_engineer_new_order, start_tu_parsing
 from app.schemas import (
     FileResponse,
     OrderCreate,
@@ -117,7 +118,8 @@ async def request_sample(data: SampleRequest):
     """
     from app.services.email_service import send_sample_delivery
 
-    send_sample_delivery(data.email)
+    # D4: SMTP выносим из event loop. Результат не влияет на UX (success=True всегда).
+    await asyncio.to_thread(send_sample_delivery, data.email)
 
     return SimpleResponse(
         success=True,  # Всегда true для UX — даже если SMTP упал, не пугаем клиента
@@ -132,12 +134,9 @@ async def create_order_from_landing(
 ):
     """Сценарий B: Клиент заказывает проект.
 
-    Создаёт заявку в БД, уведомляет инженера, возвращает ссылку на upload-страницу.
+    Создаёт заявку в БД, уведомляет инженера (Celery, best-effort),
+    возвращает ссылку на upload-страницу.
     """
-    from app.core.config import settings
-    from app.services.email_service import send_new_order_notification
-    from app.services.tasks import SyncSession, _get_order
-
     svc = OrderService(db)
     order_data = OrderCreate(
         client_name=data.client_name,
@@ -150,21 +149,19 @@ async def create_order_from_landing(
     )
     order = await svc.create_order(order_data)
 
-    # Уведомление инженеру + письмо клиенту для custom (синхронно через отдельную сессию)
+    # D4: раньше уведомление шло через синхронную сессию прямо в async-роутере и
+    # блокировало event loop. Теперь — best-effort через Celery.
+    # Исключения при enqueue глушим: отсутствие уведомления не должно ломать создание заявки.
     try:
-        with SyncSession() as sync_session:
-            sync_order = _get_order(sync_session, order.id)
-            if sync_order:
-                send_new_order_notification(
-                    sync_session,
-                    sync_order,
-                    circuits=data.circuits,
-                    price=data.price,
-                    order_type=data.order_type,
-                )
+        notify_engineer_new_order.delay(
+            str(order.id),
+            circuits=data.circuits,
+            price=data.price,
+            order_type=data.order_type,
+        )
     except Exception:
         logger.exception(
-            "send_new_order_notification failed for order %s; продолжаем без уведомления инженеру",
+            "notify_engineer_new_order enqueue failed for order %s; продолжаем без уведомления",
             order.id,
         )
 
@@ -185,7 +182,10 @@ async def partnership_request(data: PartnershipRequest):
     """
     from app.services.email_service import send_partnership_request
 
-    send_partnership_request(
+    # D4: SMTP вне event loop. Возвращаем success=True при любом исходе
+    # (поведение совпадает с прежним — в роутере результат send_partnership_request не проверялся).
+    await asyncio.to_thread(
+        send_partnership_request,
         contact_name=data.name,
         company=data.company,
         contact_email=data.email,
@@ -217,7 +217,9 @@ async def kp_request(
 
     tu_filename = tu_file.filename or "tu.pdf"
 
-    ok = send_kp_request_notification(
+    # D4: SMTP + attachment до 20 МБ — inline (нельзя гонять через Redis), но out-of-loop.
+    ok = await asyncio.to_thread(
+        send_kp_request_notification,
         organization=organization,
         responsible_name=responsible_name,
         phone=phone,

@@ -23,6 +23,7 @@ def test_all_task_names_registered() -> None:
         "app.services.tasks.check_data_completeness",
         "app.services.tasks.send_info_request_email",
         "app.services.tasks.process_due_info_requests",
+        "app.services.tasks.notify_engineer_new_order",
         "app.services.tasks.notify_engineer_tu_parsed",
         "app.services.tasks.notify_engineer_client_documents_received",
         "app.services.tasks.process_client_response",
