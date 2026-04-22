@@ -41,3 +41,21 @@ class CompanyRequisites(BaseModel):
     email: str | None = Field(None, description="Email")
     parse_confidence: float = Field(0.0, ge=0, le=1, description="Уверенность парсера")
     warnings: list[str] = Field(default_factory=list, description="Предупреждения парсера")
+
+
+class CompanyRequisitesError(BaseModel):
+    """Маркер неудачного парсинга «Карточки предприятия».
+
+    Попадает в `Order.company_requisites` (JSONB) когда парсер не смог извлечь
+    реквизиты (PDF нечитаем, сканирование низкого качества и т.п.). Фронт
+    админки (`admin.html`) и страница оплаты (`payment.html`) распознают этот
+    маркер по полю `error` и показывают баннер «Ошибка распознавания».
+
+    Выделен в отдельную схему (фаза B1.c, 2026-04-22), чтобы типизация
+    `OrderResponse.company_requisites` была точной: либо валидные
+    `CompanyRequisites`, либо этот маркер, либо `None`.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    error: str = Field(..., description="Сообщение об ошибке парсинга")

@@ -8,7 +8,7 @@
 @created: 2026-04-21
 """
 
-from app.schemas.jsonb.company import CompanyRequisites
+from app.schemas.jsonb.company import CompanyRequisites, CompanyRequisitesError
 from app.schemas.jsonb.survey import SurveyData
 from app.schemas.jsonb.tu import (
     AdditionalRequirements,
@@ -49,4 +49,5 @@ __all__ = [
     "SurveyData",
     # company
     "CompanyRequisites",
+    "CompanyRequisitesError",
 ]
