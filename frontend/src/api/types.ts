@@ -1043,9 +1043,7 @@ export interface components {
         /** CalcConfigUpdateBody */
         CalcConfigUpdateBody: {
             /** Params */
-            params: {
-                [key: string]: unknown;
-            };
+            params: Record<string, never>;
         };
         /**
          * CompanyRequisites
@@ -1673,9 +1671,7 @@ export interface components {
             /** Parse Confidence */
             parse_confidence: number | null;
             /** Parsed Params */
-            parsed_params: {
-                [key: string]: unknown;
-            } | null;
+            parsed_params: Record<string, never> | null;
             /** Status */
             status: string;
             /** Warnings */
@@ -1763,9 +1759,7 @@ export interface components {
             /** Payment Method */
             payment_method?: string | null;
             /** Payment Requisites */
-            payment_requisites?: {
-                [key: string]: unknown;
-            } | null;
+            payment_requisites?: Record<string, never> | null;
             /** Rso Scan Received At */
             rso_scan_received_at?: string | null;
         };
@@ -2307,9 +2301,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": Record<string, never>;
             };
         };
         responses: {
@@ -2707,9 +2699,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": Record<string, never>;
             };
         };
         responses: {

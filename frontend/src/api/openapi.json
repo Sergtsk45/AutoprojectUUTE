@@ -237,7 +237,6 @@
       "CalcConfigUpdateBody": {
         "properties": {
           "params": {
-            "additionalProperties": true,
             "title": "Params",
             "type": "object"
           }
@@ -1706,7 +1705,6 @@
           "parsed_params": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -1930,7 +1928,6 @@
           "payment_requisites": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3185,7 +3182,6 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
                 "default": {},
                 "title": "Body",
                 "type": "object"
@@ -3858,7 +3854,6 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
                 "title": "Body",
                 "type": "object"
               }

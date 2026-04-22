@@ -4,7 +4,7 @@
 
 ### Добавлено
 - Dev-зависимость [`openapi-typescript@7.4.4`](https://github.com/openapi-ts/openapi-typescript) в [`frontend/package.json`](../frontend/package.json).
-- Скрипт [`scripts/generate-api-types.sh`](../scripts/generate-api-types.sh): импортирует FastAPI-приложение, экспортирует `app.openapi()` в `frontend/src/api/openapi.json` и регенерирует `frontend/src/api/types.ts`. Идемпотентен, работает с dummy-ENV (SMTP/ADMIN/OPENROUTER) — схемы не инициализируют внешние ресурсы.
+- Скрипт [`scripts/generate-api-types.sh`](../scripts/generate-api-types.sh): импортирует FastAPI-приложение, экспортирует `app.openapi()` в `frontend/src/api/openapi.json` и регенерирует `frontend/src/api/types.ts`. Идемпотентен, работает с dummy-ENV (SMTP/ADMIN/OPENROUTER) — схемы не инициализируют внешние ресурсы. Автоматически подхватывает `backend/.venv/bin/python` и падает с понятной инструкцией, если версии `pydantic`/`fastapi` не совпадают с `backend/requirements.txt` (разные Pydantic-версии по-разному ставят `additionalProperties` в OpenAPI — это ломало CI-job).
 - Сгенерированные артефакты [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json) (~155 KB) и [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) (~121 KB) — **коммитятся в репо**, источник правды для TS-клиента. README в том же каталоге объясняет контракт и процесс обновления.
 - CI-job `api-types-drift` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml): перегенерирует артефакты и падает по `git diff --exit-code`, если Pydantic-схема поменялась, а скрипт не прогнали. Fail-инструкция печатает первые 120 строк diff для диагностики.
 

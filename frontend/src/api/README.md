@@ -15,13 +15,20 @@
 
 ## Как перегенерировать
 
+Скрипт [`scripts/generate-api-types.sh`](../../../scripts/generate-api-types.sh) требует **точных pinned-версий** Python-зависимостей из [`backend/requirements.txt`](../../../backend/requirements.txt) (особенно `pydantic` и `fastapi` — разные минорные версии Pydantic по-разному ставят `additionalProperties` в OpenAPI и ломают CI-drift-check).
+
+Рекомендованный путь — локальный venv:
+
 ```bash
-# из корня репо, требует установленные backend (venv) и frontend (npm ci)
+python3 -m venv backend/.venv
+backend/.venv/bin/pip install -r backend/requirements.txt
+cd frontend && npm install && cd ..
 ./scripts/generate-api-types.sh
 ```
 
-Скрипт: импортирует FastAPI `app`, экспортирует `app.openapi()` в JSON,
-запускает `openapi-typescript` → `types.ts`.
+Скрипт автоматически подхватит `backend/.venv/bin/python`. Если версии `pydantic`/`fastapi` не совпадают с `requirements.txt`, скрипт падает с подробной инструкцией — чинит рассинхрон локально до пуша.
+
+Альтернатива без venv — Docker с тем же образом, что в CI (`python:3.12-slim`). Команда печатается в сообщении об ошибке скрипта.
 
 ## Что делать при CI-фейле «API-типы рассинхронизированы»
 
