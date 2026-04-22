@@ -65,42 +65,42 @@ branch_labels = None
 depends_on = None
 
 
-_LEGACY_STATUSES = ("data_complete", "generating_project", "review")
-_TARGET_STATUS = "client_info_received"
+_LEGACY_STATUSES = ("DATA_COMPLETE", "GENERATING_PROJECT", "REVIEW")
+_TARGET_STATUS = "CLIENT_INFO_RECEIVED"
 
 # Полный набор значений enum *после* миграции (C2).
 _NEW_ENUM_VALUES = (
-    "new",
-    "tu_parsing",
-    "tu_parsed",
-    "waiting_client_info",
-    "client_info_received",
-    "awaiting_contract",
-    "contract_sent",
-    "advance_paid",
-    "awaiting_final_payment",
-    "rso_remarks_received",
-    "completed",
-    "error",
+    "NEW",
+    "TU_PARSING",
+    "TU_PARSED",
+    "WAITING_CLIENT_INFO",
+    "CLIENT_INFO_RECEIVED",
+    "AWAITING_CONTRACT",
+    "CONTRACT_SENT",
+    "ADVANCE_PAID",
+    "AWAITING_FINAL_PAYMENT",
+    "RSO_REMARKS_RECEIVED",
+    "COMPLETED",
+    "ERROR",
 )
 
 # Полный набор значений enum *до* миграции (для downgrade).
 _OLD_ENUM_VALUES = (
-    "new",
-    "tu_parsing",
-    "tu_parsed",
-    "waiting_client_info",
-    "client_info_received",
-    "data_complete",
-    "generating_project",
-    "review",
-    "awaiting_contract",
-    "contract_sent",
-    "advance_paid",
-    "awaiting_final_payment",
-    "rso_remarks_received",
-    "completed",
-    "error",
+    "NEW",
+    "TU_PARSING",
+    "TU_PARSED",
+    "WAITING_CLIENT_INFO",
+    "CLIENT_INFO_RECEIVED",
+    "DATA_COMPLETE",
+    "GENERATING_PROJECT",
+    "REVIEW",
+    "AWAITING_CONTRACT",
+    "CONTRACT_SENT",
+    "ADVANCE_PAID",
+    "AWAITING_FINAL_PAYMENT",
+    "RSO_REMARKS_RECEIVED",
+    "COMPLETED",
+    "ERROR",
 )
 
 
