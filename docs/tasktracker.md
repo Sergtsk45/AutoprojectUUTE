@@ -1,5 +1,20 @@
 # Task tracker
 
+## Задача: Фаза B2.b — Удаление legacy UPPER_CASE у `FileCategory` (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Удалён B2.a compat-shim `FileCategory._missing_` и `_B2_LEGACY_ALIASES` / `_canonicalize` в `backend/app/services/param_labels.py`. После B2.b API строго принимает только канонические snake_case lowercase значения; запросы вида `?category=BALANCE_ACT` теперь отвечают **422 Unprocessable Entity** (BREAKING CHANGE). Данные в `orders.missing_params` уже мигрированы в B2.a (Alembic `20260421_uute_fc_lower_missing`). PG-enum `file_category` (метки на `order_files.category`) не затрагивается — labels по-прежнему UPPER_CASE-имена членов Python.
+- **Шаги выполнения**:
+  - [x] Удалён `FileCategory._missing_` + обновлён docstring `FileCategory`
+  - [x] Удалены `_B2_LEGACY_ALIASES`, `_canonicalize` в `param_labels.py`; `get_missing_items` / `get_sample_paths` упрощены (без канонизации)
+  - [x] Удалены `BALANCE_ACT` / `CONNECTION_PLAN` из `_LEGACY_DOCUMENT_PARAM_CODES`
+  - [x] Тест-модуль `test_file_category_b2.py` переписан: `accepts` → `rejects`, добавлены проверки на канонический lookup и игнорирование UPPER_CASE в `param_labels`. Покрытие: 14 тестов (было 12).
+  - [x] `ruff check` ✓, `ruff format --check` ✓, `mypy` ✓ (на изменённых файлах + полный `mypy app` в CI-parity)
+  - [x] `pytest tests/` 52/52 — локально и в Docker `python:3.12-slim` (CI parity)
+  - [x] `docs/changelog.md` (BREAKING CHANGE), `docs/tasktracker.md`, `docs/project.md`, `CLAUDE.md`
+- **Зависимости**: B2.a (`FileCategory.value` → lowercase + Alembic backfill `20260421_uute_fc_lower_missing`) — смержена.
+- **Риски**: средние. Внешние клиенты, не обновлённые после B2.a, начнут получать 422. До деплоя — `grep "устаревший uppercase-алиас" /var/log/...` на проде должен быть пуст. Если в логах остались записи — отложить мерж и связаться с владельцами интеграций.
+- **Rollback**: `git revert` коммита B2.b возвращает `_missing_` и `_canonicalize`. Откат данных не требуется (БД уже в lowercase).
+
 ## Задача: Фаза D4 — Async/sync граница в API (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Из `backend/app/api/landing.py` и `backend/app/api/emails.py` убран блокирующий `SyncSession()` в async-обработчиках. Уведомление инженеру о новой заявке вынесено в Celery-задачу `notify_engineer_new_order`; остальные SMTP-вызовы (`sample-request`, `partnership`, `kp-request`) обёрнуты в `asyncio.to_thread`. Админская ручная отправка `POST /emails/{order_id}/send` делегируется новому sync-хелперу `manual_send_email_sync` и запускается через `asyncio.to_thread`.
@@ -123,15 +138,7 @@
 - **Rollback**: revert коммита + `alembic downgrade` (downgrade-миграция возвращает UPPER_CASE).
 
 ## Задача: Фаза B2.b — Удаление legacy-uppercase у `FileCategory` (плановая)
-- **Статус**: Не начата
-- **Описание**: Через 1–2 релиза удалить `FileCategory._missing_` compat-shim и `_B2_LEGACY_ALIASES` в `param_labels.py`. После этого API категорически отвергает `?category=BALANCE_ACT` — 422 Unprocessable Entity. Должно сопровождаться подтверждением, что в логах больше нет `WARNING: FileCategory: принят устаревший uppercase-алиас`.
-- **Шаги выполнения**:
-  - [ ] Подтвердить по логам прод (`grep "устаревший uppercase-алиас" /var/log/…`) отсутствие внешних клиентов с legacy-форматом
-  - [ ] Удалить `_missing_` из `FileCategory`
-  - [ ] Удалить `_B2_LEGACY_ALIASES` и `_canonicalize` в `param_labels.py`
-  - [ ] Обновить тест `test_missing_accepts_legacy_uppercase` → `test_missing_rejects_legacy_uppercase`
-  - [ ] Changelog: BREAKING CHANGE
-- **Зависимости**: B2.a — смержена и отправлена в прод.
+- **Статус**: Завершена 2026-04-22 (см. запись «Фаза B2.b — Удаление legacy UPPER_CASE…» в начале файла).
 
 ## Задача: Фаза B1.b — Миграция мест чтения JSONB через accessor-методы (2026-04-21)
 - **Статус**: Завершена

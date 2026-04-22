@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-04-22] — Фаза B2.b: удаление legacy UPPER_CASE у `FileCategory` (BREAKING CHANGE API)
+
+### Удалено
+- `FileCategory._missing_` (compat-shim, B2.a) — case-insensitive lookup из `backend/app/models/models.py`. После B2.b enum строго принимает только канонические `.value` (snake_case lowercase).
+- `_B2_LEGACY_ALIASES` и `_canonicalize` из [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py) — `get_missing_items` / `get_sample_paths` больше не подменяют UPPER_CASE → lowercase.
+- Записи `BALANCE_ACT` / `CONNECTION_PLAN` из множества `_LEGACY_DOCUMENT_PARAM_CODES` (исторические данные мигрированы Alembic-ревизией `20260421_uute_fc_lower_missing` в B2.a).
+
+### Изменено
+- Тест-модуль [`backend/tests/test_file_category_b2.py`](../backend/tests/test_file_category_b2.py): `test_missing_accepts_legacy_uppercase` → `test_missing_rejects_legacy_uppercase` и т. п. Покрытие: 14 тестов (рост с 12), включая регрессии на канонический lowercase-lookup и поведение `get_missing_items` / `get_sample_paths` на устаревших кодах.
+- `FileCategory` docstring обновлён: явно указано, что в B2.b API возвращает 422 на uppercase-входы.
+
+### BREAKING CHANGE
+- **API:** запросы вида `?category=BALANCE_ACT` / `?category=CONNECTION_PLAN` теперь отвечают **422 Unprocessable Entity** вместо тихой канонизации. До B2.b такие запросы принимались с `WARNING` в лог (`FileCategory: принят устаревший uppercase-алиас …`).
+- **Контракт миграции:** клиент должен использовать только `balance_act` / `connection_plan` (snake_case lowercase). Любые внешние интеграции, не обновлённые после релиза B2.a, поломаются.
+
+### Не затронуто
+- **PG-enum `file_category`** на `order_files.category` — labels по-прежнему UPPER_CASE-имена членов Python (`BALANCE_ACT`, …). SQLAlchemy без `values_callable` persist имена, не `.value`. RENAME enum-меток в БД (`ALTER TYPE ... RENAME VALUE`) — отдельная задача, требует zero-downtime migration с переключением на `values_callable`; в scope B2.b не входит.
+- Данные в `orders.missing_params` (JSONB-массив) уже мигрированы B2.a (Alembic `20260421_uute_fc_lower_missing`).
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy app/models/models.py app/services/param_labels.py` ✓.
+- `pytest tests/` — 52/52 (14 в `test_file_category_b2.py`).
+- CI-parity в Docker `python:3.12-slim`: `ruff` + `mypy app` (55 файлов) + `pytest tests/` (52/52) — зелёные.
+
+### Связано с roadmap
+- [Раздел B2.b](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`SELECT DISTINCT category FROM files` → только lowercase-значения» сохраняется (см. оговорку про PG-enum выше); «API на UPPER_CASE → 422» — выполнено.
+
+### Rollback
+- `git revert` коммита B2.b возвращает `_missing_` и `_canonicalize`. Данные в БД (`orders.missing_params`) уже в lowercase — никаких операций над БД для отката не требуется. Если нужно вернуть исходный B2.a-shim вместе с logs — достаточно git revert.
+
+---
+
 ## [2026-04-22] — Фаза D4: Async/sync граница — убран `SyncSession()` из async-роутеров
 
 ### Добавлено

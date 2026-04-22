@@ -146,16 +146,18 @@ class OrderType(str, enum.Enum):
 class FileCategory(str, enum.Enum):
     """Категории загружаемых файлов.
 
-    Единый канонический формат `.value` — **snake_case lowercase** (фаза B2, 2026-04-21).
-    До B2 значения `BALANCE_ACT`/`CONNECTION_PLAN` хранились в UPPER_CASE; переведены
-    в lowercase. Для совместимости со старыми клиентами API в один релиз `_missing_`
-    принимает uppercase-значение и возвращает canonical member (см. ниже).
+    Единый канонический формат `.value` — **snake_case lowercase**
+    (фаза B2.a 2026-04-21, B2.b 2026-04-22). До B2 значения
+    `BALANCE_ACT`/`CONNECTION_PLAN` хранились в UPPER_CASE; переведены в
+    lowercase. С B2.b совместимый shim `_missing_` удалён — API теперь
+    отвергает uppercase-варианты с **422 Unprocessable Entity**.
 
-    В PostgreSQL тип `file_category` — метки совпадают с **именами** членов Python
-    (`TU`, `BALANCE_ACT`, …), а не с `.value`. SQLAlchemy без `values_callable`
-    persist имена, поэтому смена `.value` не требует Alembic-миграции enum.
-    Значения `.value` используются для API, query-параметров и сегментов пути
-    в хранилище (`upload_dir/<order_id>/<category.value>/...`).
+    В PostgreSQL тип `file_category` — метки совпадают с **именами** членов
+    Python (`TU`, `BALANCE_ACT`, …), а не с `.value`. SQLAlchemy без
+    `values_callable` persist имена, поэтому смена `.value` не требует
+    Alembic-миграции enum. Значения `.value` используются для API,
+    query-параметров и сегментов пути в хранилище
+    (`upload_dir/<order_id>/<category.value>/...`).
     """
 
     TU = "tu"  # Технические условия (ТУ)
@@ -173,29 +175,6 @@ class FileCategory(str, enum.Enum):
     FINAL_INVOICE = "final_invoice"  # Счёт на остаток по договору (DOCX)
     RSO_SCAN = "rso_scan"  # Скан письма с входящим номером РСО
     RSO_REMARKS = "rso_remarks"  # Замечания РСО по согласованию проекта
-
-    @classmethod
-    def _missing_(cls, value: object) -> "FileCategory | None":
-        """Case-insensitive lookup (deprecated, B2 compat shim).
-
-        Принимает значения вида `BALANCE_ACT`, `Connection_Plan` и канонизирует
-        их к lowercase. Будет удалён в следующем PR (B2.b) — после него API
-        вернёт 422 на uppercase.
-        """
-        if isinstance(value, str):
-            lowered = value.lower()
-            for member in cls:
-                if member.value == lowered:
-                    import logging
-
-                    logging.getLogger(__name__).warning(
-                        "FileCategory: принят устаревший uppercase-алиас %r "
-                        "(канонический: %r). В B2.b будет отвергнут как 422.",
-                        value,
-                        member.value,
-                    )
-                    return member
-        return None
 
 
 # ─── Типы email ──────────────────────────────────────────────────────────────

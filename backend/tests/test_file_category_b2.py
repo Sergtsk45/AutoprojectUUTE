@@ -1,10 +1,9 @@
-"""Тесты нормализации FileCategory (фаза B2.a аудита).
+"""Тесты нормализации FileCategory (фазы B2.a → B2.b аудита).
 
-Проверяем:
-- каноническое `.value` всех членов — snake_case lowercase;
-- `_missing_` принимает устаревшие UPPER_CASE значения как алиас;
-- `param_labels` возвращает корректные лейблы и для lowercase, и для legacy
-  UPPER_CASE кодов (B2 compat-shim);
+После B2.b (2026-04-22):
+- `.value` всех членов — snake_case lowercase;
+- `FileCategory("BALANCE_ACT")` бросает `ValueError` (compat-shim удалён);
+- `param_labels` больше не канонизирует legacy UPPER_CASE-коды;
 - `SAMPLE_DOCUMENTS` содержит образцы под каждый lowercase-код.
 """
 
@@ -19,7 +18,6 @@ from app.services.param_labels import (
     CLIENT_DOCUMENT_PARAM_CODES,
     MISSING_PARAM_LABELS,
     SAMPLE_DOCUMENTS,
-    _canonicalize,
     client_document_list_needs_migration,
     get_missing_items,
     get_sample_paths,
@@ -40,20 +38,25 @@ class FileCategoryValuesTests(unittest.TestCase):
         self.assertEqual(FileCategory.BALANCE_ACT.value, "balance_act")
         self.assertEqual(FileCategory.CONNECTION_PLAN.value, "connection_plan")
 
-    def test_missing_accepts_legacy_uppercase(self) -> None:
-        with self.assertLogs("app.models.models", level="WARNING") as cm:
-            cat = FileCategory("BALANCE_ACT")
-        self.assertIs(cat, FileCategory.BALANCE_ACT)
-        self.assertTrue(any("устаревший uppercase-алиас" in m for m in cm.output))
+    def test_missing_rejects_legacy_uppercase(self) -> None:
+        """B2.b: API больше не принимает UPPER_CASE коды."""
+        with self.assertRaises(ValueError):
+            FileCategory("BALANCE_ACT")
+        with self.assertRaises(ValueError):
+            FileCategory("CONNECTION_PLAN")
 
-    def test_missing_accepts_mixed_case(self) -> None:
-        with self.assertLogs("app.models.models", level="WARNING"):
-            cat = FileCategory("Connection_Plan")
-        self.assertIs(cat, FileCategory.CONNECTION_PLAN)
+    def test_missing_rejects_mixed_case(self) -> None:
+        with self.assertRaises(ValueError):
+            FileCategory("Connection_Plan")
 
     def test_missing_rejects_garbage(self) -> None:
         with self.assertRaises(ValueError):
             FileCategory("not_a_category")
+
+    def test_canonical_lowercase_lookup_still_works(self) -> None:
+        self.assertIs(FileCategory("balance_act"), FileCategory.BALANCE_ACT)
+        self.assertIs(FileCategory("connection_plan"), FileCategory.CONNECTION_PLAN)
+        self.assertIs(FileCategory("tu"), FileCategory.TU)
 
 
 class ParamLabelsTests(unittest.TestCase):
@@ -70,29 +73,37 @@ class ParamLabelsTests(unittest.TestCase):
         expected = set(CLIENT_DOCUMENT_PARAM_CODES) - {"company_card"}
         self.assertEqual(set(SAMPLE_DOCUMENTS.keys()), expected)
 
-    def test_canonicalize_legacy_uppercase(self) -> None:
-        self.assertEqual(_canonicalize("BALANCE_ACT"), "balance_act")
-        self.assertEqual(_canonicalize("CONNECTION_PLAN"), "connection_plan")
-        self.assertEqual(_canonicalize("heat_scheme"), "heat_scheme")
-
-    def test_get_missing_items_works_on_legacy_codes(self) -> None:
-        """Письмо клиенту не сломается, если в missing_params остался UPPER_CASE."""
-        items = get_missing_items(["BALANCE_ACT", "heat_point_plan"])
+    def test_get_missing_items_returns_canonical_labels(self) -> None:
+        items = get_missing_items(["balance_act", "heat_point_plan"])
         self.assertEqual(len(items), 2)
         self.assertIn("Акт разграничения", items[0]["label"])
+        self.assertIn("теплового пункта", items[1]["label"])
 
-    def test_get_sample_paths_works_on_legacy_codes(self) -> None:
-        paths = get_sample_paths(["BALANCE_ACT", "CONNECTION_PLAN"])
+    def test_get_missing_items_no_longer_canonicalizes_uppercase(self) -> None:
+        """B2.b: legacy UPPER_CASE отображается как plain text без подписи."""
+        items = get_missing_items(["BALANCE_ACT"])
+        self.assertEqual(items, [{"label": "BALANCE_ACT", "hint": ""}])
+
+    def test_get_sample_paths_only_for_canonical_codes(self) -> None:
         self.assertEqual(
-            paths,
+            get_sample_paths(["balance_act", "connection_plan"]),
             [
                 "samples/sample_balance_act.pdf",
                 "samples/sample_connection_plan.pdf",
             ],
         )
 
-    def test_legacy_uppercase_triggers_migration_flag(self) -> None:
-        """`client_document_list_needs_migration` должен ловить UPPER_CASE коды."""
+    def test_get_sample_paths_ignores_legacy_uppercase(self) -> None:
+        """B2.b: UPPER_CASE-коды больше не находят образцы."""
+        self.assertEqual(get_sample_paths(["BALANCE_ACT", "CONNECTION_PLAN"]), [])
+
+    def test_legacy_data_still_triggers_migration_flag(self) -> None:
+        """`client_document_list_needs_migration` реагирует на чужие коды.
+
+        После B2.b UPPER_CASE-кодов в `_LEGACY_DOCUMENT_PARAM_CODES` нет, но
+        они всё равно ловятся правилом «любой код вне канонических четырёх».
+        """
+        self.assertTrue(client_document_list_needs_migration(["floor_plan"]))
         self.assertTrue(client_document_list_needs_migration(["BALANCE_ACT", "heat_scheme"]))
         self.assertFalse(client_document_list_needs_migration(list(CLIENT_DOCUMENT_PARAM_CODES)))
 
