@@ -304,7 +304,12 @@ def _resolve_initial_payment_amount(order: Order) -> int:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(
+    name="app.services.tasks.start_tu_parsing",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
 def start_tu_parsing(self, order_id: str):
     """NEW → TU_PARSING → TU_PARSED: Парсинг технических условий.
 
@@ -407,7 +412,7 @@ def start_tu_parsing(self, order_id: str):
     check_data_completeness.delay(order_id)
 
 
-@celery_app.task(bind=True)
+@celery_app.task(name="app.services.tasks.check_data_completeness", bind=True)
 def check_data_completeness(self, order_id: str):
     """TU_PARSED / CLIENT_INFO_RECEIVED: пересчёт missing и переход в WAITING_CLIENT_INFO.
 
@@ -466,7 +471,12 @@ def check_data_completeness(self, order_id: str):
         )
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(
+    name="app.services.tasks.send_info_request_email",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30,
+)
 def send_info_request_email(self, order_id: str):
     """Отправка письма клиенту с запросом недостающей информации.
 
@@ -548,7 +558,7 @@ def send_info_request_email(self, order_id: str):
                 logger.error("Исчерпаны попытки отправки email для order=%s", oid)
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.process_due_info_requests")
 def process_due_info_requests():
     """Периодически: заявки в WAITING_CLIENT_INFO старше 24 ч без успешного info_request."""
     from datetime import datetime, timedelta, timezone
@@ -587,7 +597,7 @@ def process_due_info_requests():
     )
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.notify_engineer_tu_parsed")
 def notify_engineer_tu_parsed(order_id: str):
     """Уведомляет инженера после успешного парсинга загруженного ТУ."""
     from app.services.email_service import send_tu_parsed_notification
@@ -602,7 +612,7 @@ def notify_engineer_tu_parsed(order_id: str):
         send_tu_parsed_notification(session, order)
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.notify_engineer_client_documents_received")
 def notify_engineer_client_documents_received(order_id: str):
     """Уведомляет инженера каждый раз, когда клиент отправляет документы."""
     from app.services.email_service import send_client_documents_received_notification
@@ -617,7 +627,7 @@ def notify_engineer_client_documents_received(order_id: str):
         send_client_documents_received_notification(session, order)
 
 
-@celery_app.task(bind=True)
+@celery_app.task(name="app.services.tasks.process_client_response", bind=True)
 def process_client_response(self, order_id: str):
     """CLIENT_INFO_RECEIVED: Обработка ответа клиента.
 
@@ -668,7 +678,12 @@ def process_client_response(self, order_id: str):
     process_card_and_contract.delay(order_id)
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@celery_app.task(
+    name="app.services.tasks.process_card_and_contract",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+)
 def process_card_and_contract(self, order_id: str):
     """CLIENT_INFO_RECEIVED → CONTRACT_SENT: парсинг реквизитов, генерация и отправка договора/счёта."""
     import shutil
@@ -838,7 +853,12 @@ def process_card_and_contract(self, order_id: str):
                     logger.warning("Не удалось удалить временный файл %s: %s", p, err)
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
+@celery_app.task(
+    name="app.services.tasks.fill_excel",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=120,
+)
 def fill_excel(self, order_id: str):
     """DATA_COMPLETE → GENERATING_PROJECT: Заполнение Excel-шаблона.
 
@@ -863,7 +883,12 @@ def fill_excel(self, order_id: str):
     generate_project.delay(order_id)
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=300)
+@celery_app.task(
+    name="app.services.tasks.generate_project",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=300,
+)
 def generate_project(self, order_id: str):
     """GENERATING_PROJECT → REVIEW: Генерация проекта в T-FLEX.
 
@@ -929,7 +954,12 @@ def _send_post_project_delivery(
     return success, temporary_paths
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(
+    name="app.services.tasks.send_completed_project",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30,
+)
 def send_completed_project(self, order_id: str):
     """Отправка готового проекта клиенту.
 
@@ -1010,7 +1040,12 @@ def send_completed_project(self, order_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(
+    name="app.services.tasks.initiate_payment_flow",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30,
+)
 def initiate_payment_flow(self, order_id: str):
     """REVIEW → AWAITING_CONTRACT: инженер одобрил, начинаем оплату."""
     from app.services.contract_generator import generate_contract_number
@@ -1052,7 +1087,12 @@ def initiate_payment_flow(self, order_id: str):
     logger.info("initiate_payment_flow: завершено, order=%s → awaiting_contract", oid)
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(
+    name="app.services.tasks.process_advance_payment",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30,
+)
 def process_advance_payment(self, order_id: str):
     """CONTRACT_SENT → ADVANCE_PAID: аванс подтверждён, проект отправляется отдельно."""
     from datetime import datetime, timezone
@@ -1084,7 +1124,12 @@ def process_advance_payment(self, order_id: str):
         )
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(
+    name="app.services.tasks.process_final_payment",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30,
+)
 def process_final_payment(self, order_id: str):
     """AWAITING_FINAL_PAYMENT → COMPLETED: финальная оплата подтверждена инженером."""
     from datetime import datetime, timezone
@@ -1122,7 +1167,12 @@ def process_final_payment(self, order_id: str):
     logger.info("process_final_payment: order=%s → completed", oid)
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(
+    name="app.services.tasks.resend_corrected_project",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30,
+)
 def resend_corrected_project(self, order_id: str):
     """Повторно отправляет клиенту исправленный проект с тем же счётом на остаток."""
     oid = uuid.UUID(order_id)
@@ -1201,7 +1251,12 @@ def resend_corrected_project(self, order_id: str):
                 )
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(
+    name="app.services.tasks.parse_company_card_task",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
 def parse_company_card_task(self, order_id: str):
     """Парсинг карточки предприятия — извлечение реквизитов.
 
@@ -1288,7 +1343,12 @@ def _normalize_client_requisites(raw: dict, fallback_name: str) -> dict:
     }
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@celery_app.task(
+    name="app.services.tasks.process_company_card_and_send_contract",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+)
 def process_company_card_and_send_contract(self, order_id: str):
     """AWAITING_CONTRACT → CONTRACT_SENT: реквизиты есть — договор, счёт, письмо, файлы в БД."""
     import shutil
@@ -1470,7 +1530,7 @@ def process_company_card_and_send_contract(self, order_id: str):
                     logger.warning("Не удалось удалить временный файл %s: %s", p, err)
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.notify_engineer_rso_scan_received")
 def notify_engineer_rso_scan_received(order_id: str):
     """Уведомление инженеру: клиент загрузил скан РСО."""
     from html import escape
@@ -1503,7 +1563,7 @@ def notify_engineer_rso_scan_received(order_id: str):
             logger.error("notify_engineer_rso_scan_received: не удалось отправить письмо %s", oid)
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.notify_engineer_rso_remarks_received")
 def notify_engineer_rso_remarks_received(order_id: str):
     """Уведомление инженеру: клиент загрузил замечания РСО."""
     from html import escape
@@ -1539,7 +1599,7 @@ def notify_engineer_rso_remarks_received(order_id: str):
             )
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.notify_client_after_rso_scan")
 def notify_client_after_rso_scan(order_id: str):
     """Уведомление клиенту после загрузки скана сопроводительного письма в РСО."""
     from app.services.email_service import send_final_payment_request
@@ -1581,7 +1641,7 @@ def notify_client_after_rso_scan(order_id: str):
             )
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.notify_engineer_signed_contract")
 def notify_engineer_signed_contract(order_id: str):
     """Уведомление инженеру: клиент загрузил подписанный договор."""
     from app.services.email_service import send_signed_contract_notification
@@ -1602,7 +1662,7 @@ def notify_engineer_signed_contract(order_id: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.send_final_payment_reminders_after_rso_scan")
 def send_final_payment_reminders_after_rso_scan():
     """Напоминание об остатке спустя 15 дней после загрузки скана в РСО."""
     from datetime import datetime, timedelta, timezone
@@ -1654,7 +1714,7 @@ def send_final_payment_reminders_after_rso_scan():
     )
 
 
-@celery_app.task
+@celery_app.task(name="app.services.tasks.send_reminders")
 def send_reminders():
     """Периодическая задача: одно напоминание клиенту после успешного info_request.
 

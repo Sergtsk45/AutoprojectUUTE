@@ -1,5 +1,42 @@
 # Task tracker
 
+## Задача: Фаза D1.a — Явные `name=` для Celery-задач (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Подготовительный шаг перед декомпозицией `services/tasks.py`. Всем 23 задачам в декораторе проставлено явное `name="app.services.tasks.<funcname>"` — имя в Celery registry больше не зависит от расположения функции в файловой системе. Без этого перенос задач в подмодули сломал бы `beat_schedule` и доставку сообщений из очередей.
+- **Шаги выполнения**:
+  - [x] Все 9 задач без параметров `@celery_app.task` → добавлено `name="..."`
+  - [x] Все 13 задач с параметрами (`bind=True`, `max_retries`, …) → добавлено `name="..."` первым параметром
+  - [x] Проверка: `celery_app.tasks.keys()` — 23 задачи под прежними именами `app.services.tasks.*`
+  - [x] ruff ✓, mypy --strict ✓, pytest 46/46 ✓
+- **Зависимости**: нет.
+- **Риски**: нулевые — имена в registry совпадают до символа со старыми.
+- **Разблокирует**: D1.b (декомпозиция `tasks.py` на `tasks/{_common, tu_parsing, client_response, contract_flow, post_project_flow, reminders}.py`).
+
+## Задача: Фаза D1.b — Декомпозиция `services/tasks.py` (плановая)
+- **Статус**: Не начата
+- **Описание**: Разбиение `tasks.py` (1717 строк, 70 КБ) на пакет `app/services/tasks/` с 6 подмодулями. Каждый подмодуль отвечает за свой этап пайплайна. `__init__.py` обеспечивает backward-compat через re-export'ы (`from app.services.tasks import start_tu_parsing` продолжает работать).
+- **Предварительные условия**: D1.a — завершена.
+- **Шаги выполнения**:
+  - [ ] Создать пакет `app/services/tasks/` и переместить `tasks.py` → `tasks/__init__.py` (переходный этап)
+  - [ ] Извлечь `_common.py` (утилиты + SyncSession + private helpers)
+  - [ ] `tu_parsing.py` (start_tu_parsing, check_data_completeness, notify_engineer_tu_parsed)
+  - [ ] `client_response.py` (send_info_request_email, process_due_info_requests, notify_engineer_client_documents_received, process_client_response)
+  - [ ] `contract_flow.py` (process_card_and_contract, initiate_payment_flow, process_advance_payment, process_final_payment, resend_corrected_project, parse_company_card_task, process_company_card_and_send_contract, notify_engineer_signed_contract, fill_excel/generate_project заглушки)
+  - [ ] `post_project_flow.py` (send_completed_project, notify_engineer_rso_scan_received, notify_engineer_rso_remarks_received, notify_client_after_rso_scan)
+  - [ ] `reminders.py` (send_reminders, send_final_payment_reminders_after_rso_scan)
+  - [ ] `__init__.py` — re-export всех публичных имён + удалить старый `tasks.py`
+  - [ ] Тест `test_celery_registry.py` — все 23 задачи зарегистрированы под именами `app.services.tasks.*`
+  - [ ] ruff, mypy --strict, pytest
+  - [ ] Smoke на dev-окружении: запустить worker, проверить `celery inspect registered`
+
+## Задача: Фаза C — Упрощение стейт-машины (отложена, 2026-04-22)
+- **Статус**: Отложена (awaiting product decision)
+- **Описание**: Roadmap фазы C (§ 7 плана) предполагает удаление 4 legacy-статусов: `data_complete`, `generating_project`, `review`, `awaiting_contract`. При анализе обнаружено, что статус `awaiting_contract` **не мёртвый**: активно используется в `payment.html` (экраны «загрузка карточки предприятия» и «выбор способа оплаты»), эндпоинтах `POST /landing/orders/{id}/upload-company-card` и `POST /.../select-payment-method`, а также в таске `process_company_card_and_send_contract`.
+- **Проблема**: в коде есть **две параллельные ветки** оплаты — новая (`client_info_received → contract_sent` через `process_card_and_contract`, клиент грузит карточку сразу) и legacy-совместимая (`review → awaiting_contract → contract_sent` через `initiate_payment_flow` + `payment.html`). Удаление `AWAITING_CONTRACT` требует либо отказа от payment.html-ветки (UX-регресс), либо её перестройки на другие статусы (отдельная продуктовая задача).
+- **Решение (2026-04-22)**: отложить фазу C; сначала получить ответ от продакта, какая из веток актуальна — и только потом сносить legacy. Legacy-статусы не мешают в проде: это только косметическое загрязнение switch-веток.
+- **Зависимости**: ждёт продуктового решения о судьбе payment.html-ветки загрузки карточки.
+- **Риски**: удаление без решения сломает UX для клиентов, которые не прикладывают карточку сразу через upload.html.
+
 ## Задача: Фаза B3 — Alembic: чистые имена + индексы для листинга (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Переименованы две миграции под соглашение `YYYYMMDD_uute_*.py` (revision ID внутри сохранены — история прода не рвётся). Добавлены три индекса под типичные запросы админки (`orders(status, created_at DESC)` и аналогичные). Миграция — `CREATE INDEX CONCURRENTLY IF NOT EXISTS`, безопасно в проде.
