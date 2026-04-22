@@ -1,5 +1,37 @@
 # Changelog
 
+## [2026-04-22] — Фаза E4: декомпозиция `upload.html` на модули
+
+### Добавлено
+- [`backend/static/css/upload.css`](../backend/static/css/upload.css) (~16 KB, 611 строк) — вынос inline `<style>` из `upload.html`.
+- Каталог [`backend/static/js/upload/`](../backend/static/js/upload/) с пятью JS-модулями (обычные `<script>`, не ES-модули — сохранён единственный inline `onclick="toggleSurveyCollapse()"`):
+  - [`config.js`](../backend/static/js/upload/config.js) — константы (`API_BASE`, `ORDER_ID`, `PARAM_LABELS`, `POST_PARSE_STATUSES`, `CUSTOM_EDITABLE_STATUSES`, `PARAM_TO_SURVEY`, `SURVEY_REQUIRED_FIELDS`) и mutable state (`orderData`, `isNewOrder`, `surveySavedCustom`, `uploadedCategories`, таймеры/счётчики парсинг-поллинга).
+  - [`utils.js`](../backend/static/js/upload/utils.js) — чистые хелперы (`escapeHtml`, `formatSize`, `formatMoneyRub`, `formatHttpDetail`, `showBanner`, `strVal`/`numVal`), UI-состояния (`syncSubmitButtonState`, `showDocsOptionalHint`, `applySurveySavedVisuals`, `showSurveyError`/`hideSurveyError`), DOM-refs (`$loading`, `$main`, `$checklist`, `$dropzone`, `$surveyCard`, `$contractSentCard` и др.).
+  - [`survey.js`](../backend/static/js/upload/survey.js) — опросный лист: collapse/expand/lock/unlock, hydrate из snapshot, маппинг `parsed_params → s_*`, нормализация типов подключения/систем/зданий, decorations (prefilled/needs-input badges), `collectSurveyData`, `validateSurveyFields`, обработчик submit. `toggleSurveyCollapse` экспортируется на `window`.
+  - [`contract.js`](../backend/static/js/upload/contract.js) — экран «договор и оплата»: `renderContractMeta`, `setSignedContractAcceptedState`/`resetSignedContractState`/`showContractSentState`, `showUploadAlongsideSurveyIfNeeded`, `prefillSurveyFromSaved`, `validateSignedContractFile`, `uploadSignedContract` (XHR + прогресс) и функция `bindSignedContractHandlers()` для drag&drop/change.
+  - [`upload.js`](../backend/static/js/upload/upload.js) — entry: `initCustomOrderUi`, `init`, `renderChecklist`, `renderCategoryOptions`, drag&drop-листенеры основной зоны, `handleFiles`, `uploadFile` (XHR + прогресс), обработчик submit «Всё загружено», `showCompleted`, polling парсинга ТУ (`showParsingState`, `startParsingPoll`, `stopParsingPoll`, `showParsingTimeout`). В конце — вызов `bindSignedContractHandlers()` и `init()`.
+
+### Изменено
+- [`backend/static/upload.html`](../backend/static/upload.html) сократился **с 92 153 → 21 762 байт** (−76%), с 2323 → 402 строк: удалены inline `<style>` (~612 строк) и inline `<script>` (~1318 строк), добавлены `<link rel="stylesheet" href="/static/css/upload.css">` и пять `<script src="/static/js/upload/*.js">` в конце `<body>`. Порядок подключения `config → utils → survey → contract → upload` гарантирует, что все глобальные символы доступны до первого вызова. Единственный inline `onclick="toggleSurveyCollapse()"` в HTML оставлен как был (функция экспонирована на `window` из `survey.js`).
+
+### Не затронуто
+- Ни одна функция не переименована и не переработана — код перенесён 1-в-1, поведение страницы `/upload/<id>` эквивалентно.
+- `backend/static/payment.html` остаётся монолитным (не входит в минимальный сценарий E4).
+- Никаких новых зависимостей (сборщика нет, ES-модули не используются).
+
+### Проверено
+- `node --check` на каждом из 5 модулей + склейка всех JS в один файл — синтаксис чистый.
+- `backend` pytest (63 теста) проходит локально на Python 3.10 с теми же env-переменными, что и CI.
+- Frontend `npm run lint` без ошибок (изменения не затронули `frontend/`).
+- Единственный inline-хендлер (`onclick="toggleSurveyCollapse()"`) сохранён и покрыт экспортом `window.toggleSurveyCollapse = toggleSurveyCollapse` в `survey.js`.
+
+### Результат
+- Кэш браузера теперь переиспользует CSS/JS между посещениями страницы.
+- Диффы новых фич в `upload.html` / `upload.css` / `js/upload/*.js` становятся узкоцелевыми — больше не меняется один 2,3-тысячный файл.
+- Готова площадка для перехода на ES-модули/сборщик: единственный inline-хендлер можно заменить на `addEventListener` без правок в остальных файлах.
+
+---
+
 ## [2026-04-22] — Фаза E3 (минимальный вариант): декомпозиция `admin.html` на модули
 
 ### Добавлено

@@ -1,5 +1,27 @@
 # Task tracker
 
+## Задача: Фаза E4 — декомпозиция `upload.html` на модули (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: `backend/static/upload.html` (2323 строки, ~92 KB) разрезан на HTML-скелет + внешний CSS + 5 JS-файлов в `backend/static/js/upload/`. Применён тот же сценарий, что и в E3 (обычные `<script>`, не ES-модули): единственный inline-хендлер `onclick="toggleSurveyCollapse()"` продолжает работать без правок HTML. Поведение страницы `/upload/<id>` не изменилось.
+- **Шаги выполнения**:
+  - [x] Ветка `refactor/audit-e4-upload-html-modules`, каталог `backend/static/js/upload/`
+  - [x] `css/upload.css` — весь прежний inline `<style>` (611 строк, ~16 KB)
+  - [x] `js/upload/config.js` — `API_BASE`, `ORDER_ID`, словари (`PARAM_LABELS`, `PARAM_TO_SURVEY`, `SURVEY_REQUIRED_FIELDS`), наборы статусов (`POST_PARSE_STATUSES`, `CUSTOM_EDITABLE_STATUSES`), mutable state (`orderData`, `isNewOrder`, `surveySavedCustom`, `uploadedCategories`, таймеры/счётчики парсинг-поллинга)
+  - [x] `js/upload/utils.js` — `escapeHtml`, `formatSize`, `formatMoneyRub`, `formatHttpDetail`, `showBanner`, `strVal`/`numVal`, `syncSubmitButtonState`, `showDocsOptionalHint`, `applySurveySavedVisuals`, `showSurveyError`/`hideSurveyError`, все `$*` DOM-refs
+  - [x] `js/upload/survey.js` — опросный лист (collapse/lock/unlock/hide/show), hydrate из snapshot, маппинг `parsed_params → s_*`, нормализация типов (connection/system/building), badges (prefilled/needs-input), `collectSurveyData`, `validateSurveyFields`, submit-листенер; `toggleSurveyCollapse` экспортирован на `window`
+  - [x] `js/upload/contract.js` — `renderContractMeta`, `setSignedContractAcceptedState`/`resetSignedContractState`/`showContractSentState`, `showUploadAlongsideSurveyIfNeeded`, `prefillSurveyFromSaved`, `validateSignedContractFile`, `uploadSignedContract`, функция `bindSignedContractHandlers()` для drag&drop/change
+  - [x] `js/upload/upload.js` (entry) — `initCustomOrderUi`, `init`, `renderChecklist`, `renderCategoryOptions`, drag&drop основной зоны, `handleFiles`, `uploadFile`, submit-обработчик «Всё загружено», `showCompleted`, polling парсинга ТУ (`showParsingState`, `startParsingPoll`, `stopParsingPoll`, `showParsingTimeout`), вызовы `bindSignedContractHandlers()` и `init()`
+  - [x] `upload.html` → skeleton + `<link rel="stylesheet">` + 5 `<script>` (порядок: config → utils → survey → contract → upload). Размер 92 153 → 21 762 байт (−76%), 2323 → 402 строк
+  - [x] `node --check` на каждом из 5 модулей + склейке всех JS в один файл — синтаксис чистый
+  - [x] pytest (63 теста, бэкенд) проходит локально
+  - [x] frontend `npm run lint` чистый
+  - [x] Единственный inline-хендлер `onclick="toggleSurveyCollapse()"` сохранён и подкреплён экспортом `window.toggleSurveyCollapse`
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`, `CLAUDE.md`, ✅ в roadmap
+- **Зависимости**: E3 (та же механика, те же конвенции для `StaticFiles`).
+- **Разблокирует**: декомпозицию `payment.html` (992 строки) по тому же сценарию; подключение eslint/prettier к `backend/static/js/`; потенциальную миграцию на Vite-сборку с единым набором ES-модулей.
+- **Риски**: низкие. Код перенесён 1-в-1, поведение эквивалентно. Тесты на `upload.html` в pytest отсутствуют — никаких тест-правок не потребовалось (в отличие от E3).
+- **Rollback**: `git revert` ветки `refactor/audit-e4-upload-html-modules`.
+
 ## Задача: Фаза E3 (минимальный вариант) — декомпозиция `admin.html` на модули (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: `backend/static/admin.html` (2873 строки, ~127 KB) разрезан на HTML-скелет + внешний CSS + 5 JS-файлов в `backend/static/js/admin/`. JS-модули подключаются как обычные `<script>` (не ES-модули) — это сохраняет все 15 inline `onclick`/`onchange` в HTML без переписывания: функции остаются в глобальной области. Поведение админки не изменилось.

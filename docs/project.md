@@ -8,6 +8,26 @@
 
 Файлы из [`frontend/public/`](../frontend/public/) попадают в корень статики: опросный лист для скачивания с лендинга — [`/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf) (единственная копия PDF; ранее дубль лежал в `docs/` и был удалён, чтобы не плодить расхождения). В production [`backend/app/main.py`](../backend/app/main.py) для путей вне `/api`, `/upload`, `/admin`, `/static`, `/assets` сначала проверяет наличие **реального файла** в `frontend-dist` (`_safe_dist_file`) и отдаёт его через `FileResponse`; иначе — `index.html` SPA. Без этого запрос к PDF попадал бы в SPA и отдавал бы HTML под именем `.pdf`.
 
+## Лендинг загрузки документов (`/upload/<id>`, `backend/static/upload.html`)
+
+**Структура статики (фаза E4, 2026-04-22).** `upload.html` теперь — тонкий HTML-скелет (~22 KB, 402 строки) с внешним CSS и пятью `<script>`-тегами (обычные скрипты, чтобы сохранился единственный inline `onclick="toggleSurveyCollapse()"`):
+
+```mermaid
+flowchart LR
+  HTML[upload.html skeleton<br/>~22 KB]
+  CSS[css/upload.css<br/>~16 KB]
+  CFG[js/upload/config.js<br/>константы, state, словари]
+  UT[js/upload/utils.js<br/>формат+DOM-refs+ошибки]
+  SV[js/upload/survey.js<br/>опросный лист]
+  CT[js/upload/contract.js<br/>договор+signed upload]
+  UP[js/upload/upload.js<br/>init+checklist+upload+poll]
+
+  HTML -->|link| CSS
+  HTML -->|script, в порядке| CFG --> UT --> SV --> CT --> UP
+```
+
+Переходы между состояниями: сначала заявка собирается (`new` → `tu_parsing` → `tu_parsed`), затем открывается опросный лист (`survey.js` заполняет его из `parsed_params` или сохранённого snapshot), параллельно можно догружать недостающие документы. После стадии `contract_sent` показывается экран с реквизитами договора и зона загрузки подписанного скана (`contract.js`). `upload.js` держит polling `/landing/orders/<id>/upload-page` в интервале 5с, пока статус в `tu_parsing`.
+
 ## Админка (`/admin`, `backend/static/admin.html`)
 
 **Структура статики (фаза E3, 2026-04-22).** `admin.html` теперь — тонкий HTML-скелет (~13 KB) с внешними стилями и пятью `<script>`-тегами (обычные скрипты, не ES-модули — чтобы inline `onclick`/`onchange` в HTML работали без переписывания):
