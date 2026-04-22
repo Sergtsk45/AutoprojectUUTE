@@ -57,6 +57,10 @@ class TuParsedEngineerNotificationTests(unittest.TestCase):
                 tasks.send_info_request_email,
                 "apply_async",
             ) as send_info_mock,
+            patch.object(
+                tasks.send_info_request_email,
+                "delay",
+            ) as send_info_delay_mock,
             patch(
                 "app.services.tasks.client_response.notify_engineer_tu_parsed",
                 new=notify_task,
@@ -64,7 +68,10 @@ class TuParsedEngineerNotificationTests(unittest.TestCase):
         ):
             tasks.check_data_completeness.run(str(order_id))
 
-        send_info_mock.assert_called_once()
+        # D5: check_data_completeness больше НЕ ставит send_info_request_email
+        # (ни через countdown, ни через delay). Отложенная отправка — только Beat.
+        send_info_mock.assert_not_called()
+        send_info_delay_mock.assert_not_called()
         notify_task.delay.assert_called_once_with(str(order_id))
         self.assertEqual(order.status, OrderStatus.WAITING_CLIENT_INFO)
         self.assertIn("company_card", order.missing_params)

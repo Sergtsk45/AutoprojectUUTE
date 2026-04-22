@@ -1,5 +1,21 @@
 # Task tracker
 
+## Задача: Фаза D5 — Celery hardening (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Убран блокирующий `apply_async(countdown=86400)` для `info_request` (теперь только Beat-джоба `process_due_info_requests`, тик 5 мин). Включены гарантии доставки: `task_acks_late=True` (уже было), `task_reject_on_worker_lost=True` (новое). `broker_transport_options.visibility_timeout` снижен с 86400 до 3600. Завершает фазу D audit-roadmap §3.
+- **Шаги выполнения**:
+  - [x] `celery_app.py`: `visibility_timeout=3600`, `task_reject_on_worker_lost=True`, Beat `process-due-info-requests` `*/15 → */5`
+  - [x] `tasks/tu_parsing.py`: удалён `apply_async(countdown=INFO_REQUEST_AUTO_DELAY_SECONDS)` в `check_data_completeness`
+  - [x] `_common.py`: уточнён комментарий у `INFO_REQUEST_AUTO_DELAY_SECONDS` (теперь только семантический порог 24 ч, не Celery-countdown)
+  - [x] Smoke-тест `tests/test_celery_hardening.py` (3 кейса: настройки, регрессия `countdown=86400`, Beat-джоба)
+  - [x] Обновлён `tests/test_tu_parsed_engineer_notification.py` (`send_info_request_email.apply_async/.delay` не вызывается)
+  - [x] `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`
+  - [x] ruff ✓, mypy ✓, pytest 53/53 (локально и в CI-parity на Python 3.12)
+  - [ ] **После деплоя**: убедиться, что Beat-процесс жив (`celery -A app.core.celery_app inspect scheduled` / Flower), и что в Redis нет старых задач с >1 ч задержкой.
+- **Зависимости**: D1.b (пакет `tasks/`).
+- **UX-риск**: info_request теперь приходит через 24 ч … 24 ч + 5 мин. Согласовано как приемлемое.
+- **Закрывает**: фазу D (D1.a → D5) audit-roadmap §3.
+
 ## Задача: Фаза D4 — Async/sync граница в API (2026-04-22)
 - **Статус**: Завершена
 - **Описание**: Из `backend/app/api/landing.py` и `backend/app/api/emails.py` убран блокирующий `SyncSession()` в async-обработчиках. Уведомление инженеру о новой заявке вынесено в Celery-задачу `notify_engineer_new_order`; остальные SMTP-вызовы (`sample-request`, `partnership`, `kp-request`) обёрнуты в `asyncio.to_thread`. Админская ручная отправка `POST /emails/{order_id}/send` делегируется новому sync-хелперу `manual_send_email_sync` и запускается через `asyncio.to_thread`.

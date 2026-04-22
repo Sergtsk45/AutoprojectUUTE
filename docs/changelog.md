@@ -1,5 +1,36 @@
 # Changelog
 
+## [2026-04-22] — Фаза D5: Celery hardening (visibility_timeout, reject_on_worker_lost, без 24h-countdown)
+
+### Изменено
+- [`backend/app/core/celery_app.py`](../backend/app/core/celery_app.py):
+  - `broker_transport_options.visibility_timeout`: **86400 → 3600** (1 час). Длинный timeout требовался под `apply_async(countdown=86400)` для info_request, но это означало, что любая `acks_late`-задача после потери воркера висела сутки.
+  - **Добавлено** `task_reject_on_worker_lost = True` — при OOM/SIGKILL воркера сообщение возвращается в очередь, а не теряется молча.
+  - Beat-джоба `process-due-info-requests`: `*/15` → `*/5` минут. Это единственный источник отложенного info_request после удаления countdown-схемы.
+  - Существующее `task_acks_late = True` оставлено и пояснено комментарием.
+- [`backend/app/services/tasks/tu_parsing.py`](../backend/app/services/tasks/tu_parsing.py): из `check_data_completeness` удалён вызов `client_response.send_info_request_email.apply_async(countdown=INFO_REQUEST_AUTO_DELAY_SECONDS)`. Поведение: переход в `waiting_client_info` + `waiting_client_info_at = now()` сохраняется; первое письмо клиенту отправит Beat-джоба `process_due_info_requests` через ≥24 ч (с шагом проверки 5 мин, т.е. фактическая задержка 24 ч … 24 ч + 5 мин).
+- Константа `INFO_REQUEST_AUTO_DELAY_SECONDS` сохранена в `_common.py` как «семантический порог 24 ч»; больше не используется как Celery countdown — обновлён комментарий.
+
+### Добавлено
+- Smoke-тесты [`tests/test_celery_hardening.py`](../backend/tests/test_celery_hardening.py):
+  - проверка `task_acks_late`, `task_reject_on_worker_lost`, `visibility_timeout=3600`;
+  - регрессия по `countdown=86400` / `countdown=24*60*60` во всём `backend/app/`;
+  - наличие Beat-джобы `process-due-info-requests`.
+- Обновлён [`tests/test_tu_parsed_engineer_notification.py`](../backend/tests/test_tu_parsed_engineer_notification.py) — теперь утверждает, что `send_info_request_email.apply_async`/`delay` **не вызывается** из `check_data_completeness`.
+
+### UX/контракт
+- Раньше клиент получал info_request строго через 24 ч (точность ±несколько секунд) после перехода заявки в `waiting_client_info`. Теперь — через 24 ч … 24 ч + 5 мин (зависит от тика Beat). Допуск согласован с пользователем как приемлемый.
+- Если Beat остановлен/упал — info_request не уйдёт совсем (раньше дополнительно был «пояс и подтяжки» через countdown). Mitigation: операционный мониторинг Beat (см. backlog) и существующая ручная отправка через `POST /emails/{order_id}/send`.
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy` ✓, `pytest tests/` 53/53 (добавлено 3 новых D5-теста).
+- CI-parity в Docker (`python:3.12-slim`) — все шаги зелёные.
+
+### Связано с roadmap
+- [Раздел D5](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`visibility_timeout ≤ 3600`», `task_reject_on_worker_lost = True`, удалены `apply_async(countdown=86400)` — выполнен. Фаза D audit-roadmap §3 закрыта (D1.a, D1.b, D2, D3, D4, D5).
+
+---
+
 ## [2026-04-22] — Фаза D4: Async/sync граница — убран `SyncSession()` из async-роутеров
 
 ### Добавлено
