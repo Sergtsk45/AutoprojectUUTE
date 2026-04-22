@@ -12,22 +12,24 @@
 - **Риски**: нулевые — имена в registry совпадают до символа со старыми.
 - **Разблокирует**: D1.b (декомпозиция `tasks.py` на `tasks/{_common, tu_parsing, client_response, contract_flow, post_project_flow, reminders}.py`).
 
-## Задача: Фаза D1.b — Декомпозиция `services/tasks.py` (плановая)
-- **Статус**: Не начата
-- **Описание**: Разбиение `tasks.py` (1717 строк, 70 КБ) на пакет `app/services/tasks/` с 6 подмодулями. Каждый подмодуль отвечает за свой этап пайплайна. `__init__.py` обеспечивает backward-compat через re-export'ы (`from app.services.tasks import start_tu_parsing` продолжает работать).
-- **Предварительные условия**: D1.a — завершена.
+## Задача: Фаза D1.b — Декомпозиция `services/tasks.py` (2026-04-22)
+- **Статус**: Завершена
+- **Описание**: Монолитный `tasks.py` (~1.8K строк) разбит на пакет `app/services/tasks/` с модулями `_common`, `tu_parsing`, `client_response`, `contract_flow`, `post_project_flow`, `reminders` и `__init__.py` с re-export'ами. Имена Celery-задач (D1.a) неизменны. Добавлен re-export `compute_client_document_missing` в пакет для тестов, патчевавших `app.services.tasks.*`.
+- **Предварительные условия**: D1.a (явные `name=`) — в `main` и на проде.
 - **Шаги выполнения**:
-  - [ ] Создать пакет `app/services/tasks/` и переместить `tasks.py` → `tasks/__init__.py` (переходный этап)
-  - [ ] Извлечь `_common.py` (утилиты + SyncSession + private helpers)
-  - [ ] `tu_parsing.py` (start_tu_parsing, check_data_completeness, notify_engineer_tu_parsed)
-  - [ ] `client_response.py` (send_info_request_email, process_due_info_requests, notify_engineer_client_documents_received, process_client_response)
-  - [ ] `contract_flow.py` (process_card_and_contract, initiate_payment_flow, process_advance_payment, process_final_payment, resend_corrected_project, parse_company_card_task, process_company_card_and_send_contract, notify_engineer_signed_contract, fill_excel/generate_project заглушки)
-  - [ ] `post_project_flow.py` (send_completed_project, notify_engineer_rso_scan_received, notify_engineer_rso_remarks_received, notify_client_after_rso_scan)
-  - [ ] `reminders.py` (send_reminders, send_final_payment_reminders_after_rso_scan)
-  - [ ] `__init__.py` — re-export всех публичных имён + удалить старый `tasks.py`
-  - [ ] Тест `test_celery_registry.py` — все 23 задачи зарегистрированы под именами `app.services.tasks.*`
-  - [ ] ruff, mypy --strict, pytest
-  - [ ] Smoke на dev-окружении: запустить worker, проверить `celery inspect registered`
+  - [x] `_common.py` — `SyncSession`, хелперы, `_normalize_client_requisites`, вложения/счета
+  - [x] `tu_parsing.py` — `start_tu_parsing`, `check_data_completeness` (вызовы `client_response.*` по модулю)
+  - [x] `client_response.py` — info_request, `process_due_info_requests`, уведомления, `process_client_response` (lazy-вызов `contract_flow.process_card_and_contract`)
+  - [x] `contract_flow.py` — договор, платёж, parse/build contract с payment.html, заглушки fill/generate; **без** `resend`/`send_completed`
+  - [x] `post_project_flow.py` — `_send_post_project_delivery`, `send_completed_project`, `resend_corrected_project`, RSO-нотификации
+  - [x] `reminders.py` — beat-задачи
+  - [x] `__init__.py` — re-export; удалён `tasks.py`
+  - [x] `tests/test_celery_tasks_package.py` + правка `test_tu_parsed_engineer_notification.py` (патчи на `tu_parsing` / `client_response`)
+  - [x] ruff ✓, mypy --strict ✓, pytest 47/47
+  - [ ] **После деплоя**: `celery -A app.core.celery_app inspect registered` (ожидается 23× `app.services.tasks.*`)
+- **Скрипт-референс**: `scripts/split_tasks_d1b.py` (документация `T()` — 1-based inclusive, не обрезать `)`).
+- **Риски**: низкие при D1.a. Импорт-циклы сняты: `process_client_response` → lazy `contract_flow`; `tu_parsing` → `client_response` (без обратного импорта на уровне модуля).
+- **Разблокирует**: D2 (`email_service.py`) по roadmap.
 
 ## Задача: Фаза C — Упрощение стейт-машины (отложена, 2026-04-22)
 - **Статус**: Отложена (awaiting product decision)
@@ -98,7 +100,7 @@
   - [x] `app/api/parsing.py` — чтение через accessor; `retrigger_parsing` через `set_parsed_params(order, None)`
   - [x] `app/api/calculator_config.py` — `survey.manufacturer` через типизированный accessor
   - [x] `app/services/calculator_config_service.py` — `resolve_calculator_type_for_express`, `init_config`, `init_config_sync` через accessor
-  - [x] `app/services/tasks.py` — `set_company_requisites`, `get_parsed_params`, `get_company_requisites_dict` в `_collect_project_attachments`, `process_card_and_contract`, `process_company_card_and_send_contract`, `parse_company_card_task`
+  - [x] `app/services/tasks/_common.py` и `contract_flow.py` (пакет `tasks/`, после D1.b) — `set_company_requisites`, `get_parsed_params`, `get_company_requisites_dict` в `_collect_project_attachments`, `process_card_and_contract`, `process_company_card_and_send_contract`, `parse_company_card_task`
   - [x] `app/api/admin.py` — не содержит обращений к JSONB (данные идут через `OrderResponse` автоматически; типизация там — задача B1.c)
   - [x] `app/services/email_service.py` — не требует accessor (читает только `missing_params: list[str]`)
   - [x] `[[tool.mypy.overrides]] module = ["app.schemas.jsonb.*", "app.repositories.*"]` → `strict = true`

@@ -1,5 +1,33 @@
 # Changelog
 
+## [2026-04-22] — Фаза D1.b: `services/tasks.py` → пакет `services/tasks/`
+
+### Добавлено
+- Пакет [`backend/app/services/tasks/`](../backend/app/services/tasks/): публичный API `app.services.tasks` прежний (`import app.services.tasks as tasks` и `from app.services.tasks import ...` без изменений).
+- Подмодули:
+  - [`_common.py`](../backend/app/services/tasks/_common.py) — `SyncSession`, хелперы БД, `_normalize_client_requisites`, вложения проекта, `FINAL_*` / `INFO_REQUEST_*` константы.
+  - [`tu_parsing.py`](../backend/app/services/tasks/tu_parsing.py) — `start_tu_parsing`, `check_data_completeness`.
+  - [`client_response.py`](../backend/app/services/tasks/client_response.py) — `send_info_request_email`, `process_due_info_requests`, уведомления инженеру, `process_client_response`.
+  - [`contract_flow.py`](../backend/app/services/tasks/contract_flow.py) — `process_card_and_contract`, заглушки `fill_excel` / `generate_project`, платёжный флоу, `parse_company_card_task`, `process_company_card_and_send_contract`.
+  - [`post_project_flow.py`](../backend/app/services/tasks/post_project_flow.py) — `send_completed_project`, `resend_corrected_project`, RSO-нотификации.
+  - [`reminders.py`](../backend/app/services/tasks/reminders.py) — beat-задачи напоминаний.
+- Re-export в [`__init__.py`](../backend/app/services/tasks/__init__.py): все задачи + `compute_client_document_missing` (для тестов, патч `app.services.tasks.*`).
+- Скрипт-референс [`scripts/split_tasks_d1b.py`](../scripts/split_tasks_d1b.py) — логика line-range (см. docstring `T()`: 1-based inclusive, не обрезать закрывающие скобки).
+- Тест [`tests/test_celery_tasks_package.py`](../backend/tests/test_celery_tasks_package.py) — 23 зарегистрированных имени `app.services.tasks.*`.
+
+### Изменено
+- **Удалён** монолитный **`backend/app/services/tasks.py`** (≈1.8K строк) — теперь **пакет** `tasks/`.
+- **`tests/test_tu_parsed_engineer_notification.py`** — патчи перенесены на реальные модули-носители (`tu_parsing`, `client_response`), т.к. `patch(tasks, "_get_order")` больше не подменял имя, импортированное в подмодуле из `_common`.
+
+### Проверено
+- D1.a: `name="app.services.tasks.<funcname>"` — без изменений, registry совпадает.
+- `ruff` ✓, `mypy --strict` ✓, `pytest tests/ -q` → 47/47 (вкл. smoke registry).
+
+### Следующий шаг
+- **D2** (roadmap) — декомпозиция `email_service.py` при необходимости.
+
+---
+
 ## [2026-04-22] — Фаза D1.a: Явные `name=` для всех Celery-задач (подготовка к декомпозиции)
 
 ### Изменено
@@ -29,7 +57,7 @@
 - Alembic-миграция [`20260422_uute_add_listing_indexes.py`](../backend/alembic/versions/20260422_uute_add_listing_indexes.py) — создаёт 3 индекса `CREATE INDEX CONCURRENTLY IF NOT EXISTS` (безопасно в проде, не блокирует таблицу):
   - `ix_orders_created_at_desc` — сортировка «по новизне» в админском listing.
   - `ix_orders_status_created_at_desc` — композитный под `WHERE status = ? ORDER BY created_at DESC` (топ-кейс).
-  - `ix_order_files_order_id_category` — под частый паттерн `[f for f in order.files if f.category.value == "tu"]` (см. `tasks.py`, `landing.py`).
+  - `ix_order_files_order_id_category` — под частый паттерн `[f for f in order.files if f.category.value == "tu"]` (см. `app/services/tasks/`, `landing.py`).
   - Downgrade — reversible (`DROP INDEX CONCURRENTLY IF EXISTS`).
   - Защита `if bind.dialect.name != "postgresql": return` — миграция no-op на SQLite/тестах.
 

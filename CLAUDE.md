@@ -507,10 +507,11 @@ chore: bump openai sdk version
 
 ### Новая Celery задача
 
-1. Добавить функцию в `backend/app/services/tasks.py` с декоратором `@celery_app.task`
-2. Вызвать из нужного места через `.delay()` или `.apply_async()`
-3. Для периодических задач — добавить в `beat_schedule` в `backend/app/core/celery_app.py`
-4. Перезапустить воркер: `docker compose -f docker-compose.prod.yml restart celery-worker`
+1. Реализация — в **подходящем** файле пакета `backend/app/services/tasks/` (фаза D1.b, 2026-04-22), например `client_response.py` или `contract_flow.py` — **не** раздувать `_common.py` бизнес-логикой. У каждой задачи: `@celery_app.task(name="app.services.tasks.<funcname>", ...)` — явное имя обязательно (см. D1.a), чтобы смена модуля не ломала очереди.
+2. Re-export: добавить имя в `backend/app/services/tasks/__init__.py` (импорт + `__all__`, если публичный API).
+3. Вызвать из нужного места через `.delay()` или `.apply_async()`
+4. Для периодических задач — добавить в `beat_schedule` в `backend/app/core/celery_app.py` (строка `task: "app.services.tasks...."`).
+5. Перезапустить воркер: `docker compose -f docker-compose.prod.yml restart celery-worker`
 
 ### Новая категория файлов (FileCategory)
 
@@ -559,7 +560,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 **Backlog / технический долг:**
 - Безопасность: ограничить CORS до доменов, перевести `verify_admin_key` на `secrets.compare_digest`, отказаться от `?_k=` в публичных URL, убрать дефолты секретов из `config.py`, добавить rate-limit на `/landing/*`.
-- Декомпозиция «толстых» модулей: `services/tasks.py`, `services/email_service.py`, `services/contract_generator.py`.
+- Декомпозиция «толстых» модулей: `services/tasks/` (пакет, фаза D1.b), `services/email_service.py`, `services/contract_generator.py`.
 - Удаление legacy-статусов / нормализация enum после миграции данных.
 - Типизация JSONB-полей (`parsed_params`, `survey_data`, `company_requisites`) Pydantic-моделями.
 - CI (pytest + ruff + mypy + eslint), error-tracking (Sentry/Glitchtip), генерация TypeScript-клиента из OpenAPI.
