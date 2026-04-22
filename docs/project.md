@@ -24,19 +24,23 @@
 
 **Документы от клиента (после ТУ):**
 
-| Значение | Назначение |
+| Значение API (`.value`) | Назначение |
 |----------|------------|
 | `tu` | Технические условия |
-| `BALANCE_ACT` | Акт разграничения балансовой принадлежности (действующие объекты) |
-| `CONNECTION_PLAN` | План подключения потребителя к тепловой сети |
+| `balance_act` | Акт разграничения балансовой принадлежности (действующие объекты) |
+| `connection_plan` | План подключения потребителя к тепловой сети |
 | `heat_point_plan` | План теплового пункта с указанием мест установки узла учёта и ШУ |
 | `heat_scheme` | Принципиальная схема теплового пункта с узлом учёта |
 
 **Post-project / служебные:** `generated_excel`, `generated_project`, `invoice`, `final_invoice`, `signed_contract`, `rso_scan`, `rso_remarks`, `other`.
 
-Список того, что ещё нужно от клиента, задаётся в `orders.missing_params` (JSON-массив строк). Коды документов совпадают с `FileCategory` для сопоставления с загруженными файлами в `process_client_response` (сравнение с `OrderFile.category`). Подписи для писем и страницы загрузки — `app/services/param_labels.py`.
+Список того, что ещё нужно от клиента, задаётся в `orders.missing_params` (JSON-массив строк). Коды документов совпадают с `FileCategory.<member>.value` (snake_case lowercase) для сопоставления с загруженными файлами в `process_client_response` (сравнение с `OrderFile.category`). Подписи для писем и страницы загрузки — `app/services/param_labels.py`.
 
-Миграция `20260402_uute_file_category` добавляет значения перечисления в БД (изначально `balance_act` / `connection_plan`), переносит файлы `floor_plan` → `other` и нормализует устаревшие коды в `missing_params`. Миграция `20260403_fc_upper` переименовывает метки enum в `BALANCE_ACT` / `CONNECTION_PLAN` и обновляет соответствующие строки в `orders.missing_params`.
+**Эволюция перечисления:**
+- `20260402_uute_file_category` — заводит enum `file_category` в PG (изначально `balance_act` / `connection_plan` lowercase), переносит файлы `floor_plan` → `other`, нормализует устаревшие коды в `missing_params`.
+- `20260403_fc_upper` — RENAME enum-меток в БД на `BALANCE_ACT` / `CONNECTION_PLAN` и обновление `orders.missing_params`. **PG-метки остаются UPPER_CASE именами членов Python** (SQLAlchemy без `values_callable` persist имена, не `.value`).
+- **B2.a (2026-04-21):** `FileCategory.BALANCE_ACT.value` / `CONNECTION_PLAN.value` переведены в lowercase; добавлен `_missing_` shim. Alembic `20260421_uute_fc_lower_missing` мигрирует `orders.missing_params` JSONB → lowercase.
+- **B2.b (2026-04-22):** `_missing_` shim **удалён**. API строго принимает только canonical `.value`; запросы вида `?category=BALANCE_ACT` отвечают **422 Unprocessable Entity** (BREAKING CHANGE). PG-enum не затронут — RENAME меток на lowercase отложен (требует zero-downtime migration с `values_callable`).
 
 На странице загрузки (`GET .../upload-page`) в ответе для статусов ожидания клиента в `missing_params` приходят коды из `CLIENT_DOCUMENT_PARAM_CODES` (технические документы + `company_card`), а UI строит чеклист с галочками по факту загруженных файлов. Устаревшие значения в БД подменяются на канонические при первом открытии (`fix_legacy_client_document_params`). После нажатия «Готово» Celery записывает в БД только ещё не закрытые позиции: `compute_client_document_missing`. Для заявок `order_type=custom` в том же ответе приходят `parsed_params` (если не пустой JSON после парсинга ТУ) и `survey_data` (если уже сохранён), для `express` эти поля `null`. На `upload.html` для custom после отправки ТУ страница показывает ожидание парсинга и опрашивает этот эндпоинт до статуса `tu_parsed` (или далее), затем открывает опросный лист с предзаполнением из `parsed_params`. Если клиент уже сохранял опрос (`survey_data`), при загрузке страницы подставляются сохранённые значения; иначе поля заполняются из ТУ по таблице `PARAM_TO_SURVEY`, с подсветкой источника и блоком уверенности/предупреждений парсера. Для custom-заявок `init()` ветвится по `order_status`: `new` — загрузка ТУ и заблокированный опрос (overlay); `tu_parsing` — экран ожидания и polling; после парсинга — редактируемый опрос и при необходимости блок догрузки документов; для custom после парсинга кнопка «Всё загружено — отправить» включается только после сохранения опроса (`POST .../survey`) и загрузки файлов по всем позициям `missing_params`; `review`/`completed` — экран «готово»; `error` — сообщение и возможность снова обратиться к загрузке. Публичный `POST /landing/orders/{id}/survey` записывает `survey_data` только в статусах, где клиенту разрешено редактировать опрос на upload-странице (`tu_parsed` … `generating_project`), не в `review`/`completed`/`new` и т.п.
 

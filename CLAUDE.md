@@ -545,7 +545,7 @@ docker compose -f docker-compose.prod.yml up -d --build
   `company_card`, `signed_contract`, `generated_project`, `final_invoice`,
   `rso_scan`, `rso_remarks`.
   - В PG enum `file_category` метки — **имена членов Python** (`TU`, `BALANCE_ACT`, …), а не `.value`. SQLAlchemy без `values_callable` persist имена.
-  - `FileCategory._missing_` (B2.a compat-shim) принимает устаревшие UPPER_CASE значения с `WARNING` в лог. В B2.b будет удалён → 422 на uppercase.
+  - **B2.b (2026-04-22):** `FileCategory._missing_` compat-shim **удалён**. API теперь отвечает **422** на UPPER_CASE-входы (`?category=BALANCE_ACT` → 422). Канонические значения — только snake_case lowercase.
 - Публичные эндпоинты лендинга (`/api/v1/landing/...`): создание заявки, upload ТУ/документов, опросный лист, страница оплаты `/payment/{id}`, загрузка скана РСО и замечаний.
 - Договор: пакет `app.services.contract` (shim `contract_generator.py`) собирает DOCX по шаблону `docs/kontrakt_ukute_template.md` с встраиванием PDF ТУ в Приложение 2 (PyMuPDF, лестница DPI, fallback ~25 МБ).
 - Email-уведомления (Jinja2 + SMTP Яндекс): запрос данных, напоминания, отправка готового проекта, уведомления инженеру (новая заявка, ТУ распарсены, документы клиента получены, скан РСО), уведомление о замечаниях РСО, повторная отправка исправленного проекта.

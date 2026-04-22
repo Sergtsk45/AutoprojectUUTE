@@ -28,9 +28,6 @@ _LEGACY_DOCUMENT_PARAM_CODES = frozenset(
         "floor_plan",
         "connection_scheme",
         "system_type",
-        # B2 legacy: до 2026-04-21 использовались UPPER_CASE коды
-        "BALANCE_ACT",
-        "CONNECTION_PLAN",
     }
 )
 
@@ -99,41 +96,32 @@ SAMPLE_DOCUMENTS: dict[str, str] = {
 }
 
 
-# Исторические UPPER_CASE коды → canonical lowercase (B2 compat shim).
-# Удалить в B2.b вместе с `FileCategory._missing_`.
-_B2_LEGACY_ALIASES: dict[str, str] = {
-    "BALANCE_ACT": "balance_act",
-    "CONNECTION_PLAN": "connection_plan",
-}
-
-
-def _canonicalize(code: str) -> str:
-    return _B2_LEGACY_ALIASES.get(code, code)
-
-
 def get_missing_items(missing_params: list[str]) -> list[dict[str, str]]:
     """Превращает список machine-name в список для шаблона письма.
 
     Returns:
         [{"label": "...", "hint": "..."}, ...]
+
+    Все коды ожидаются в каноническом snake_case lowercase (фаза B2.b,
+    2026-04-22). Legacy UPPER_CASE-варианты больше не канонизируются —
+    исторические данные мигрированы Alembic-ревизией
+    `20260421_uute_fc_lower_missing`. Незнакомые коды показываются как
+    plain text, без подписи.
     """
     items = []
-    for raw_code in missing_params:
-        code = _canonicalize(raw_code)
+    for code in missing_params:
         info = MISSING_PARAM_LABELS.get(code)
         if info:
             items.append({"label": info["label"], "hint": info.get("hint", "")})
         else:
-            # Неизвестный код — показываем как есть
-            items.append({"label": raw_code, "hint": ""})
+            items.append({"label": code, "hint": ""})
     return items
 
 
 def get_sample_paths(missing_params: list[str]) -> list[str]:
-    """Возвращает пути к образцам, релевантным для missing_params."""
-    paths = []
-    for raw_code in missing_params:
-        code = _canonicalize(raw_code)
-        if code in SAMPLE_DOCUMENTS:
-            paths.append(SAMPLE_DOCUMENTS[code])
-    return paths
+    """Возвращает пути к образцам, релевантным для missing_params.
+
+    Ожидает snake_case lowercase коды (фаза B2.b). Legacy UPPER_CASE
+    теперь возвращает пустой список для соответствующего кода.
+    """
+    return [SAMPLE_DOCUMENTS[code] for code in missing_params if code in SAMPLE_DOCUMENTS]
