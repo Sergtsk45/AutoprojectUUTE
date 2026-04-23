@@ -1,12 +1,14 @@
 """
 @file: test_scheme_auto_generation.py
 @description: Тесты автогенерации PDF схемы и обновлённой логики missing_params.
-@dependencies: pytest, app.services.param_labels, app.services.tasks
+@dependencies: app.services.param_labels, app.services.tasks
 @created: 2026-04-23
 """
 
-import pytest
+import uuid
+from unittest.mock import MagicMock, patch
 
+from app.models.models import FileCategory
 from app.services.param_labels import (
     CLIENT_DOCUMENT_PARAM_CODES,
     compute_client_document_missing,
@@ -56,13 +58,6 @@ class TestComputeClientDocumentMissing:
         uploaded = set()
         result = compute_client_document_missing(uploaded)
         assert set(result) == set(CLIENT_DOCUMENT_PARAM_CODES)
-
-
-import uuid
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-from app.models.models import FileCategory
 
 
 class TestAutoGenerateScheme:
