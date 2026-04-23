@@ -50,9 +50,7 @@ class SchemeConfig(BaseModel):
                     "(has_valve должен быть True)."
                 )
             if self.has_ventilation and not self.has_gwp:
-                raise ValueError(
-                    "Вентиляция в независимой схеме допустима только при наличии ГВС."
-                )
+                raise ValueError("Вентиляция в независимой схеме допустима только при наличии ГВС.")
         if self.connection_type == "dependent":
             if self.has_ventilation:
                 if not self.has_gwp:
@@ -83,7 +81,7 @@ class SchemeParams(BaseModel):
     object_address: str | None = None
     company_name: str | None = None
     engineer_name: str | None = None
-    
+
     # Метки для датчиков и расходомеров на схеме
     t1_label: str | None = None  # Датчик температуры подачи
     t2_label: str | None = None  # Датчик температуры обратки
@@ -92,16 +90,16 @@ class SchemeParams(BaseModel):
     g1_label: str | None = None  # Расходомер подачи
     g2_label: str | None = None  # Расходомер обратки
     g3_label: str | None = None  # Расходомер ГВС/подпитки
-    
+
     # Параметры для таблицы УУТЭ (тепловычислитель)
     q_heat: str | None = None  # Тепловая нагрузка отопления
-    q_gwp: str | None = None   # Тепловая нагрузка ГВС
-    m1: str | None = None       # Расход подачи
-    m2: str | None = None       # Расход обратки
-    t1: str | None = None       # Температура подачи (значение)
-    t2: str | None = None       # Температура обратки (значение)
-    p1: str | None = None       # Давление подачи (значение)
-    p2: str | None = None       # Давление обратки (значение)
+    q_gwp: str | None = None  # Тепловая нагрузка ГВС
+    m1: str | None = None  # Расход подачи
+    m2: str | None = None  # Расход обратки
+    t1: str | None = None  # Температура подачи (значение)
+    t2: str | None = None  # Температура обратки (значение)
+    p1: str | None = None  # Давление подачи (значение)
+    p2: str | None = None  # Давление обратки (значение)
 
 
 class SchemeGenerateRequest(BaseModel):

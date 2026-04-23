@@ -90,7 +90,9 @@ class TestAutoGenerateScheme:
             }
         )
 
-        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf", return_value=b"%PDF-fake-bytes"):
+        with patch(
+            "app.services.scheme_pdf_renderer.render_scheme_pdf", return_value=b"%PDF-fake-bytes"
+        ):
             result = cr._auto_generate_scheme_if_configured(session, order)
 
         assert result is True
@@ -157,7 +159,10 @@ class TestAutoGenerateScheme:
             }
         )
 
-        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf", side_effect=RuntimeError("WeasyPrint error")):
+        with patch(
+            "app.services.scheme_pdf_renderer.render_scheme_pdf",
+            side_effect=RuntimeError("WeasyPrint error"),
+        ):
             result = cr._auto_generate_scheme_if_configured(session, order)
 
         assert result is False

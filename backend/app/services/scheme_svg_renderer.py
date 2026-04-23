@@ -143,9 +143,7 @@ def render_scheme_01_dep_simple(params: SchemeParams) -> str:
     parts.append(heat_calculator(800, 600, calc_params))
 
     # Соединительные линии от датчиков к УУТЭ (пунктир)
-    parts.append(
-        dashed_rect(790, 590, 300, 200, "Зона УУТЭ")
-    )
+    parts.append(dashed_rect(790, 590, 300, 200, "Зона УУТЭ"))
 
     # Подписи труб
     parts.append(text_label(400, y_supply - 40, "Подающий трубопровод", 11, "middle", bold=True))
@@ -157,7 +155,7 @@ def render_scheme_01_dep_simple(params: SchemeParams) -> str:
 def render_scheme_02_dep_simple_gwp(params: SchemeParams) -> str:
     """
     Схема 2: зависимая без клапана, с ГВС (двухступенчатый подогреватель).
-    
+
     Топология: базовая схема 1 + блок ГВС справа.
     ГВС: две ступени подогревателя (от обратки и от подачи), циркуляционный насос,
     расходомер G3, датчики температуры ГВС.
@@ -253,12 +251,16 @@ def render_scheme_02_dep_simple_gwp(params: SchemeParams) -> str:
     parts.append(text_label(gwp_x + 290, gwp_y_top - 90, "ГВС", 9, bold=True))
 
     # Соединительные линии между ступенями
-    parts.append(connection_line([
-        (gwp_x + 110, gwp_y_bot),
-        (gwp_x + 110, gwp_y_bot - 50),
-        (gwp_x + 90, gwp_y_bot - 50),
-        (gwp_x + 90, gwp_y_top + 30)
-    ]))
+    parts.append(
+        connection_line(
+            [
+                (gwp_x + 110, gwp_y_bot),
+                (gwp_x + 110, gwp_y_bot - 50),
+                (gwp_x + 90, gwp_y_bot - 50),
+                (gwp_x + 90, gwp_y_top + 30),
+            ]
+        )
+    )
 
     # Возврат в обратку (после ступени 2)
     parts.append(pipe_horizontal(gwp_x + 100, gwp_y_top, -60))
@@ -302,7 +304,7 @@ def render_scheme_02_dep_simple_gwp(params: SchemeParams) -> str:
 def render_scheme_03_dep_valve(params: SchemeParams) -> str:
     """
     Схема 3: зависимая с 3-ходовым клапаном и насосом на перемычке.
-    
+
     Топология: базовая схема 1 + трёхходовой клапан перед G1 и насос на перемычке
     между подачей и обраткой (для регулирования температуры).
     """
@@ -396,8 +398,12 @@ def render_scheme_03_dep_valve(params: SchemeParams) -> str:
     parts.append(dashed_rect(790, 590, 300, 200, "Зона УУТЭ"))
 
     # Подписи труб
-    parts.append(text_label(400, y_supply - 40, "Подающий трубопровод", 11, anchor="middle", bold=True))
-    parts.append(text_label(400, y_return + 60, "Обратный трубопровод", 11, anchor="middle", bold=True))
+    parts.append(
+        text_label(400, y_supply - 40, "Подающий трубопровод", 11, anchor="middle", bold=True)
+    )
+    parts.append(
+        text_label(400, y_return + 60, "Обратный трубопровод", 11, anchor="middle", bold=True)
+    )
 
     return "".join(parts)
 
@@ -405,7 +411,7 @@ def render_scheme_03_dep_valve(params: SchemeParams) -> str:
 def render_scheme_04_dep_valve_gwp(params: SchemeParams) -> str:
     """
     Схема 4: зависимая с клапаном, насосом и ГВС.
-    
+
     Топология: схема 3 (клапан + насос на перемычке) + блок ГВС (схема 2).
     """
     parts: list[str] = []
@@ -512,12 +518,16 @@ def render_scheme_04_dep_valve_gwp(params: SchemeParams) -> str:
     parts.append(text_label(gwp_x + 290, gwp_y_top - 90, "ГВС", 9, bold=True))
 
     # Соединительные линии
-    parts.append(connection_line([
-        (gwp_x + 110, gwp_y_bot),
-        (gwp_x + 110, gwp_y_bot - 50),
-        (gwp_x + 90, gwp_y_bot - 50),
-        (gwp_x + 90, gwp_y_top + 30)
-    ]))
+    parts.append(
+        connection_line(
+            [
+                (gwp_x + 110, gwp_y_bot),
+                (gwp_x + 110, gwp_y_bot - 50),
+                (gwp_x + 90, gwp_y_bot - 50),
+                (gwp_x + 90, gwp_y_top + 30),
+            ]
+        )
+    )
 
     # Возврат в обратку
     parts.append(pipe_horizontal(gwp_x + 100, gwp_y_top, -60))
@@ -550,8 +560,12 @@ def render_scheme_04_dep_valve_gwp(params: SchemeParams) -> str:
     parts.append(dashed_rect(50, 590, 300, 200, "Зона УУТЭ"))
 
     # Подписи труб
-    parts.append(text_label(400, y_supply - 40, "Подающий трубопровод", 11, anchor="middle", bold=True))
-    parts.append(text_label(400, y_return + 60, "Обратный трубопровод", 11, anchor="middle", bold=True))
+    parts.append(
+        text_label(400, y_supply - 40, "Подающий трубопровод", 11, anchor="middle", bold=True)
+    )
+    parts.append(
+        text_label(400, y_return + 60, "Обратный трубопровод", 11, anchor="middle", bold=True)
+    )
 
     return "".join(parts)
 
@@ -559,7 +573,7 @@ def render_scheme_04_dep_valve_gwp(params: SchemeParams) -> str:
 def render_scheme_05_dep_valve_gwp_vent(params: SchemeParams) -> str:
     """
     Схема 5: зависимая с клапаном, насосом, ГВС и вентиляцией.
-    
+
     Топология: схема 4 + параллельная ветка вентиляции (отдельная врезка от подачи/обратки).
     """
     parts: list[str] = []
@@ -653,12 +667,16 @@ def render_scheme_05_dep_valve_gwp_vent(params: SchemeParams) -> str:
     parts.append(pipe_vertical(gwp_x + 280, gwp_y_top - 80, -40))
     parts.append(text_label(gwp_x + 290, gwp_y_top - 90, "ГВС", 9, bold=True))
 
-    parts.append(connection_line([
-        (gwp_x + 110, gwp_y_bot),
-        (gwp_x + 110, gwp_y_bot - 50),
-        (gwp_x + 90, gwp_y_bot - 50),
-        (gwp_x + 90, gwp_y_top + 30)
-    ]))
+    parts.append(
+        connection_line(
+            [
+                (gwp_x + 110, gwp_y_bot),
+                (gwp_x + 110, gwp_y_bot - 50),
+                (gwp_x + 90, gwp_y_bot - 50),
+                (gwp_x + 90, gwp_y_top + 30),
+            ]
+        )
+    )
 
     parts.append(pipe_horizontal(gwp_x + 100, gwp_y_top, -60))
     parts.append(pipe_vertical(gwp_x + 40, gwp_y_top, y_return - gwp_y_top - 20))
@@ -712,8 +730,12 @@ def render_scheme_05_dep_valve_gwp_vent(params: SchemeParams) -> str:
     parts.append(dashed_rect(50, 590, 300, 200, "Зона УУТЭ"))
 
     # Подписи труб
-    parts.append(text_label(400, y_supply - 40, "Подающий трубопровод", 11, anchor="middle", bold=True))
-    parts.append(text_label(400, y_return + 60, "Обратный трубопровод", 11, anchor="middle", bold=True))
+    parts.append(
+        text_label(400, y_supply - 40, "Подающий трубопровод", 11, anchor="middle", bold=True)
+    )
+    parts.append(
+        text_label(400, y_return + 60, "Обратный трубопровод", 11, anchor="middle", bold=True)
+    )
 
     return "".join(parts)
 
@@ -721,7 +743,7 @@ def render_scheme_05_dep_valve_gwp_vent(params: SchemeParams) -> str:
 def render_scheme_06_indep(params: SchemeParams) -> str:
     """
     Схема 6: независимая с 2-ходовым клапаном, насосом и подпиткой G3.
-    
+
     Топология: два контура (сетевой и внутренний) соединены теплообменником.
     Сетевой контур: подача → задвижка → фильтр → t1/P1 → G1 → теплообменник → G2 → t2/P2 → фильтр → задвижка → обратка.
     Внутренний контур: насос → 2-ходовой клапан → теплообменник → радиатор → подпитка G3 → насос.
@@ -774,7 +796,9 @@ def render_scheme_06_indep(params: SchemeParams) -> str:
     parts.append(pipe_horizontal(x_filter2 + 20, y_net_return, x_gate2 - x_filter2 - 30))
     parts.append(gate_valve(x_gate2 - 10, y_net_return - 10))
     parts.append(pipe_horizontal(x_gate2 + 20, y_net_return, CANVAS_W - x_gate2 - 20))
-    parts.append(text_label(CANVAS_W - 20, y_net_return + 30, "Т2 (сеть, обратка)", 10, anchor="end"))
+    parts.append(
+        text_label(CANVAS_W - 20, y_net_return + 30, "Т2 (сеть, обратка)", 10, anchor="end")
+    )
 
     # Рамка сетевого контура
     parts.append(dashed_rect(50, y_net_supply - 60, CANVAS_W - 100, 280, "Сетевой контур"))
@@ -848,8 +872,19 @@ def render_scheme_06_indep(params: SchemeParams) -> str:
     parts.append(dashed_rect(50, 710, 300, 200, "Зона УУТЭ"))
 
     # Подписи контуров
-    parts.append(text_label(400, y_net_supply - 80, "Сетевой контур", 11, anchor="middle", bold=True))
-    parts.append(text_label(400, y_int_supply - 80, "Внутренний контур (потребитель)", 11, anchor="middle", bold=True))
+    parts.append(
+        text_label(400, y_net_supply - 80, "Сетевой контур", 11, anchor="middle", bold=True)
+    )
+    parts.append(
+        text_label(
+            400,
+            y_int_supply - 80,
+            "Внутренний контур (потребитель)",
+            11,
+            anchor="middle",
+            bold=True,
+        )
+    )
 
     return "".join(parts)
 
@@ -857,7 +892,7 @@ def render_scheme_06_indep(params: SchemeParams) -> str:
 def render_scheme_07_indep_gwp(params: SchemeParams) -> str:
     """
     Схема 7: независимая с ГВС.
-    
+
     Топология: схема 6 (независимая с 2-ходовым клапаном) + блок ГВС (врезка из сетевого контура).
     """
     # Базовая независимая схема (копия схемы 6, но с немного изменёнными координатами для ГВС)
@@ -908,7 +943,9 @@ def render_scheme_07_indep_gwp(params: SchemeParams) -> str:
     parts.append(pipe_horizontal(x_filter2 + 20, y_net_return, x_gate2 - x_filter2 - 30))
     parts.append(gate_valve(x_gate2 - 10, y_net_return - 10))
     parts.append(pipe_horizontal(x_gate2 + 20, y_net_return, CANVAS_W - x_gate2 - 20))
-    parts.append(text_label(CANVAS_W - 20, y_net_return + 30, "Т2 (сеть, обратка)", 10, anchor="end"))
+    parts.append(
+        text_label(CANVAS_W - 20, y_net_return + 30, "Т2 (сеть, обратка)", 10, anchor="end")
+    )
 
     parts.append(dashed_rect(50, y_net_supply - 40, CANVAS_W - 100, 250, "Сетевой контур"))
 
@@ -974,12 +1011,16 @@ def render_scheme_07_indep_gwp(params: SchemeParams) -> str:
     parts.append(pipe_vertical(gwp_x + 250, gwp_y_top - 70, -40))
     parts.append(text_label(gwp_x + 260, gwp_y_top - 80, "ГВС", 9, bold=True))
 
-    parts.append(connection_line([
-        (gwp_x + 80, gwp_y_bot),
-        (gwp_x + 80, gwp_y_bot - 40),
-        (gwp_x + 60, gwp_y_bot - 40),
-        (gwp_x + 60, gwp_y_top + 25)
-    ]))
+    parts.append(
+        connection_line(
+            [
+                (gwp_x + 80, gwp_y_bot),
+                (gwp_x + 80, gwp_y_bot - 40),
+                (gwp_x + 60, gwp_y_bot - 40),
+                (gwp_x + 60, gwp_y_top + 25),
+            ]
+        )
+    )
 
     parts.append(pipe_horizontal(gwp_x + 70, gwp_y_top, -50))
     parts.append(pipe_vertical(gwp_x + 20, gwp_y_top, y_net_return - gwp_y_top - 20))
@@ -1010,8 +1051,19 @@ def render_scheme_07_indep_gwp(params: SchemeParams) -> str:
     parts.append(dashed_rect(50, 610, 300, 200, "Зона УУТЭ"))
 
     # Подписи контуров
-    parts.append(text_label(400, y_net_supply - 60, "Сетевой контур", 11, anchor="middle", bold=True))
-    parts.append(text_label(400, y_int_supply - 60, "Внутренний контур (потребитель)", 11, anchor="middle", bold=True))
+    parts.append(
+        text_label(400, y_net_supply - 60, "Сетевой контур", 11, anchor="middle", bold=True)
+    )
+    parts.append(
+        text_label(
+            400,
+            y_int_supply - 60,
+            "Внутренний контур (потребитель)",
+            11,
+            anchor="middle",
+            bold=True,
+        )
+    )
 
     return "".join(parts)
 
@@ -1019,7 +1071,7 @@ def render_scheme_07_indep_gwp(params: SchemeParams) -> str:
 def render_scheme_08_indep_gwp_vent(params: SchemeParams) -> str:
     """
     Схема 8: независимая с ГВС и вентиляцией.
-    
+
     Топология: схема 7 (независимая с ГВС) + параллельная ветка вентиляции из сетевого контура.
     """
     parts: list[str] = []
@@ -1135,12 +1187,16 @@ def render_scheme_08_indep_gwp_vent(params: SchemeParams) -> str:
     parts.append(pipe_vertical(gwp_x + 250, gwp_y_top - 70, -35))
     parts.append(text_label(gwp_x + 260, gwp_y_top - 75, "ГВС", 9, bold=True))
 
-    parts.append(connection_line([
-        (gwp_x + 80, gwp_y_bot),
-        (gwp_x + 80, gwp_y_bot - 35),
-        (gwp_x + 60, gwp_y_bot - 35),
-        (gwp_x + 60, gwp_y_top + 25)
-    ]))
+    parts.append(
+        connection_line(
+            [
+                (gwp_x + 80, gwp_y_bot),
+                (gwp_x + 80, gwp_y_bot - 35),
+                (gwp_x + 60, gwp_y_bot - 35),
+                (gwp_x + 60, gwp_y_top + 25),
+            ]
+        )
+    )
 
     parts.append(pipe_horizontal(gwp_x + 70, gwp_y_top, -50))
     parts.append(pipe_vertical(gwp_x + 20, gwp_y_top, y_net_return - gwp_y_top - 20))
@@ -1189,7 +1245,11 @@ def render_scheme_08_indep_gwp_vent(params: SchemeParams) -> str:
     parts.append(dashed_rect(50, 580, 300, 200, "Зона УУТЭ"))
 
     # Подписи контуров
-    parts.append(text_label(400, y_net_supply - 60, "Сетевой контур", 11, anchor="middle", bold=True))
-    parts.append(text_label(400, y_int_supply - 60, "Внутренний контур", 11, anchor="middle", bold=True))
+    parts.append(
+        text_label(400, y_net_supply - 60, "Сетевой контур", 11, anchor="middle", bold=True)
+    )
+    parts.append(
+        text_label(400, y_int_supply - 60, "Внутренний контур", 11, anchor="middle", bold=True)
+    )
 
     return "".join(parts)

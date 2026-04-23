@@ -1,7 +1,7 @@
 # Спецификация: Интеграция конфигуратора схем с админ-панелью и пайплайном
 
-**Дата:** 2026-04-23  
-**Задача:** Roadmap задача 7 — Интеграция с пайплайном и админкой  
+**Дата:** 2026-04-23
+**Задача:** Roadmap задача 7 — Интеграция с пайплайном и админкой
 **Автор:** Claude (по запросу Sergey)
 
 ---
@@ -257,24 +257,24 @@ if (schemeFile) {
 ```javascript
 function renderSchemeConfigSection(schemeConfig, files) {
     if (!schemeConfig) return '';
-    
-    const typeLabel = schemeConfig.connection_type === 'dependent' 
-        ? 'Зависимая' 
+
+    const typeLabel = schemeConfig.connection_type === 'dependent'
+        ? 'Зависимая'
         : 'Независимая';
-    
+
     let valveLabel = 'Нет';
     if (schemeConfig.has_valve) {
         valveLabel = schemeConfig.connection_type === 'dependent'
             ? 'Да (3-ходовой)'
             : 'Да (2-ходовой)';
     }
-    
+
     const gwpLabel = schemeConfig.has_gwp ? 'Да' : 'Нет';
     const ventLabel = schemeConfig.has_ventilation ? 'Да' : 'Нет';
-    
+
     const schemeFile = files.find(f => f.category === 'heat_scheme');
     const statusLabel = schemeFile ? '✓ Сгенерирована' : '⏳ Ожидает генерации';
-    
+
     const rows = [
         parsedTableRow('Тип присоединения', `<td class="parsed-value-cell">${esc(typeLabel)}</td>`),
         parsedTableRow('Регулирующий клапан', `<td class="parsed-value-cell">${esc(valveLabel)}</td>`),
@@ -282,13 +282,13 @@ function renderSchemeConfigSection(schemeConfig, files) {
         parsedTableRow('Вентиляция', `<td class="parsed-value-cell">${esc(ventLabel)}</td>`),
         parsedTableRow('Статус', `<td class="parsed-value-cell">${esc(statusLabel)}</td>`),
     ];
-    
+
     let downloadButton = '';
     if (schemeFile) {
         const downloadUrl = `${API_BASE}/admin/files/${schemeFile.id}/download`;
         downloadButton = `
             <div style="margin-top: 12px;">
-                <a href="${downloadUrl}" 
+                <a href="${downloadUrl}"
                    class="btn btn-primary btn-sm"
                    target="_blank"
                    onclick="this.href = addKeyToUrl(this.href)">
@@ -296,7 +296,7 @@ function renderSchemeConfigSection(schemeConfig, files) {
                 </a>
             </div>`;
     }
-    
+
     return parsedSectionHtml('Конфигурация схемы', rows) + downloadButton;
 }
 ```
@@ -306,12 +306,12 @@ function renderSchemeConfigSection(schemeConfig, files) {
 ```javascript
 function renderParsedParams(parsed, surveyData, files) {
     // ... существующий код рендеринга секций ...
-    
+
     // Добавляем секцию конфигурации схемы
     if (surveyData && surveyData.scheme_config) {
         sections.push(renderSchemeConfigSection(surveyData.scheme_config, files));
     }
-    
+
     return sections.join('');
 }
 ```
@@ -341,14 +341,14 @@ function renderParsedParams(parsed, surveyData, files) {
 def _auto_generate_scheme_if_configured(session: Session, order: Order) -> bool:
     """
     Автоматическая генерация PDF схемы на основе сохраненной конфигурации.
-    
+
     Args:
         session: SQLAlchemy session
         order: Order instance с загруженными связями
-    
+
     Returns:
         True если схема успешно сгенерирована, False при ошибке
-    
+
     Raises:
         Не выбрасывает исключения, логирует ошибки
     """
@@ -362,26 +362,26 @@ def _auto_generate_scheme_if_configured(session: Session, order: Order) -> bool:
         # 1. Импорты (внутри функции, как в остальных Celery-задачах)
         from app.schemas.scheme import SchemeConfig
         from app.services.scheme_service import (
-            resolve_scheme_type, 
+            resolve_scheme_type,
             extract_scheme_params_from_parsed
         )
         from app.services.scheme_svg_renderer import render_scheme
         from app.services.scheme_pdf_renderer import render_scheme_pdf
-        
+
         # 2. Извлечение и валидация конфигурации
         scheme_config_dict = order.survey_data["scheme_config"]
         scheme_config = SchemeConfig(**scheme_config_dict)
-        
+
         # 3. Определение типа схемы
         scheme_type = resolve_scheme_type(scheme_config)
         if not scheme_type:
             logger.error(
-                "Невалидная конфигурация схемы для order=%s: %s", 
-                order.id, 
+                "Невалидная конфигурация схемы для order=%s: %s",
+                order.id,
                 scheme_config_dict
             )
             return False
-        
+
         # 4. Извлечение параметров для SVG
         params = extract_scheme_params_from_parsed(
             parsed_params=order.parsed_params,
@@ -391,27 +391,27 @@ def _auto_generate_scheme_if_configured(session: Session, order: Order) -> bool:
                 "company_name": order.company_name,
             }
         )
-        
+
         # 5. Генерация SVG
         svg_content = render_scheme(scheme_type, params)
-        
+
         # 6. Генерация PDF
         pdf_bytes = render_scheme_pdf(
             svg_content=svg_content,
             stamp_data=params.model_dump(),
             format="a3"
         )
-        
+
         # 7. Сохранение файла в upload-папку
         upload_dir = Path(settings.upload_folder) / str(order.id)
         upload_dir.mkdir(parents=True, exist_ok=True)
-        
+
         filename = f"scheme_{order.project_number or order.id}_auto.pdf"
         file_path = upload_dir / filename
-        
+
         with open(file_path, "wb") as f:
             f.write(pdf_bytes)
-        
+
         # 8. Создание записи OrderFile
         order_file = OrderFile(
             order_id=order.id,
@@ -422,19 +422,19 @@ def _auto_generate_scheme_if_configured(session: Session, order: Order) -> bool:
         )
         session.add(order_file)
         session.commit()
-        
+
         logger.info(
-            "Автогенерация схемы успешна для order=%s, файл=%s", 
-            order.id, 
+            "Автогенерация схемы успешна для order=%s, файл=%s",
+            order.id,
             filename
         )
         return True
-        
+
     except Exception as e:
         logger.error(
-            "Ошибка автогенерации схемы для order=%s: %s", 
-            order.id, 
-            e, 
+            "Ошибка автогенерации схемы для order=%s: %s",
+            order.id,
+            e,
             exc_info=True
         )
         return False
@@ -448,10 +448,10 @@ def _auto_generate_scheme_if_configured(session: Session, order: Order) -> bool:
 def process_client_response(self, order_id: str):
     with SyncSession() as session:
         order = _get_order(session, oid)
-        
+
         uploaded_categories = {f.category.value for f in order.files}
         missing = compute_client_document_missing(uploaded_categories)
-        
+
         # ... проверка company_card ...
 ```
 
@@ -461,12 +461,12 @@ def process_client_response(self, order_id: str):
 def process_client_response(self, order_id: str):
     with SyncSession() as session:
         order = _get_order(session, oid)
-        
+
         uploaded_categories = {f.category.value for f in order.files}
-        
+
         # НОВОЕ: Автогенерация схемы, если конфигурация заполнена
         if (
-            order.survey_data 
+            order.survey_data
             and "scheme_config" in order.survey_data
             and "heat_scheme" not in uploaded_categories
         ):
@@ -476,13 +476,13 @@ def process_client_response(self, order_id: str):
                 uploaded_categories.add("heat_scheme")
                 # Обновляем order.files из БД
                 session.refresh(order)
-        
+
         # ИЗМЕНЕНО: Передаем survey_data в compute_client_document_missing
         missing = compute_client_document_missing(
-            uploaded_categories, 
+            uploaded_categories,
             order.survey_data
         )
-        
+
         # ... остальная логика без изменений ...
 ```
 
@@ -505,11 +505,11 @@ def compute_client_document_missing(
 ) -> list[str]:
     """
     Какие из обязательных документов ещё не загружены.
-    
+
     Args:
         uploaded_categories: Множество кодов уже загруженных файлов
         survey_data: Данные опросного листа (для проверки автогенерации схемы)
-    
+
     Returns:
         Список кодов недостающих документов
     """
@@ -517,15 +517,15 @@ def compute_client_document_missing(
     for code in CLIENT_DOCUMENT_PARAM_CODES:
         if code in uploaded_categories:
             continue
-        
+
         # Специальная логика для heat_scheme:
         # Если есть схема в конфигураторе — не требуем загрузку вручную
         if code == "heat_scheme":
             if survey_data and "scheme_config" in survey_data:
                 continue
-        
+
         missing.append(code)
-    
+
     return missing
 ```
 

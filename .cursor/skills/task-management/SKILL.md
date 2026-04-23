@@ -145,7 +145,7 @@ description: Task tracking and plan management. Used by planner to create plans 
 ### Documentation Files (Permanent)
 
 #### plans/ - High-Level Plans
-**Created by:** Planner  
+**Created by:** Planner
 **Location:** Workspace (temporary) or user's file
 
 **Format:**
@@ -176,7 +176,7 @@ Implement JWT-based authentication with user management.
 ```
 
 #### reports/ - Completion Reports
-**Created by:** Documenter  
+**Created by:** Documenter
 **Location:** `{config.documentation.paths.reports}/`
 
 **Format:**
@@ -215,7 +215,7 @@ Implemented complete JWT-based authentication system with user management.
 ```
 
 #### issues/ - Known Problems
-**Created by:** Any agent  
+**Created by:** Any agent
 **Location:** `{config.documentation.paths.issues}/`
 
 **Format:**
@@ -444,7 +444,7 @@ taskIds = extractTaskIds(planContent)
 for (taskId of taskIds) {
   // Skip if already completed
   if (tasksState[taskId]?.status === "completed") continue
-  
+
   // Update task status: in-progress
   tasksState[taskId] = {
     id: taskId,
@@ -452,7 +452,7 @@ for (taskId of taskIds) {
     startedAt: now()
   }
   write(`${workspaceDir}/tasks.json`, tasksState)
-  
+
   // Update plan/task file
   if (links.plan) {
     // Mode B: Update user's task file
@@ -461,7 +461,7 @@ for (taskId of taskIds) {
     // Mode A: Update workspace plan
     updateTaskInFile(`${workspaceDir}/plan.md`, taskId, "🔄 In Progress")
   }
-  
+
   // Execute task
   result = callWorker(taskId, taskDetails)
 
@@ -471,7 +471,7 @@ for (taskId of taskIds) {
   // Run tests & verify
   testAndVerifyPassed = callTestRunner()
   reviewPassed = callReview()
-  
+
   // Update task status: completed
   tasksState[taskId] = {
     ...tasksState[taskId],
@@ -482,7 +482,7 @@ for (taskId of taskIds) {
     testsPassed: testsPassed.passed
   }
   write(`${workspaceDir}/tasks.json`, tasksState)
-  
+
   // Update plan/task file
   if (links.plan) {
     // Mode B: Update user's task file
@@ -491,7 +491,7 @@ for (taskId of taskIds) {
     // Mode A: Update workspace plan
     updateTaskInFile(`${workspaceDir}/plan.md`, taskId, "✅ Completed")
   }
-  
+
   // Update progress
   updateJSON(`${workspaceDir}/progress.json`, {
     tasksCompleted: progress.tasksCompleted + 1,

@@ -10,9 +10,9 @@ globs: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/te
 ```
          /\
         /  \     E2E (few)
-       /────\    
+       /────\
       /      \   Integration (some)
-     /────────\  
+     /────────\
     /          \ Unit (many)
    /────────────\
 ```
@@ -28,10 +28,10 @@ it('should calculate total with discount', () => {
   // Arrange - Setup data
   const cart = new Cart();
   cart.addItem({ price: 100, quantity: 2 });
-  
+
   // Act - Execute code
   const total = cart.calculateTotal(0.1);
-  
+
   // Assert - Verify result
   expect(total).toBe(180);
 });

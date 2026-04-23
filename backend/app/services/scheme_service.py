@@ -32,8 +32,7 @@ SCHEME_LABELS: dict[SchemeType, dict[str, str]] = {
     SchemeType.DEP_SIMPLE: {
         "label": "Зависимая, без клапана",
         "description": (
-            "Зависимая схема присоединения, без регулирующего клапана, "
-            "без ГВС и без вентиляции."
+            "Зависимая схема присоединения, без регулирующего клапана, без ГВС и без вентиляции."
         ),
     },
     SchemeType.DEP_SIMPLE_GWP: {
@@ -46,8 +45,7 @@ SCHEME_LABELS: dict[SchemeType, dict[str, str]] = {
     SchemeType.DEP_VALVE: {
         "label": "Зависимая, 3-ходовой клапан и насос",
         "description": (
-            "Зависимая схема: 3-ходовой клапан и насос на перемычке, "
-            "без ГВС и без вентиляции."
+            "Зависимая схема: 3-ходовой клапан и насос на перемычке, без ГВС и без вентиляции."
         ),
     },
     SchemeType.DEP_VALVE_GWP: {
@@ -66,8 +64,7 @@ SCHEME_LABELS: dict[SchemeType, dict[str, str]] = {
     SchemeType.INDEP: {
         "label": "Независимая, клапан, насос, подпитка G3",
         "description": (
-            "Независимая схема: 2-ходовой клапан, насос, подпитка G3, "
-            "без ГВС и без вентиляции."
+            "Независимая схема: 2-ходовой клапан, насос, подпитка G3, без ГВС и без вентиляции."
         ),
     },
     SchemeType.INDEP_GWP: {
@@ -200,12 +197,8 @@ def extract_scheme_params_from_parsed(parsed_params: dict | None) -> SchemeParam
             "pipe_dn_supply",
         )
     )
-    t1 = _scalar_to_str(
-        _pick(p, "coolant.supply_temp", "supply_temp")
-    )
-    t2 = _scalar_to_str(
-        _pick(p, "coolant.return_temp", "return_temp")
-    )
+    t1 = _scalar_to_str(_pick(p, "coolant.supply_temp", "supply_temp"))
+    t2 = _scalar_to_str(_pick(p, "coolant.return_temp", "return_temp"))
     pr_sup = _scalar_to_str(
         _pick(
             p,
@@ -265,12 +258,8 @@ def extract_scheme_params_from_parsed(parsed_params: dict | None) -> SchemeParam
         else _pick(p, "heat_loads.total_load", "total_load", "heat_load_total")
     )
 
-    tu_num = _scalar_to_str(
-        _pick(p, "document.tu_number", "tu_number", "project_number")
-    )
-    addr = _scalar_to_str(
-        _pick(p, "object.object_address", "object_address", "address")
-    )
+    tu_num = _scalar_to_str(_pick(p, "document.tu_number", "tu_number", "project_number"))
+    addr = _scalar_to_str(_pick(p, "object.object_address", "object_address", "address"))
     company = _scalar_to_str(
         _pick(
             p,

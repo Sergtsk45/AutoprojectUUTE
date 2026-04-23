@@ -365,9 +365,7 @@ def process_client_response(self, order_id: str):
                 session.refresh(order)
                 uploaded_categories = {f.category.value for f in order.files}
 
-        missing = compute_client_document_missing(
-            uploaded_categories, order.survey_data
-        )
+        missing = compute_client_document_missing(uploaded_categories, order.survey_data)
         if (
             FileCategory.COMPANY_CARD.value not in uploaded_categories
             and FileCategory.COMPANY_CARD.value not in missing

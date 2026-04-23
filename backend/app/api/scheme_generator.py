@@ -46,7 +46,7 @@ def get_order_service(db: AsyncSession = Depends(get_db)) -> OrderService:
 async def list_scheme_templates():
     """
     Возвращает список всех доступных конфигураций схем (8 типов).
-    
+
     Используется UI для отображения доступных вариантов схем клиенту.
     """
     return get_available_templates()
@@ -59,30 +59,30 @@ async def list_scheme_templates():
 async def preview_scheme(request: SchemeGenerateRequest):
     """
     Генерирует превью SVG схемы по конфигурации.
-    
+
     Args:
         request: Конфигурация схемы (SchemeConfig) и опциональные параметры (SchemeParams)
-    
+
     Returns:
         SVG-контент схемы с ГОСТ-рамкой для отображения в браузере
-        
+
     Raises:
         HTTPException 400: Если конфигурация невалидна или комбинация параметров недопустима
     """
     # Подбор типа схемы по конфигурации
     scheme_type = resolve_scheme_type(request.config)
-    
+
     if scheme_type is None:
         raise HTTPException(
             status_code=400,
             detail="Недопустимая комбинация параметров схемы. Проверьте соответствие "
-                   "конфигурации одному из 8 типовых вариантов."
+            "конфигурации одному из 8 типовых вариантов.",
         )
-    
+
     # Генерация SVG контента схемы
     params = request.params or extract_scheme_params_from_parsed({})
     scheme_content = render_scheme(scheme_type, params)
-    
+
     # Обертка в ГОСТ-рамку для превью
     stamp_data = {
         "project_number": params.project_number or "",
@@ -96,13 +96,14 @@ async def preview_scheme(request: SchemeGenerateRequest):
         "total_sheets": "1",
         "format": "A3",
     }
-    
+
     svg_with_frame = gost_frame_a3(scheme_content, stamp_data)
-    
+
     # Получение человекочитаемой метки схемы
     from app.services.scheme_service import SCHEME_LABELS
+
     scheme_label = SCHEME_LABELS.get(scheme_type, {}).get("label", scheme_type.value)
-    
+
     return SchemePreviewResponse(
         scheme_type=scheme_type,
         scheme_label=scheme_label,
@@ -121,14 +122,14 @@ async def generate_scheme_pdf(
 ):
     """
     Генерирует PDF схемы и сохраняет как файл заявки.
-    
+
     Args:
         order_id: UUID заявки
         request: Конфигурация схемы и параметры
-        
+
     Returns:
         Информация о сохраненном файле (id, category, filename)
-        
+
     Raises:
         HTTPException 404: Заявка не найдена
         HTTPException 400: Невалидная конфигурация схемы
@@ -137,21 +138,18 @@ async def generate_scheme_pdf(
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
-    
+
     # Подбор типа схемы
     scheme_type = resolve_scheme_type(request.config)
     if scheme_type is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Недопустимая комбинация параметров схемы"
-        )
-    
+        raise HTTPException(status_code=400, detail="Недопустимая комбинация параметров схемы")
+
     # Извлечение параметров из parsed_params заявки или использование переданных
     if request.params is None and order.parsed_params:
         params = extract_scheme_params_from_parsed(order.parsed_params)
     else:
         params = request.params or extract_scheme_params_from_parsed({})
-    
+
     # Автозаполнение из Order
     if not params.project_number and order.id:
         params.project_number = f"УУТЭ-{str(order.id)[:8].upper()}"
@@ -159,10 +157,10 @@ async def generate_scheme_pdf(
         params.object_address = order.object_address
     if not params.company_name and order.client_organization:
         params.company_name = order.client_organization
-    
+
     # Генерация SVG
     scheme_content = render_scheme(scheme_type, params)
-    
+
     # Формирование данных штампа
     stamp_data = {
         "project_number": params.project_number or "",
@@ -178,27 +176,28 @@ async def generate_scheme_pdf(
         "total_sheets": "1",
         "format": "A3",
     }
-    
+
     # SVG с ГОСТ-рамкой
     svg_with_frame = gost_frame_a3(scheme_content, stamp_data)
-    
+
     # Генерация PDF
     pdf_bytes = render_scheme_pdf(svg_with_frame, stamp_data, "A3")
-    
+
     # Сохранение файла
     file_uuid = uuid.uuid4().hex[:12]
     filename = f"heat_scheme_{file_uuid}.pdf"
-    
+
     # Путь: uploads/<order_id>/heat_scheme/<filename>
     from app.core.config import settings
+
     relative_path = f"{order_id}/heat_scheme/{filename}"
     full_path = settings.upload_dir / relative_path
     full_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Запись PDF на диск
     async with aiofiles.open(full_path, "wb") as f:
         await f.write(pdf_bytes)
-    
+
     # Создание записи в БД
     order_file = OrderFile(
         order_id=order_id,
@@ -209,23 +208,23 @@ async def generate_scheme_pdf(
         file_size=len(pdf_bytes),
     )
     svc.db.add(order_file)
-    
+
     # Сохранение конфигурации в survey_data
     if order.survey_data is None:
         order.survey_data = {}
-    
+
     order.survey_data["scheme_config"] = {
         "connection_type": request.config.connection_type,
         "has_valve": request.config.has_valve,
         "has_gwp": request.config.has_gwp,
         "has_ventilation": request.config.has_ventilation,
         "scheme_type": scheme_type.value,
-        "generated_at": str(order_file.created_at) if hasattr(order_file, 'created_at') else None,
+        "generated_at": str(order_file.created_at) if hasattr(order_file, "created_at") else None,
     }
-    
+
     await svc.db.commit()
     await svc.db.refresh(order_file)
-    
+
     return {
         "file_id": str(order_file.id),
         "category": order_file.category.value,
@@ -246,31 +245,31 @@ async def get_scheme_config(
 ):
     """
     Возвращает сохраненную конфигурацию схемы из survey_data заявки.
-    
+
     Args:
         order_id: UUID заявки
-        
+
     Returns:
         Конфигурация схемы из survey_data или None, если схема еще не сгенерирована
-        
+
     Raises:
         HTTPException 404: Заявка не найдена
     """
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
-    
+
     scheme_config = None
     if order.survey_data and "scheme_config" in order.survey_data:
         scheme_config = order.survey_data["scheme_config"]
-    
+
     # Автозаполнение из parsed_params
     suggested_config = None
     if order.parsed_params:
         params = extract_scheme_params_from_parsed(order.parsed_params)
         # TODO: Реализовать логику автозаполнения конфигурации из parsed_params
         # Это требует анализа parsed_params.connection.connection_type и других полей
-    
+
     return {
         "order_id": str(order_id),
         "scheme_config": scheme_config,

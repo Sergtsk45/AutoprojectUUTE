@@ -353,7 +353,7 @@ Task(
   subagent_type="refactor",
   prompt="Fix the following structural issues found during audit:
   [list each finding with file path and description]
-  
+
   Context: these were identified by senior-reviewer during a full audit.
   Rules: no behavior changes, all existing tests must pass after refactoring."
 )
@@ -376,7 +376,7 @@ Task(
   subagent_type="planner",
   prompt="Create a remediation plan for these security/behavioral issues:
   [list each finding with file path, description, and suggested fix]
-  
+
   Each issue should be one task. Keep tasks small and independent."
 )
 ```
@@ -400,15 +400,15 @@ Task(
   subagent_type="documenter",
   prompt="Update the audit report to add a Remediation section:
   Report: [original report path or content]
-  
+
   Add:
   ## Remediation Applied
   Date: [today]
-  
+
   ### Fixed
   - [A1] Circular dependency → resolved by extracting services/identity.ts
   - [S1] Hardcoded JWT secret → moved to environment variable
-  
+
   ### Remaining (High/Medium/Low — not auto-fixed)
   [list remaining non-critical findings from original report]"
 )

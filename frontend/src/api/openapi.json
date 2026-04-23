@@ -2128,6 +2128,456 @@
         "title": "SampleRequest",
         "type": "object"
       },
+      "SchemeConfig": {
+        "description": "Конфигурация, выбранная клиентом через UI.",
+        "properties": {
+          "connection_type": {
+            "enum": [
+              "dependent",
+              "independent"
+            ],
+            "title": "Connection Type",
+            "type": "string"
+          },
+          "has_gwp": {
+            "default": false,
+            "description": "Наличие контура ГВС.",
+            "title": "Has Gwp",
+            "type": "boolean"
+          },
+          "has_valve": {
+            "default": false,
+            "description": "Регулирующий клапан (3-ходовой в зависимой, 2-ходовой в независимой схеме).",
+            "title": "Has Valve",
+            "type": "boolean"
+          },
+          "has_ventilation": {
+            "default": false,
+            "description": "Наличие параллельной вентиляции (только в допустимых сочетаниях с ГВС).",
+            "title": "Has Ventilation",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connection_type"
+        ],
+        "title": "SchemeConfig",
+        "type": "object"
+      },
+      "SchemeGenerateRequest": {
+        "description": "Запрос на генерацию схемы.",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/SchemeConfig"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SchemeParams"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "config"
+        ],
+        "title": "SchemeGenerateRequest",
+        "type": "object"
+      },
+      "SchemeParams": {
+        "description": "Параметры для подстановки в SVG-шаблон (из parsed_params заявки).",
+        "properties": {
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "engineer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engineer Name"
+          },
+          "g1_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "G1 Label"
+          },
+          "g2_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "G2 Label"
+          },
+          "g3_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "G3 Label"
+          },
+          "gwp_load": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gwp Load"
+          },
+          "heating_load": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heating Load"
+          },
+          "m1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "M1"
+          },
+          "m2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "M2"
+          },
+          "object_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Object Address"
+          },
+          "p1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P1"
+          },
+          "p1_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P1 Label"
+          },
+          "p2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P2"
+          },
+          "p2_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P2 Label"
+          },
+          "pipe_diameter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pipe Diameter"
+          },
+          "project_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Number"
+          },
+          "q_gwp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q Gwp"
+          },
+          "q_heat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q Heat"
+          },
+          "return_pressure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Pressure"
+          },
+          "return_temp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Temp"
+          },
+          "supply_pressure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supply Pressure"
+          },
+          "supply_temp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supply Temp"
+          },
+          "t1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T1"
+          },
+          "t1_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T1 Label"
+          },
+          "t2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T2"
+          },
+          "t2_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T2 Label"
+          },
+          "total_load": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Load"
+          },
+          "ventilation_load": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ventilation Load"
+          }
+        },
+        "title": "SchemeParams",
+        "type": "object"
+      },
+      "SchemePreviewResponse": {
+        "description": "Ответ с превью SVG.",
+        "properties": {
+          "scheme_label": {
+            "title": "Scheme Label",
+            "type": "string"
+          },
+          "scheme_type": {
+            "$ref": "#/components/schemas/SchemeType"
+          },
+          "svg_content": {
+            "title": "Svg Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scheme_type",
+          "scheme_label",
+          "svg_content"
+        ],
+        "title": "SchemePreviewResponse",
+        "type": "object"
+      },
+      "SchemeTemplateInfo": {
+        "description": "Информация о доступном шаблоне для UI.",
+        "properties": {
+          "connection_type": {
+            "title": "Connection Type",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "has_gwp": {
+            "title": "Has Gwp",
+            "type": "boolean"
+          },
+          "has_ventilation": {
+            "title": "Has Ventilation",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scheme_type": {
+            "$ref": "#/components/schemas/SchemeType"
+          }
+        },
+        "required": [
+          "scheme_type",
+          "label",
+          "description",
+          "has_gwp",
+          "has_ventilation",
+          "connection_type"
+        ],
+        "title": "SchemeTemplateInfo",
+        "type": "object"
+      },
+      "SchemeType": {
+        "description": "Тип конфигурации схемы — machine-name для маппинга на SVG.",
+        "enum": [
+          "dep_simple",
+          "dep_simple_gwp",
+          "dep_valve",
+          "dep_valve_gwp",
+          "dep_valve_gwp_vent",
+          "indep",
+          "indep_gwp",
+          "indep_gwp_vent"
+        ],
+        "title": "SchemeType",
+        "type": "string"
+      },
       "SimpleResponse": {
         "properties": {
           "message": {
@@ -5315,6 +5765,168 @@
         "summary": "Start Pipeline",
         "tags": [
           "pipeline"
+        ]
+      }
+    },
+    "/api/v1/schemes/preview": {
+      "post": {
+        "description": "Генерирует превью SVG схемы по конфигурации.\n\nArgs:\n    request: Конфигурация схемы (SchemeConfig) и опциональные параметры (SchemeParams)\n\nReturns:\n    SVG-контент схемы с ГОСТ-рамкой для отображения в браузере\n\nRaises:\n    HTTPException 400: Если конфигурация невалидна или комбинация параметров недопустима",
+        "operationId": "preview_scheme_api_v1_schemes_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemeGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemePreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Scheme",
+        "tags": [
+          "schemes"
+        ]
+      }
+    },
+    "/api/v1/schemes/templates": {
+      "get": {
+        "description": "Возвращает список всех доступных конфигураций схем (8 типов).\n\nИспользуется UI для отображения доступных вариантов схем клиенту.",
+        "operationId": "list_scheme_templates_api_v1_schemes_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SchemeTemplateInfo"
+                  },
+                  "title": "Response List Scheme Templates Api V1 Schemes Templates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Scheme Templates",
+        "tags": [
+          "schemes"
+        ]
+      }
+    },
+    "/api/v1/schemes/{order_id}/config": {
+      "get": {
+        "description": "Возвращает сохраненную конфигурацию схемы из survey_data заявки.\n\nArgs:\n    order_id: UUID заявки\n\nReturns:\n    Конфигурация схемы из survey_data или None, если схема еще не сгенерирована\n\nRaises:\n    HTTPException 404: Заявка не найдена",
+        "operationId": "get_scheme_config_api_v1_schemes__order_id__config_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scheme Config",
+        "tags": [
+          "schemes"
+        ]
+      }
+    },
+    "/api/v1/schemes/{order_id}/generate": {
+      "post": {
+        "description": "Генерирует PDF схемы и сохраняет как файл заявки.\n\nArgs:\n    order_id: UUID заявки\n    request: Конфигурация схемы и параметры\n\nReturns:\n    Информация о сохраненном файле (id, category, filename)\n\nRaises:\n    HTTPException 404: Заявка не найдена\n    HTTPException 400: Невалидная конфигурация схемы",
+        "operationId": "generate_scheme_pdf_api_v1_schemes__order_id__generate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemeGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Scheme Pdf",
+        "tags": [
+          "schemes"
         ]
       }
     },

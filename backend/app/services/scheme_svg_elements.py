@@ -20,10 +20,7 @@ FONT_SIZE = "11"
 def _xml_escape(text: str) -> str:
     """Экранирование текста для встраивания в SVG."""
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -31,18 +28,16 @@ def _group_open(x: float, y: float, rotate: int, pivot: tuple[float, float]) -> 
     """Открывающий тег группы: translate + опционально rotate вокруг pivot (локальные координаты)."""
     px, py = pivot
     if rotate in (0, 360):
-        return '<g transform="translate({:.2f},{:.2f})">'.format(x, y)
-    return '<g transform="translate({:.2f},{:.2f}) rotate({} {:.2f} {:.2f})">'.format(
-        x, y, rotate, px, py
-    )
+        return f'<g transform="translate({x:.2f},{y:.2f})">'
+    return f'<g transform="translate({x:.2f},{y:.2f}) rotate({rotate} {px:.2f} {py:.2f})">'
 
 
 def _line_common() -> str:
-    return 'stroke="{}" stroke-width="{}" fill="{}"'.format(STROKE, STROKE_WIDTH, FILL_NONE)
+    return f'stroke="{STROKE}" stroke-width="{STROKE_WIDTH}" fill="{FILL_NONE}"'
 
 
 def _text_common() -> str:
-    return 'fill="{}" font-family="{}" font-size="{}"'.format(STROKE, FONT_FAMILY, FONT_SIZE)
+    return f'fill="{STROKE}" font-family="{FONT_FAMILY}" font-size="{FONT_SIZE}"'
 
 
 def pipe_horizontal(x: float, y: float, length: float, label: str | None = None) -> str:
@@ -54,16 +49,12 @@ def pipe_horizontal(x: float, y: float, length: float, label: str | None = None)
     mid = length / 2.0
     parts: list[str] = [
         _group_open(x, y, 0, (0.0, 0.0)),
-        '<line x1="0" y1="0" x2="{:.2f}" y2="0" {} />'.format(length, _line_common()),
-        '<polygon points="{:.1f},-4 {:.1f},4 {:.1f},0" fill="{}" stroke="none" />'.format(
-            mid - 5, mid - 5, mid + 9, STROKE
-        ),
+        f'<line x1="0" y1="0" x2="{length:.2f}" y2="0" {_line_common()} />',
+        f'<polygon points="{mid - 5:.1f},-4 {mid - 5:.1f},4 {mid + 9:.1f},0" fill="{STROKE}" stroke="none" />',
     ]
     if label:
         parts.append(
-            '<text x="{:.1f}" y="-8" text-anchor="middle" {}>{}</text>'.format(
-                mid, _text_common(), _xml_escape(label)
-            )
+            f'<text x="{mid:.1f}" y="-8" text-anchor="middle" {_text_common()}>{_xml_escape(label)}</text>'
         )
     parts.append("</g>")
     return "".join(parts)
@@ -78,16 +69,12 @@ def pipe_vertical(x: float, y: float, length: float, label: str | None = None) -
     mid = length / 2.0
     parts: list[str] = [
         _group_open(x, y, 0, (0.0, 0.0)),
-        '<line x1="0" y1="0" x2="0" y2="{:.2f}" {} />'.format(length, _line_common()),
-        '<polygon points="-5,{:.1f} 5,{:.1f} 0,{:.1f}" fill="{}" stroke="none" />'.format(
-            mid - 6, mid - 6, mid + 8, STROKE
-        ),
+        f'<line x1="0" y1="0" x2="0" y2="{length:.2f}" {_line_common()} />',
+        f'<polygon points="-5,{mid - 6:.1f} 5,{mid - 6:.1f} 0,{mid + 8:.1f}" fill="{STROKE}" stroke="none" />',
     ]
     if label:
         parts.append(
-            '<text x="-14" y="{:.1f}" text-anchor="end" dominant-baseline="middle" {}>{}</text>'.format(
-                mid, _text_common(), _xml_escape(label)
-            )
+            f'<text x="-14" y="{mid:.1f}" text-anchor="end" dominant-baseline="middle" {_text_common()}>{_xml_escape(label)}</text>'
         )
     parts.append("</g>")
     return "".join(parts)
@@ -101,8 +88,8 @@ def gate_valve(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (10.0, 10.0)),
-        '<polygon points="0,0 10,10 0,20" {} />'.format(_line_common()),
-        '<polygon points="20,0 10,10 20,20" {} />'.format(_line_common()),
+        f'<polygon points="0,0 10,10 0,20" {_line_common()} />',
+        f'<polygon points="20,0 10,10 20,20" {_line_common()} />',
         "</g>",
     ]
     return "".join(parts)
@@ -116,9 +103,9 @@ def strainer(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (10.0, 10.0)),
-        '<polygon points="10,0 20,10 10,20 0,10" {} />'.format(_line_common()),
-        '<line x1="0" y1="10" x2="20" y2="10" {} />'.format(_line_common()),
-        '<line x1="10" y1="0" x2="10" y2="20" {} />'.format(_line_common()),
+        f'<polygon points="10,0 20,10 10,20 0,10" {_line_common()} />',
+        f'<line x1="0" y1="10" x2="20" y2="10" {_line_common()} />',
+        f'<line x1="10" y1="0" x2="10" y2="20" {_line_common()} />',
         "</g>",
     ]
     return "".join(parts)
@@ -132,8 +119,8 @@ def check_valve(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (10.0, 8.0)),
-        '<polygon points="0,8 16,0 16,16" {} />'.format(_line_common()),
-        '<line x1="18" y1="0" x2="18" y2="16" {} />'.format(_line_common()),
+        f'<polygon points="0,8 16,0 16,16" {_line_common()} />',
+        f'<line x1="18" y1="0" x2="18" y2="16" {_line_common()} />',
         "</g>",
     ]
     return "".join(parts)
@@ -147,11 +134,9 @@ def flow_meter(x: float, y: float, label: str = "G1", rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (15.0, 15.0)),
-        '<circle cx="15" cy="15" r="14.25" {} />'.format(_line_common()),
-        '<text x="15" y="19" text-anchor="middle" {} font-weight="bold">{}</text>'.format(
-            _text_common(), _xml_escape(label)
-        ),
-        '<text x="34" y="19" text-anchor="start" {}>Расходомер</text>'.format(_text_common()),
+        f'<circle cx="15" cy="15" r="14.25" {_line_common()} />',
+        f'<text x="15" y="19" text-anchor="middle" {_text_common()} font-weight="bold">{_xml_escape(label)}</text>',
+        f'<text x="34" y="19" text-anchor="start" {_text_common()}>Расходомер</text>',
         "</g>",
     ]
     return "".join(parts)
@@ -165,14 +150,10 @@ def temp_sensor(x: float, y: float, label: str = "t1", rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (5.0, 5.0)),
-        '<line x1="10" y1="5" x2="22" y2="5" {} />'.format(_line_common()),
-        '<circle cx="5" cy="5" r="4.5" {} />'.format(_line_common()),
-        '<text x="24" y="9" text-anchor="start" {}>{}</text>'.format(
-            _text_common(), _xml_escape(label)
-        ),
-        '<text x="24" y="22" text-anchor="start" {} font-size="9">Термопреобразователь</text>'.format(
-            _text_common()
-        ),
+        f'<line x1="10" y1="5" x2="22" y2="5" {_line_common()} />',
+        f'<circle cx="5" cy="5" r="4.5" {_line_common()} />',
+        f'<text x="24" y="9" text-anchor="start" {_text_common()}>{_xml_escape(label)}</text>',
+        f'<text x="24" y="22" text-anchor="start" {_text_common()} font-size="9">Термопреобразователь</text>',
         "</g>",
     ]
     return "".join(parts)
@@ -186,16 +167,12 @@ def pressure_sensor(x: float, y: float, label: str = "P1", rotate: int = 0) -> s
     """
     parts = [
         _group_open(x, y, rotate, (5.0, 5.0)),
-        '<line x1="10" y1="5" x2="22" y2="5" {} />'.format(_line_common()),
-        '<circle cx="5" cy="5" r="4.5" {} />'.format(_line_common()),
-        '<line x1="2.5" y1="5" x2="7.5" y2="5" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="5" y1="2.5" x2="5" y2="7.5" {} stroke-width="1" />'.format(_line_common()),
-        '<text x="24" y="9" text-anchor="start" {}>{}</text>'.format(
-            _text_common(), _xml_escape(label)
-        ),
-        '<text x="24" y="22" text-anchor="start" {} font-size="9">Датчик давления</text>'.format(
-            _text_common()
-        ),
+        f'<line x1="10" y1="5" x2="22" y2="5" {_line_common()} />',
+        f'<circle cx="5" cy="5" r="4.5" {_line_common()} />',
+        f'<line x1="2.5" y1="5" x2="7.5" y2="5" {_line_common()} stroke-width="1" />',
+        f'<line x1="5" y1="2.5" x2="5" y2="7.5" {_line_common()} stroke-width="1" />',
+        f'<text x="24" y="9" text-anchor="start" {_text_common()}>{_xml_escape(label)}</text>',
+        f'<text x="24" y="22" text-anchor="start" {_text_common()} font-size="9">Датчик давления</text>',
         "</g>",
     ]
     return "".join(parts)
@@ -205,22 +182,9 @@ def _heat_cell(
     cx: float, cy: float, w: float, h: float, txt: str, fs: str = "8", anchor: str = "middle"
 ) -> str:
     return (
-        '<rect x="{:.1f}" y="{:.1f}" width="{:.1f}" height="{:.1f}" {} stroke-width="0.8" />'
-        '<text x="{:.1f}" y="{:.1f}" text-anchor="{}" dominant-baseline="middle" '
-        'font-family="{}" font-size="{}" fill="{}">{}</text>'
-    ).format(
-        cx,
-        cy,
-        w,
-        h,
-        _line_common(),
-        cx + w / 2.0,
-        cy + h / 2.0 + 3,
-        anchor,
-        FONT_FAMILY,
-        fs,
-        STROKE,
-        _xml_escape(txt),
+        f'<rect x="{cx:.1f}" y="{cy:.1f}" width="{w:.1f}" height="{h:.1f}" {_line_common()} stroke-width="0.8" />'
+        f'<text x="{cx + w / 2.0:.1f}" y="{cy + h / 2.0 + 3:.1f}" text-anchor="{anchor}" dominant-baseline="middle" '
+        f'font-family="{FONT_FAMILY}" font-size="{fs}" fill="{STROKE}">{_xml_escape(txt)}</text>'
     )
 
 
@@ -234,11 +198,27 @@ def heat_calculator(x: float, y: float, params: Mapping[str, Any] | None = None)
     ``Qo``, ``Qgvs``, ``T``, ``Txv``, ``Mgvs``, ``tgvs``, ``tc``, ``M1``, ``t1o``, ``t2o``,
     ``Mc``, ``Rgvs``, ``Rc``, ``M2``, ``P1o``, ``P2o``.
     """
-    p: dict[str, str] = {k: "" for k in (
-        "Qo", "Qgvs", "T", "Txv",
-        "Mgvs", "tgvs", "tc", "M1", "t1o", "t2o",
-        "Mc", "Rgvs", "Rc", "M2", "P1o", "P2o",
-    )}
+    p: dict[str, str] = {
+        k: ""
+        for k in (
+            "Qo",
+            "Qgvs",
+            "T",
+            "Txv",
+            "Mgvs",
+            "tgvs",
+            "tc",
+            "M1",
+            "t1o",
+            "t2o",
+            "Mc",
+            "Rgvs",
+            "Rc",
+            "M2",
+            "P1o",
+            "P2o",
+        )
+    }
     if params:
         for key, val in params.items():
             if key in p and val is not None:
@@ -247,12 +227,8 @@ def heat_calculator(x: float, y: float, params: Mapping[str, Any] | None = None)
     w, h = 280.0, 180.0
     parts: list[str] = [
         _group_open(x, y, 0, (0.0, 0.0)),
-        '<rect x="0" y="0" width="{:.0f}" height="{:.0f}" {} stroke-dasharray="4 3" />'.format(
-            w, h, _line_common()
-        ),
-        '<text x="10" y="22" text-anchor="start" {} font-size="14" font-weight="bold">УУТЭ</text>'.format(
-            _text_common()
-        ),
+        f'<rect x="0" y="0" width="{w:.0f}" height="{h:.0f}" {_line_common()} stroke-dasharray="4 3" />',
+        f'<text x="10" y="22" text-anchor="start" {_text_common()} font-size="14" font-weight="bold">УУТЭ</text>',
         '<text x="10" y="42" text-anchor="start" {} font-size="10">Qo: {}</text>'.format(
             _text_common(), _xml_escape(p["Qo"])
         ),
@@ -301,16 +277,16 @@ def heat_exchanger(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (20.0, 30.0)),
-        '<rect x="0" y="10" width="40" height="40" {} />'.format(_line_common()),
-        '<line x1="5" y1="15" x2="35" y2="45" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="8" y1="18" x2="32" y2="42" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="11" y1="21" x2="29" y2="39" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="0" y1="18" x2="-12" y2="18" {} />'.format(_line_common()),
-        '<line x1="40" y1="22" x2="52" y2="22" {} />'.format(_line_common()),
-        '<line x1="0" y1="42" x2="-12" y2="42" {} />'.format(_line_common()),
-        '<line x1="40" y1="38" x2="52" y2="38" {} />'.format(_line_common()),
-        '<line x1="20" y1="10" x2="20" y2="0" {} />'.format(_line_common()),
-        '<line x1="20" y1="50" x2="20" y2="60" {} />'.format(_line_common()),
+        f'<rect x="0" y="10" width="40" height="40" {_line_common()} />',
+        f'<line x1="5" y1="15" x2="35" y2="45" {_line_common()} stroke-width="1" />',
+        f'<line x1="8" y1="18" x2="32" y2="42" {_line_common()} stroke-width="1" />',
+        f'<line x1="11" y1="21" x2="29" y2="39" {_line_common()} stroke-width="1" />',
+        f'<line x1="0" y1="18" x2="-12" y2="18" {_line_common()} />',
+        f'<line x1="40" y1="22" x2="52" y2="22" {_line_common()} />',
+        f'<line x1="0" y1="42" x2="-12" y2="42" {_line_common()} />',
+        f'<line x1="40" y1="38" x2="52" y2="38" {_line_common()} />',
+        f'<line x1="20" y1="10" x2="20" y2="0" {_line_common()} />',
+        f'<line x1="20" y1="50" x2="20" y2="60" {_line_common()} />',
         "</g>",
     ]
     return "".join(parts)
@@ -324,10 +300,8 @@ def pump(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (12.5, 12.5)),
-        '<circle cx="12.5" cy="12.5" r="12" {} />'.format(_line_common()),
-        '<polygon points="7,12.5 17,7 17,18" fill="{}" stroke="{}" stroke-width="1" />'.format(
-            STROKE, STROKE
-        ),
+        f'<circle cx="12.5" cy="12.5" r="12" {_line_common()} />',
+        f'<polygon points="7,12.5 17,7 17,18" fill="{STROKE}" stroke="{STROKE}" stroke-width="1" />',
         "</g>",
     ]
     return "".join(parts)
@@ -341,12 +315,10 @@ def valve_3way(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (12.5, 12.5)),
-        '<polygon points="2,2 12.5,12.5 2,23" {} />'.format(_line_common()),
-        '<polygon points="23,2 12.5,12.5 23,23" {} />'.format(_line_common()),
-        '<line x1="12.5" y1="12.5" x2="12.5" y2="0" {} />'.format(_line_common()),
-        '<text x="12.5" y="10" text-anchor="middle" {} font-size="9">M</text>'.format(
-            _text_common()
-        ),
+        f'<polygon points="2,2 12.5,12.5 2,23" {_line_common()} />',
+        f'<polygon points="23,2 12.5,12.5 23,23" {_line_common()} />',
+        f'<line x1="12.5" y1="12.5" x2="12.5" y2="0" {_line_common()} />',
+        f'<text x="12.5" y="10" text-anchor="middle" {_text_common()} font-size="9">M</text>',
         "</g>",
     ]
     return "".join(parts)
@@ -360,9 +332,9 @@ def valve_2way(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (10.0, 10.0)),
-        '<polygon points="0,0 10,10 0,20" {} />'.format(_line_common()),
-        '<polygon points="20,0 10,10 20,20" {} />'.format(_line_common()),
-        '<text x="10" y="8" text-anchor="middle" {} font-size="9">M</text>'.format(_text_common()),
+        f'<polygon points="0,0 10,10 0,20" {_line_common()} />',
+        f'<polygon points="20,0 10,10 20,20" {_line_common()} />',
+        f'<text x="10" y="8" text-anchor="middle" {_text_common()} font-size="9">M</text>',
         "</g>",
     ]
     return "".join(parts)
@@ -376,14 +348,12 @@ def radiator(x: float, y: float) -> str:
     """
     parts = [
         _group_open(x, y, 0, (0.0, 0.0)),
-        '<rect x="0" y="0" width="40" height="22" {} />'.format(_line_common()),
-        '<line x1="8" y1="4" x2="8" y2="18" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="16" y1="4" x2="16" y2="18" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="24" y1="4" x2="24" y2="18" {} stroke-width="1" />'.format(_line_common()),
-        '<line x1="32" y1="4" x2="32" y2="18" {} stroke-width="1" />'.format(_line_common()),
-        '<text x="20" y="30" text-anchor="middle" {} font-size="10">Отопление</text>'.format(
-            _text_common()
-        ),
+        f'<rect x="0" y="0" width="40" height="22" {_line_common()} />',
+        f'<line x1="8" y1="4" x2="8" y2="18" {_line_common()} stroke-width="1" />',
+        f'<line x1="16" y1="4" x2="16" y2="18" {_line_common()} stroke-width="1" />',
+        f'<line x1="24" y1="4" x2="24" y2="18" {_line_common()} stroke-width="1" />',
+        f'<line x1="32" y1="4" x2="32" y2="18" {_line_common()} stroke-width="1" />',
+        f'<text x="20" y="30" text-anchor="middle" {_text_common()} font-size="10">Отопление</text>',
         "</g>",
     ]
     return "".join(parts)
@@ -397,7 +367,7 @@ def flow_arrow(x: float, y: float, rotate: int = 0) -> str:
     """
     parts = [
         _group_open(x, y, rotate, (6.0, 4.0)),
-        '<polygon points="0,4 12,0 12,8" fill="{}" stroke="none" />'.format(STROKE),
+        f'<polygon points="0,4 12,0 12,8" fill="{STROKE}" stroke="none" />',
         "</g>",
     ]
     return "".join(parts)
@@ -416,17 +386,8 @@ def text_label(
     """
     weight = ' font-weight="bold"' if bold else ""
     return (
-        '<text x="{:.2f}" y="{:.2f}" text-anchor="{}" font-family="{}" font-size="{}" '
-        'fill="{}"{}>{}</text>'
-    ).format(
-        x,
-        y,
-        anchor,
-        FONT_FAMILY,
-        font_size,
-        STROKE,
-        weight,
-        _xml_escape(text),
+        f'<text x="{x:.2f}" y="{y:.2f}" text-anchor="{anchor}" font-family="{FONT_FAMILY}" font-size="{font_size}" '
+        f'fill="{STROKE}"{weight}>{_xml_escape(text)}</text>'
     )
 
 
@@ -443,9 +404,9 @@ def svg_canvas(width: int = 1190, height: int = 842, content: str = "") -> str:
     )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" '
-        'viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
-        "{defs}{content}</svg>"
-    ).format(w=width, h=height, defs=defs, content=content)
+        f'viewBox="0 0 {width} {height}" width="{width}" height="{height}">'
+        f"{defs}{content}</svg>"
+    )
 
 
 def connection_line(points: Sequence[tuple[float, float]]) -> str:
@@ -456,8 +417,8 @@ def connection_line(points: Sequence[tuple[float, float]]) -> str:
     """
     if len(points) < 2:
         return ""
-    pts = " ".join("{:.1f},{:.1f}".format(px, py) for px, py in points)
-    return '<polyline points="{}" {}" />'.format(pts, _line_common())
+    pts = " ".join(f"{px:.1f},{py:.1f}" for px, py in points)
+    return f'<polyline points="{pts}" {_line_common()}" />'
 
 
 def dashed_rect(x: float, y: float, w: float, h: float, label: str | None = None) -> str:
@@ -468,15 +429,11 @@ def dashed_rect(x: float, y: float, w: float, h: float, label: str | None = None
     """
     parts: list[str] = [
         _group_open(x, y, 0, (0.0, 0.0)),
-        '<rect x="0" y="0" width="{:.2f}" height="{:.2f}" {} stroke-dasharray="6 4" />'.format(
-            w, h, _line_common()
-        ),
+        f'<rect x="0" y="0" width="{w:.2f}" height="{h:.2f}" {_line_common()} stroke-dasharray="6 4" />',
     ]
     if label:
         parts.append(
-            '<text x="{:.1f}" y="-6" text-anchor="middle" {}>{}</text>'.format(
-                w / 2.0, _text_common(), _xml_escape(label)
-            )
+            f'<text x="{w / 2.0:.1f}" y="-6" text-anchor="middle" {_text_common()}>{_xml_escape(label)}</text>'
         )
     parts.append("</g>")
     return "".join(parts)

@@ -26,7 +26,7 @@ globs: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"]
 ```typescript
 /**
  * Authenticates user with email and password.
- * 
+ *
  * @param email - User's email address
  * @param password - Plain text password
  * @returns User object with session token

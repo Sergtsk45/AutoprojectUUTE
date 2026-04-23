@@ -828,6 +828,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/schemes/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Scheme
+         * @description Генерирует превью SVG схемы по конфигурации.
+         *
+         *     Args:
+         *         request: Конфигурация схемы (SchemeConfig) и опциональные параметры (SchemeParams)
+         *
+         *     Returns:
+         *         SVG-контент схемы с ГОСТ-рамкой для отображения в браузере
+         *
+         *     Raises:
+         *         HTTPException 400: Если конфигурация невалидна или комбинация параметров недопустима
+         */
+        post: operations["preview_scheme_api_v1_schemes_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/schemes/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Scheme Templates
+         * @description Возвращает список всех доступных конфигураций схем (8 типов).
+         *
+         *     Используется UI для отображения доступных вариантов схем клиенту.
+         */
+        get: operations["list_scheme_templates_api_v1_schemes_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/schemes/{order_id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scheme Config
+         * @description Возвращает сохраненную конфигурацию схемы из survey_data заявки.
+         *
+         *     Args:
+         *         order_id: UUID заявки
+         *
+         *     Returns:
+         *         Конфигурация схемы из survey_data или None, если схема еще не сгенерирована
+         *
+         *     Raises:
+         *         HTTPException 404: Заявка не найдена
+         */
+        get: operations["get_scheme_config_api_v1_schemes__order_id__config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/schemes/{order_id}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Scheme Pdf
+         * @description Генерирует PDF схемы и сохраняет как файл заявки.
+         *
+         *     Args:
+         *         order_id: UUID заявки
+         *         request: Конфигурация схемы и параметры
+         *
+         *     Returns:
+         *         Информация о сохраненном файле (id, category, filename)
+         *
+         *     Raises:
+         *         HTTPException 404: Заявка не найдена
+         *         HTTPException 400: Невалидная конфигурация схемы
+         */
+        post: operations["generate_scheme_pdf_api_v1_schemes__order_id__generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1836,6 +1947,139 @@ export interface components {
              */
             email: string;
         };
+        /**
+         * SchemeConfig
+         * @description Конфигурация, выбранная клиентом через UI.
+         */
+        SchemeConfig: {
+            /**
+             * Connection Type
+             * @enum {string}
+             */
+            connection_type: "dependent" | "independent";
+            /**
+             * Has Gwp
+             * @description Наличие контура ГВС.
+             * @default false
+             */
+            has_gwp: boolean;
+            /**
+             * Has Valve
+             * @description Регулирующий клапан (3-ходовой в зависимой, 2-ходовой в независимой схеме).
+             * @default false
+             */
+            has_valve: boolean;
+            /**
+             * Has Ventilation
+             * @description Наличие параллельной вентиляции (только в допустимых сочетаниях с ГВС).
+             * @default false
+             */
+            has_ventilation: boolean;
+        };
+        /**
+         * SchemeGenerateRequest
+         * @description Запрос на генерацию схемы.
+         */
+        SchemeGenerateRequest: {
+            config: components["schemas"]["SchemeConfig"];
+            params?: components["schemas"]["SchemeParams"] | null;
+        };
+        /**
+         * SchemeParams
+         * @description Параметры для подстановки в SVG-шаблон (из parsed_params заявки).
+         */
+        SchemeParams: {
+            /** Company Name */
+            company_name?: string | null;
+            /** Engineer Name */
+            engineer_name?: string | null;
+            /** G1 Label */
+            g1_label?: string | null;
+            /** G2 Label */
+            g2_label?: string | null;
+            /** G3 Label */
+            g3_label?: string | null;
+            /** Gwp Load */
+            gwp_load?: string | null;
+            /** Heating Load */
+            heating_load?: string | null;
+            /** M1 */
+            m1?: string | null;
+            /** M2 */
+            m2?: string | null;
+            /** Object Address */
+            object_address?: string | null;
+            /** P1 */
+            p1?: string | null;
+            /** P1 Label */
+            p1_label?: string | null;
+            /** P2 */
+            p2?: string | null;
+            /** P2 Label */
+            p2_label?: string | null;
+            /** Pipe Diameter */
+            pipe_diameter?: string | null;
+            /** Project Number */
+            project_number?: string | null;
+            /** Q Gwp */
+            q_gwp?: string | null;
+            /** Q Heat */
+            q_heat?: string | null;
+            /** Return Pressure */
+            return_pressure?: string | null;
+            /** Return Temp */
+            return_temp?: string | null;
+            /** Supply Pressure */
+            supply_pressure?: string | null;
+            /** Supply Temp */
+            supply_temp?: string | null;
+            /** T1 */
+            t1?: string | null;
+            /** T1 Label */
+            t1_label?: string | null;
+            /** T2 */
+            t2?: string | null;
+            /** T2 Label */
+            t2_label?: string | null;
+            /** Total Load */
+            total_load?: string | null;
+            /** Ventilation Load */
+            ventilation_load?: string | null;
+        };
+        /**
+         * SchemePreviewResponse
+         * @description Ответ с превью SVG.
+         */
+        SchemePreviewResponse: {
+            /** Scheme Label */
+            scheme_label: string;
+            scheme_type: components["schemas"]["SchemeType"];
+            /** Svg Content */
+            svg_content: string;
+        };
+        /**
+         * SchemeTemplateInfo
+         * @description Информация о доступном шаблоне для UI.
+         */
+        SchemeTemplateInfo: {
+            /** Connection Type */
+            connection_type: string;
+            /** Description */
+            description: string;
+            /** Has Gwp */
+            has_gwp: boolean;
+            /** Has Ventilation */
+            has_ventilation: boolean;
+            /** Label */
+            label: string;
+            scheme_type: components["schemas"]["SchemeType"];
+        };
+        /**
+         * SchemeType
+         * @description Тип конфигурации схемы — machine-name для маппинга на SVG.
+         * @enum {string}
+         */
+        SchemeType: "dep_simple" | "dep_simple_gwp" | "dep_valve" | "dep_valve_gwp" | "dep_valve_gwp_vent" | "indep" | "indep_gwp" | "indep_gwp_vent";
         /** SimpleResponse */
         SimpleResponse: {
             /** Message */
@@ -3491,6 +3735,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PipelineResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_scheme_api_v1_schemes_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemeGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemePreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_scheme_templates_api_v1_schemes_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemeTemplateInfo"][];
+                };
+            };
+        };
+    };
+    get_scheme_config_api_v1_schemes__order_id__config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_scheme_pdf_api_v1_schemes__order_id__generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemeGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

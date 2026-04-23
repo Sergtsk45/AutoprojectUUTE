@@ -83,7 +83,7 @@ Task(
   Quality issues (if user approved): [list from Step 1]
 
   Files: [list of files]
-  
+
   Fix each issue. Do NOT refactor beyond what's needed to fix the reported problems.
   Do NOT add new features."
 )
@@ -103,7 +103,7 @@ Task(
   prompt="Verify fixes did not break anything.
   Files changed: [list from Step 2]
   Fixes applied: [summary from Step 2]
-  
+
   Run: linter + tests."
 )
 ```

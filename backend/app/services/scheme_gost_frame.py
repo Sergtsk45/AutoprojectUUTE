@@ -20,10 +20,7 @@ STAMP_H = 156
 
 def _xml_escape(text: str) -> str:
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -55,9 +52,7 @@ def _merge_stamp(stamp_data: Mapping[str, Any] | None) -> dict[str, str]:
 
 
 def _text_el(xa: float, ya: float, s: str, fss: int = 10, anc: str = "start") -> str:
-    return (
-        '<text x="{:.1f}" y="{:.1f}" font-family="{}" font-size="{}" fill="{}" text-anchor="{}">{}</text>'
-    ).format(xa, ya, FONT, fss, STROKE, anc, _xml_escape(s))
+    return f'<text x="{xa:.1f}" y="{ya:.1f}" font-family="{FONT}" font-size="{fss}" fill="{STROKE}" text-anchor="{anc}">{_xml_escape(s)}</text>'
 
 
 def _stamp_block(sx: float, sy: float, data: dict[str, str]) -> str:
@@ -68,8 +63,8 @@ def _stamp_block(sx: float, sy: float, data: dict[str, str]) -> str:
     h = float(STAMP_H)
     lines: list[str] = [
         '<g id="gost-stamp">',
-        '<rect x="{:.1f}" y="{:.1f}" width="{:.1f}" height="{:.1f}" '
-        'fill="none" stroke="{}" stroke-width="1" />'.format(sx, sy, w, h, STROKE),
+        f'<rect x="{sx:.1f}" y="{sy:.1f}" width="{w:.1f}" height="{h:.1f}" '
+        f'fill="none" stroke="{STROKE}" stroke-width="1" />',
     ]
     y1 = sy + 28
     y2 = sy + 52
@@ -78,28 +73,20 @@ def _stamp_block(sx: float, sy: float, data: dict[str, str]) -> str:
     y5 = sy + 124
     for yy in (y1, y2, y3, y4, y5):
         lines.append(
-            '<line x1="{:.1f}" y1="{:.1f}" x2="{:.1f}" y2="{:.1f}" stroke="{}" stroke-width="1" />'.format(
-                sx, yy, sx + w, yy, STROKE
-            )
+            f'<line x1="{sx:.1f}" y1="{yy:.1f}" x2="{sx + w:.1f}" y2="{yy:.1f}" stroke="{STROKE}" stroke-width="1" />'
         )
     x_mid = sx + w * 0.62
     x_right = sx + w - 48
     for xx in (x_mid, x_right):
         lines.append(
-            '<line x1="{:.1f}" y1="{:.1f}" x2="{:.1f}" y2="{:.1f}" stroke="{}" stroke-width="1" />'.format(
-                xx, sy, xx, sy + h, STROKE
-            )
+            f'<line x1="{xx:.1f}" y1="{sy:.1f}" x2="{xx:.1f}" y2="{sy + h:.1f}" stroke="{STROKE}" stroke-width="1" />'
         )
     y_rsep = sy + h - 40
     lines.append(
-        '<line x1="{:.1f}" y1="{:.1f}" x2="{:.1f}" y2="{:.1f}" stroke="{}" stroke-width="1" />'.format(
-            x_right, y4, sx + w, y4, STROKE
-        )
+        f'<line x1="{x_right:.1f}" y1="{y4:.1f}" x2="{sx + w:.1f}" y2="{y4:.1f}" stroke="{STROKE}" stroke-width="1" />'
     )
     lines.append(
-        '<line x1="{:.1f}" y1="{:.1f}" x2="{:.1f}" y2="{:.1f}" stroke="{}" stroke-width="1" />'.format(
-            x_right, y_rsep, sx + w, y_rsep, STROKE
-        )
+        f'<line x1="{x_right:.1f}" y1="{y_rsep:.1f}" x2="{sx + w:.1f}" y2="{y_rsep:.1f}" stroke="{STROKE}" stroke-width="1" />'
     )
 
     fs = 10
@@ -146,20 +133,20 @@ def _frame_layers(
 ) -> str:
     """Внешняя/внутренняя рамка, рабочая область с контентом, штамп."""
     outer = (
-        '<rect x="5" y="5" width="{:.1f}" height="{:.1f}" fill="none" stroke="{}" '
-        'stroke-width="{}" />'
-    ).format(width - 10, height - 10, STROKE, SW)
+        f'<rect x="5" y="5" width="{width - 10:.1f}" height="{height - 10:.1f}" fill="none" stroke="{STROKE}" '
+        f'stroke-width="{SW}" />'
+    )
     inner_w = inner_right - inner_left
     inner_h = inner_bottom - inner_top
     inner = (
-        '<rect x="{:.1f}" y="{:.1f}" width="{:.1f}" height="{:.1f}" fill="none" stroke="{}" '
+        f'<rect x="{inner_left:.1f}" y="{inner_top:.1f}" width="{inner_w:.1f}" height="{inner_h:.1f}" fill="none" stroke="{STROKE}" '
         'stroke-width="1" />'
-    ).format(inner_left, inner_top, inner_w, inner_h, STROKE)
+    )
     work = (
-        '<g id="gost-working-area" transform="translate({:.1f},{:.1f})">'
-        "{}"
+        f'<g id="gost-working-area" transform="translate({inner_left:.1f},{inner_top:.1f})">'
+        f"{content_svg}"
         "</g>"
-    ).format(inner_left, inner_top, content_svg)
+    )
     stamp = _stamp_block(stamp_x, stamp_y, stamp_data)
     return "\n".join([outer, inner, work, stamp])
 
@@ -204,9 +191,9 @@ def gost_frame_a3(content_svg: str = "", stamp_data: Mapping[str, Any] | None = 
     )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" '
-        'viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
-        "{defs}{body}</svg>"
-    ).format(w=width, h=height, defs=defs, body=body)
+        f'viewBox="0 0 {width} {height}" width="{width}" height="{height}">'
+        f"{defs}{body}</svg>"
+    )
 
 
 def gost_frame_a4(content_svg: str = "", stamp_data: Mapping[str, Any] | None = None) -> str:
@@ -243,6 +230,6 @@ def gost_frame_a4(content_svg: str = "", stamp_data: Mapping[str, Any] | None = 
     )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" '
-        'viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
-        "{defs}{body}</svg>"
-    ).format(w=width, h=height, defs=defs, body=body)
+        f'viewBox="0 0 {width} {height}" width="{width}" height="{height}">'
+        f"{defs}{body}</svg>"
+    )

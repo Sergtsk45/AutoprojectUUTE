@@ -159,15 +159,15 @@ function sendEmail(email: String)
 // ✅ Good
 Email:
   value: String
-  
+
   constructor(emailString)
     if NOT isValidEmail(emailString)
       throw Error('Invalid email')
     this.value = emailString
-  
+
   function isValidEmail(email)
     return matchesEmailPattern(email)
-  
+
   function toString()
     return this.value
 

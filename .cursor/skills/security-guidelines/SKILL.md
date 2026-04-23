@@ -165,7 +165,7 @@ const apiKey = "sk_live_12345abcdef";
 
 ```typescript
 // ✅ Good - CSP header
-res.setHeader('Content-Security-Policy', 
+res.setHeader('Content-Security-Policy',
   "default-src 'self'; script-src 'self' https://trusted-cdn.com");
 
 // ✅ Good - Sanitize before rendering

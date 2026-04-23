@@ -157,7 +157,7 @@ if (enabled.reports && paths.reports !== null) {
   timestamp = formatDate(progress.started, "YYYY-MM-DD")
   slug = slugify(progress.name)
   reportFile = `${paths.reports}/${timestamp}-${slug}-implementation.md`
-  
+
   write(reportFile, reportContent)
   return reportFile
 } else {
@@ -228,7 +228,7 @@ Map changes to documentation files (all paths from config):
 1. ✅ {TASK-001}: {Task Name} ({duration})
    - Files: {list}
    - Tests: {count} passing
-   
+
 2. ✅ {TASK-002}: {Task Name} ({duration})
    - Files: {list}
    - Tests: {count} passing
