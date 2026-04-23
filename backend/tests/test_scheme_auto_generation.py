@@ -56,3 +56,118 @@ class TestComputeClientDocumentMissing:
         uploaded = set()
         result = compute_client_document_missing(uploaded)
         assert set(result) == set(CLIENT_DOCUMENT_PARAM_CODES)
+
+
+import uuid
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from app.models.models import FileCategory
+
+
+class TestAutoGenerateScheme:
+    """Тесты функции _auto_generate_scheme_if_configured."""
+
+    def _make_order_mock(self, survey_data=None, parsed_params=None):
+        order = MagicMock()
+        order.id = uuid.uuid4()
+        order.survey_data = survey_data or {}
+        order.parsed_params = parsed_params or {}
+        order.object_address = "г. Москва, ул. Ленина, д. 1"
+        order.client_organization = "ООО «Ромашка»"
+        return order
+
+    def test_success_with_valid_config(self, tmp_path, monkeypatch):
+        """Успешная генерация создаёт файл и OrderFile."""
+        from app.services import tasks
+
+        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+
+        session = MagicMock()
+        order = self._make_order_mock(
+            survey_data={
+                "scheme_config": {
+                    "connection_type": "dependent",
+                    "has_valve": False,
+                    "has_gwp": False,
+                    "has_ventilation": False,
+                }
+            }
+        )
+
+        with patch.object(
+            tasks, "render_scheme_pdf", return_value=b"%PDF-fake-bytes"
+        ):
+            result = tasks._auto_generate_scheme_if_configured(session, order)
+
+        assert result is True
+        session.add.assert_called_once()
+        added_file = session.add.call_args[0][0]
+        assert added_file.category == FileCategory.HEAT_SCHEME
+        assert added_file.order_id == order.id
+        assert added_file.file_size == len(b"%PDF-fake-bytes")
+        session.commit.assert_called()
+
+        scheme_dir = tmp_path / str(order.id) / "heat_scheme"
+        assert scheme_dir.exists()
+        assert any(scheme_dir.iterdir()), "PDF file must be written"
+
+    def test_invalid_config_returns_false(self, tmp_path, monkeypatch):
+        """Недопустимая комбинация параметров → False, файл не создаётся."""
+        from app.services import tasks
+
+        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+
+        session = MagicMock()
+        order = self._make_order_mock(
+            survey_data={
+                "scheme_config": {
+                    "connection_type": "independent",
+                    "has_valve": False,
+                    "has_gwp": False,
+                    "has_ventilation": False,
+                }
+            }
+        )
+
+        result = tasks._auto_generate_scheme_if_configured(session, order)
+        assert result is False
+        session.add.assert_not_called()
+
+    def test_missing_scheme_config_returns_false(self, tmp_path, monkeypatch):
+        from app.services import tasks
+
+        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+
+        session = MagicMock()
+        order = self._make_order_mock(survey_data={})
+
+        result = tasks._auto_generate_scheme_if_configured(session, order)
+        assert result is False
+        session.add.assert_not_called()
+
+    def test_pdf_render_exception_returns_false(self, tmp_path, monkeypatch):
+        """Если WeasyPrint падает, функция возвращает False без пробрасывания."""
+        from app.services import tasks
+
+        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+
+        session = MagicMock()
+        order = self._make_order_mock(
+            survey_data={
+                "scheme_config": {
+                    "connection_type": "dependent",
+                    "has_valve": False,
+                    "has_gwp": False,
+                    "has_ventilation": False,
+                }
+            }
+        )
+
+        with patch.object(
+            tasks, "render_scheme_pdf", side_effect=RuntimeError("WeasyPrint error")
+        ):
+            result = tasks._auto_generate_scheme_if_configured(session, order)
+
+        assert result is False
+        session.add.assert_not_called()
