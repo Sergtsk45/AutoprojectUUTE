@@ -1,5 +1,169 @@
 # Changelog
 
+## [2026-04-23] — Интеграция конфигуратора схем с пайплайном и админкой
+
+### Добавлено
+- Автоматическая генерация PDF схемы в `process_client_response`, если клиент заполнил конфигуратор, но PDF ещё не сгенерирован
+- Секция "Конфигурация схемы" в админ-панели (parsed_params) с маппингом параметров на русский и кнопкой скачивания PDF
+- Тесты `backend/tests/test_scheme_auto_generation.py`
+
+### Изменено
+- [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py): `compute_client_document_missing(uploaded_categories, survey_data=None)` — второй аргумент исключает `heat_scheme` из missing при наличии `scheme_config`
+- [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `process_client_response` и `check_data_completeness` передают `order.survey_data` в `compute_client_document_missing`
+- [`backend/static/admin.html`](../backend/static/admin.html): `renderParsedParams(params, missing, surveyData, files)` — расширенная сигнатура, новая функция `renderSchemeConfigSection`
+
+### Исправлено
+- Клиенты больше не обязаны вручную загружать PDF схемы, если заполнили конфигуратор
+
+---
+
+## [2026-04-23] — UI конфигуратора схем в upload.html ✅
+
+### Добавлено
+- В [`backend/static/upload.html`](../backend/static/upload.html): интерактивный конфигуратор принципиальных схем
+  - **HTML-секция** `schemeConfiguratorCard` между опросным листом и чеклистом документов
+  - **Вопросы с вариантами ответов:**
+    - Q1: Тип присоединения (зависимая / независимая / не знаю) — радиокнопки
+    - Q2: Регулирующий клапан (условный, только для зависимой) — радиокнопки
+    - Q3: Система ГВС (двухступенчатый подогреватель) — чекбокс
+    - Q4: Система вентиляции (условный, только при наличии ГВС) — чекбокс
+  - **Превью SVG:** автоматическая загрузка через `POST /api/v1/schemes/preview` при изменении конфигурации, inline-отображение в контейнере `schemePreviewContainer`
+  - **Генерация PDF:** кнопка «Подтвердить и сгенерировать PDF» → `POST /api/v1/schemes/{order_id}/generate` → сохранение OrderFile → отображение статуса успеха с ссылкой на скачивание
+  - **Предзаполнение:** автоматическое заполнение из `survey_data.scheme_config` (если схема уже сгенерирована) или из `parsed_params` (определение типа присоединения, ГВС из ТУ)
+  - **CSS-стили:** кастомные радиокнопки и чекбоксы, адаптивные карточки, spinner для загрузки, success/error сообщения
+  - **JavaScript-логика:**
+    - Условное отображение вопросов (valve только для dependent, ventilation только при GWP)
+    - Автообновление превью при изменении ответов (debounce через event listeners)
+    - Валидация конфигурации (HTTP 400 при недопустимых комбинациях)
+    - Интеграция с пайплайном: `showSchemeConfiguratorIfNeeded()` вызывается после сохранения опросного листа и при `init()`
+
+### Изменено
+- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 6 завершена ✅ (UI конфигуратора реализован)
+- Баннер после сохранения опросного листа: текст изменен на «Теперь вы можете настроить принципиальную схему или сразу отправить заявку»
+
+### Технические детали
+**Пайплайн работы UI:**
+```
+Клиент сохраняет опросный лист
+    ↓
+showSchemeConfiguratorIfNeeded() → отображение секции конфигуратора
+    ↓
+Клиент отвечает на вопросы (радиокнопки, чекбоксы)
+    ↓
+При изменении → getSchemeConfig() → updateSchemeUI()
+    ↓
+loadSchemePreview() → POST /api/v1/schemes/preview → inline SVG
+    ↓
+Клиент нажимает «Подтвердить и сгенерировать PDF»
+    ↓
+generateSchemePDF() → POST /api/v1/schemes/{order_id}/generate
+    ↓
+Сохранение OrderFile + scheme_config в survey_data
+    ↓
+Отображение success-сообщения с ссылкой на скачивание PDF
+```
+
+**Условная логика вопросов:**
+- Вопрос о клапане (Q2) отображается только при выборе «Зависимая» (Q1)
+- Вопрос о вентиляции (Q4) отображается только при включенной ГВС (Q3)
+- Для независимой схемы `has_valve` автоматически `true` (требование ГОСТ)
+
+**Предзаполнение из parsed_params:**
+- `connection.connection_type` → автовыбор радиокнопки «Зависимая» / «Независимая»
+- `connection.heating_system` → автоотметка чекбокса ГВС (если содержит «ГВС» или «горяч»)
+- Если `survey_data.scheme_config` существует → восстановление всей конфигурации и отображение статуса «сгенерирована»
+
+## [2026-04-23] — API эндпоинты конфигуратора схем ✅
+
+### Добавлено
+- Файл [`backend/app/api/scheme_generator.py`](../backend/app/api/scheme_generator.py): REST API для конфигуратора принципиальных схем
+  - **GET /api/v1/schemes/templates** — список всех 8 доступных конфигураций схем с описаниями (используется UI для отображения вариантов клиенту)
+  - **POST /api/v1/schemes/preview** — генерация превью SVG схемы по конфигурации (SchemeConfig + SchemeParams → SVG с ГОСТ-рамкой)
+  - **POST /api/v1/schemes/{order_id}/generate** — генерация PDF схемы и сохранение как OrderFile (category=heat_scheme), запись конфигурации в survey_data заявки
+  - **GET /api/v1/schemes/{order_id}/config** — получение сохраненной конфигурации схемы из survey_data (для восстановления состояния UI)
+- В [`backend/app/main.py`](../backend/app/main.py): подключен роутер `scheme_generator_router` с префиксом `/api/v1`
+
+### Изменено
+- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 5 завершена ✅ (API эндпоинты реализованы и протестированы)
+
+### Технические детали
+**Пайплайн генерации PDF через API:**
+```
+POST /api/v1/schemes/preview
+  → SchemeConfig валидация
+  → resolve_scheme_type() → SchemeType
+  → render_scheme() → SVG контент
+  → gost_frame_a3() → SVG с рамкой
+  → Response: SchemePreviewResponse (inline SVG для браузера)
+
+POST /api/v1/schemes/{order_id}/generate
+  → Проверка Order в БД
+  → SchemeConfig валидация
+  → Автозаполнение params из Order.parsed_params
+  → render_scheme() → SVG
+  → gost_frame_a3() → SVG с рамкой и штампом
+  → render_scheme_pdf() → PDF bytes
+  → Сохранение OrderFile (category=heat_scheme)
+  → Запись scheme_config в Order.survey_data
+```
+
+**Автозаполнение параметров:**
+- `project_number` ← `Order.id` (формат: УУТЭ-UUID[:8])
+- `object_address` ← `Order.object_address`
+- `company_name` ← `Order.client_organization`
+- Параметры из `Order.parsed_params` через `extract_scheme_params_from_parsed()`
+
+**Валидация конфигурации:**
+- Pydantic-валидация `SchemeConfig` (model_validator проверяет допустимые комбинации)
+- Маппинг через `SCHEME_MAP` — 8 типовых конфигураций
+- HTTP 400 при недопустимой комбинации (например, независимая без клапана)
+
+## [2026-04-23] — PDF-рендер схем: WeasyPrint интеграция ✅
+
+### Добавлено
+- Файл [`backend/app/services/scheme_pdf_renderer.py`](../backend/app/services/scheme_pdf_renderer.py): модуль генерации PDF из SVG-схем через WeasyPrint
+  - Функция `render_scheme_pdf(svg_content, stamp_data, format)` — конвертирует SVG в PDF с правильными размерами страницы (A3 landscape / A4 portrait)
+  - Функция `render_scheme_pdf_from_params(svg_content, params, format)` — удобная обертка с автоформированием данных штампа из параметров схемы
+  - Поддержка форматов A3 (альбомная, 420×297 мм) и A4 (книжная, 210×297 мм)
+- HTML-шаблоны для PDF:
+  - [`backend/templates/scheme_pdf/gost_frame_a3.html`](../backend/templates/scheme_pdf/gost_frame_a3.html) — обертка SVG для A3 landscape
+  - [`backend/templates/scheme_pdf/gost_frame_a4.html`](../backend/templates/scheme_pdf/gost_frame_a4.html) — обертка SVG для A4 portrait
+- В [`backend/requirements.txt`](../backend/requirements.txt):
+  - `weasyprint==61.2` — генерация PDF из HTML/SVG (чистый Python, работает в Docker без headless-браузера)
+  - `pydyf==0.10.0` — совместимая версия зависимости для weasyprint 61.2
+- В [`backend/app/schemas/scheme.py`](../backend/app/schemas/scheme.py): расширен `SchemeParams`:
+  - Добавлены метки для датчиков и расходомеров: `t1_label`, `t2_label`, `p1_label`, `p2_label`, `g1_label`, `g2_label`, `g3_label`
+  - Добавлены параметры для таблицы УУТЭ: `q_heat`, `q_gwp`, `m1`, `m2`, `t1`, `t2`, `p1`, `p2`
+- Тестовый скрипт [`backend/test_scheme_pdf.py`](../backend/test_scheme_pdf.py): проверка генерации PDF для схемы 1 (A3 и A4), автоматическое сохранение результатов
+
+### Исправлено
+- Совместимость версий `weasyprint` и `pydyf` — установлены протестированные версии (61.2 и 0.10.0), избегающие ошибок `AttributeError` и `TypeError` в новых версиях
+
+### Изменено
+- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 4 завершена ✅ (PDF-рендер с ГОСТ-рамкой через WeasyPrint)
+
+### Технические детали
+**Пайплайн генерации PDF:**
+```
+SVG контент (scheme_svg_renderer)
+    ↓
++ ГОСТ-рамка (scheme_gost_frame: gost_frame_a3/a4)
+    ↓
+Полный SVG с рамкой и штампом
+    ↓
+HTML-шаблон (Jinja2: gost_frame_a3.html / gost_frame_a4.html)
+    ↓
+WeasyPrint → PDF bytes
+```
+
+**Размеры страниц:**
+- A3 landscape: 420×297 мм (1190×842 px в SVG)
+- A4 portrait: 210×297 мм (595×842 px в SVG)
+
+**Зависимости:**
+- `weasyprint==61.2` выбран вместо Puppeteer (не требует headless-браузера, чистый Python, работает в Docker)
+- `pydyf==0.10.0` — совместимая версия, более новые версии несовместимы с weasyprint 61.2
+
 ## [2026-04-20] — SVG: схемы 6–8 (независимые) — все 8 схем готовы ✅
 
 ### Добавлено
