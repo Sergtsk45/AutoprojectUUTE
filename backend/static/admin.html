@@ -2080,7 +2080,7 @@
         renderComparisonTable(order.parsed_params, order.survey_data);
       } else {
         document.getElementById('comparisonCard').style.display = 'none';
-        renderParsedParams(order.parsed_params, order.missing_params);
+        renderParsedParams(order.parsed_params, order.missing_params, order.survey_data, order.files);
         renderSurveyData(order.survey_data);
       }
 
@@ -2398,7 +2398,58 @@
         </details>`;
     }
 
-    function renderParsedParams(params, missing) {
+    function renderSchemeConfigSection(schemeConfig, files) {
+      if (!schemeConfig || typeof schemeConfig !== 'object') return '';
+
+      const connectionType = schemeConfig.connection_type;
+      const typeLabel = connectionType === 'dependent'
+        ? '\u0417\u0430\u0432\u0438\u0441\u0438\u043c\u0430\u044f'
+        : connectionType === 'independent' ? '\u041d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u0430\u044f' : '\u2014';
+
+      let valveLabel = '\u041d\u0435\u0442';
+      if (schemeConfig.has_valve) {
+        valveLabel = connectionType === 'dependent'
+          ? '\u0414\u0430 (3-\u0445\u043e\u0434\u043e\u0432\u043e\u0439 \u0441 \u043d\u0430\u0441\u043e\u0441\u043e\u043c \u043d\u0430 \u043f\u0435\u0440\u0435\u043c\u044b\u0447\u043a\u0435)'
+          : '\u0414\u0430 (2-\u0445\u043e\u0434\u043e\u0432\u043e\u0439 \u0441 \u043d\u0430\u0441\u043e\u0441\u043e\u043c)';
+      }
+
+      const gwpLabel = schemeConfig.has_gwp ? '\u0414\u0430' : '\u041d\u0435\u0442';
+      const ventLabel = schemeConfig.has_ventilation ? '\u0414\u0430' : '\u041d\u0435\u0442';
+
+      const schemeFile = (files || []).find(f => f.category === 'heat_scheme');
+      const statusLabel = schemeFile
+        ? '\u2713 \u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u043d\u0430'
+        : '\u23f3 \u041e\u0436\u0438\u0434\u0430\u0435\u0442 \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438';
+
+      const rows = [
+        parsedTableRow('\u0422\u0438\u043f \u043f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u044f', `<td class="parsed-value-cell"><span class="parsed-value">${esc(typeLabel)}</span></td>`),
+        parsedTableRow('\u0420\u0435\u0433\u0443\u043b\u0438\u0440\u0443\u044e\u0449\u0438\u0439 \u043a\u043b\u0430\u043f\u0430\u043d', `<td class="parsed-value-cell"><span class="parsed-value">${esc(valveLabel)}</span></td>`),
+        parsedTableRow('\u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u0413\u0412\u0421', `<td class="parsed-value-cell"><span class="parsed-value">${esc(gwpLabel)}</span></td>`),
+        parsedTableRow('\u0412\u0435\u043d\u0442\u0438\u043b\u044f\u0446\u0438\u044f (\u043f\u0430\u0440\u0430\u043b\u043b\u0435\u043b\u044c\u043d\u0430\u044f)', `<td class="parsed-value-cell"><span class="parsed-value">${esc(ventLabel)}</span></td>`),
+        parsedTableRow('\u0421\u0442\u0430\u0442\u0443\u0441 PDF', `<td class="parsed-value-cell"><span class="parsed-value">${esc(statusLabel)}</span></td>`),
+      ];
+
+      let sectionHtml = parsedSectionHtml('\u041a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044f \u0441\u0445\u0435\u043c\u044b', rows);
+
+      if (schemeFile) {
+        const downloadUrl = `${API_BASE}/admin/files/${schemeFile.id}/download`;
+        sectionHtml += `
+          <div style="margin-top:10px;">
+            <a href="${downloadUrl}"
+               class="btn btn-primary btn-sm"
+               style="font-size:12px; padding:6px 14px;"
+               target="_blank"
+               onclick="this.href = addKeyToUrl(this.href)">
+              \u2193 \u0421\u043a\u0430\u0447\u0430\u0442\u044c PDF \u0441\u0445\u0435\u043c\u044b
+            </a>
+          </div>
+        `;
+      }
+
+      return sectionHtml;
+    }
+
+    function renderParsedParams(params, missing, surveyData, files) {
       const card = document.getElementById('parsedCard');
       const content = document.getElementById('parsedContent');
       card.style.display = 'block';
@@ -2424,6 +2475,10 @@
         html += '<p class="parsed-empty-msg">\u041f\u0430\u0440\u0441\u0438\u043d\u0433 \u043d\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d</p>';
       } else {
         html += buildParsedParamsTablesHtml(params);
+      }
+
+      if (surveyData && surveyData.scheme_config) {
+        html += renderSchemeConfigSection(surveyData.scheme_config, files || []);
       }
 
       if (missing && missing.length > 0) {
