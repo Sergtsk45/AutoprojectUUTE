@@ -1,0 +1,61 @@
+Код;Поле;survey_data key;parsed_params path;Источник;Тип;Обязательность
+tu_number;Номер ТУ;;document.tu_number;PDF;text;optional
+tu_date;Дата ТУ;;document.tu_date;PDF;date;optional
+tu_valid_from;Действует с;;document.tu_valid_from;PDF;date;optional
+tu_valid_to;Действует по;;document.tu_valid_to;PDF;date;optional
+tu_response_to;Основание выдачи ТУ;;document.tu_response_to;PDF;text;optional
+signatory_name;ФИО подписанта;;document.signatory_name;PDF;text;optional
+signatory_position;Должность подписанта;;document.signatory_position;PDF;text;optional
+heat_supply_source;Наименование РСО / источник теплоснабжения;heat_supply_source;rso.rso_name;PDF + survey;text;required
+rso_address;Адрес РСО;;rso.rso_address;PDF;text;optional
+rso_phone;Телефон РСО;;rso.rso_phone;PDF;text;optional
+rso_email;Email РСО;;rso.rso_email;PDF;text;optional
+rso_website;Сайт РСО;;rso.rso_website;PDF;text;optional
+applicant_name;Наименование заявителя;;applicant.applicant_name;PDF;text;optional
+applicant_address;Почтовый адрес заявителя;;applicant.applicant_address;PDF;text;optional
+contact_person;Контактное лицо;;applicant.contact_person;PDF;text;optional
+building_type;Тип здания;building_type;object.object_type;PDF + survey;select;required
+object_address;Адрес объекта;;object.object_address;PDF;text;optional
+city;Город;;object.city;PDF;text;optional
+floors;Этажность;floors;;survey;number;optional
+construction_year;Год постройки;construction_year;;survey;number;optional
+connection_type;Схема подключения;connection_type;connection.connection_type;PDF + survey;select;required
+system_type;Тип системы;system_type;connection.system_type;PDF + survey;select;required
+heating_system;Система теплопотребления / контуры;;connection.heating_system;PDF;text;optional
+supply_temp;Температура подачи;supply_temp;coolant.supply_temp;PDF + survey;number;required
+return_temp;Температура обратки;return_temp;coolant.return_temp;PDF + survey;number;required
+temp_schedule;Температурный график;;coolant.temp_schedule;PDF;text;optional
+heating_season;Отопительный сезон;;coolant.heating_season;PDF;text;optional
+pressure_supply;Давление подачи;pressure_supply;coolant.supply_pressure_kgcm2;PDF + survey;number;required
+pressure_return;Давление обратки;pressure_return;coolant.return_pressure_kgcm2;PDF + survey;number;required
+heat_load_total;Суммарная тепловая нагрузка;heat_load_total;heat_loads.total_load;PDF + survey;number;required
+heat_load_heating;Нагрузка на отопление;heat_load_heating;heat_loads.heating_load;PDF + survey;number;required
+heat_load_hw;Нагрузка на ГВС;heat_load_hw;heat_loads.hot_water_load;PDF + survey;number;optional
+heat_load_vent;Нагрузка на вентиляцию;heat_load_vent;heat_loads.ventilation_load;PDF + survey;number;optional
+heat_load_tech;Нагрузка на технологию;heat_load_tech;;survey;number;optional
+pipe_outer_diameter_mm;Наружный диаметр трубопровода;;pipeline.pipe_outer_diameter_mm;PDF;number;optional
+pipe_inner_diameter_mm;Внутренний / условный диаметр трубопровода;;pipeline.pipe_inner_diameter_mm;PDF;number;optional
+pipe_dn_supply;Ду подачи;pipe_dn_supply;pipeline.pipe_outer_diameter_mm;PDF + survey;number;required
+pipe_dn_return;Ду обратки;pipe_dn_return;pipeline.pipe_outer_diameter_mm;PDF + survey;number;required
+has_mud_separators;Наличие грязевиков;has_mud_separators;;survey;select;required
+has_filters;Наличие фильтров;has_filters;;survey;select;required
+meter_location;Место установки узла учета;meter_location;metering.meter_location;PDF + survey;text;optional
+heat_calculator_model;Рекомендуемый тепловычислитель;;metering.heat_calculator_model;PDF;text;optional
+flowmeter_model;Рекомендуемые расходомеры;;metering.flowmeter_model;PDF;text;optional
+temp_sensor_model;Рекомендуемые датчики температуры;;metering.temp_sensor_model;PDF;text;optional
+pressure_sensor_model;Рекомендуемые датчики давления;;metering.pressure_sensor_model;PDF;text;optional
+accuracy_class;Класс точности;accuracy_class;metering.heat_meter_class;PDF + survey;select;optional
+flow_meter_type;Тип расходомера;flow_meter_type;;survey;select;required
+manufacturer;Предпочтительный производитель;manufacturer;;survey;select;required
+manufacturer_other;Производитель (другое);manufacturer_other;;survey;text;optional
+data_interface;Интерфейс передачи данных;;metering.data_interface;PDF;text;optional
+archive_capacity_hours;Архив часовой;;metering.archive_capacity_hours;PDF;number;optional
+archive_capacity_daily;Архив суточный;;metering.archive_capacity_daily;PDF;number;optional
+archive_capacity_monthly;Архив месячный;;metering.archive_capacity_monthly;PDF;number;optional
+distance_to_vru;Расстояние до ВРУ или щита;distance_to_vru;;survey;number;required
+approval_organization;Организация для согласования проекта;;additional.approval_organization;PDF;text;optional
+pre_survey_required;Требуется предпроектное обследование;;additional.pre_survey_required;PDF;boolean;optional
+gcs_module;Требуется модуль GSM / передача данных;;additional.gcs_module;PDF;boolean;optional
+rso_requirements;Требования РСО;rso_requirements;;survey;textarea;optional
+additional_notes;Дополнительные требования из ТУ;;additional.notes;PDF;list;optional
+comments;Комментарии клиента;comments;;survey;textarea;optional

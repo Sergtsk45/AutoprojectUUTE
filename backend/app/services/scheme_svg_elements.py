@@ -415,8 +415,10 @@ def text_label(
     Текстовая подпись (элемент ``<text>``).
     """
     weight = ' font-weight="bold"' if bold else ""
-    return '<text x="{:.2f}" y="{:.2f}" text-anchor="{}" font-family="{}" font-size="{}" '
-    'fill="{}"{}>{}</text>'.format(
+    return (
+        '<text x="{:.2f}" y="{:.2f}" text-anchor="{}" font-family="{}" font-size="{}" '
+        'fill="{}"{}>{}</text>'
+    ).format(
         x,
         y,
         anchor,

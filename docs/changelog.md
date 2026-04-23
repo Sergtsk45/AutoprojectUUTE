@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-20] — SVG: схема 2 (зависимая с ГВС) и fix text_label
+
+### Добавлено
+- В [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py): реализация схемы 2 (`render_scheme_02_dep_simple_gwp`) — базовая схема + блок ГВС (двухступенчатый подогреватель с теплообменниками 1-й и 2-й ступени, врезки в подачу/обратку, насос ГВС, расходомер G3, подписи ХВС/ГВС, зона ГВС с пунктирной рамкой).
+
+### Исправлено
+- В [`backend/app/services/scheme_svg_elements.py`](../backend/app/services/scheme_svg_elements.py): функция `text_label()` — исправлен return (многострочный литерал требует явных скобок), теперь текстовые подписи корректно генерируются.
+
+### Изменено
+- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): схема 2 завершена ✅.
+
 ## [2026-04-20] — SVG: рендерер схем УУТЭ — эталонная схема 1
 
 ### Добавлено

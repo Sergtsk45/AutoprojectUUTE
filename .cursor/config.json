@@ -1,0 +1,54 @@
+{
+  "workspace": {
+    "path": ".cursor/workspace",
+    "cleanup": {
+      "autoCleanCompleted": true,
+      "cleanupAfterDays": 7,
+      "keepFailed": true
+    }
+  },
+
+  "project": {
+    "name": "AutoprojectUUTE",
+    "description": "Сервис проектирования узлов учёта тепловой энергии (УУТЭ)",
+    "stack": {
+      "backend": "Python 3.12, FastAPI, SQLAlchemy async, Celery, Redis, PostgreSQL 16",
+      "frontend": "React 18, TypeScript, Vite, Tailwind CSS",
+      "infra": "Docker Compose, Caddy, Ubuntu 22.04"
+    },
+    "structure": {
+      "backend": "backend/app/",
+      "frontend": "frontend/src/",
+      "docs": "docs/"
+    }
+  },
+
+  "documentation": {
+    "paths": {
+      "root": "docs",
+      "plans": "docs/plans",
+      "reports": "docs/reports",
+      "issues": "docs/issues",
+      "architecture": "docs/architecture",
+      "features": "docs/features",
+      "api": "docs/api",
+      "components": "docs/components",
+      "design": "docs/design",
+      "changelog": "docs/changelog",
+      "audits": "docs/audits"
+    },
+    "enabled": {
+      "plans": true,
+      "reports": true,
+      "issues": true,
+      "architecture": true,
+      "features": true,
+      "api": true,
+      "components": true,
+      "design": false,
+      "changelog": true,
+      "audits": true
+    },
+    "comment": "Customize paths for your project. Set 'enabled' to false or path to null to disable specific documentation types"
+  }
+}
