@@ -47,12 +47,27 @@ Internet → Caddy (443/SSL) → uute-backend:8000 (FastAPI)
 
 ### Стейт-машина заявки (OrderStatus)
 
+Полный набор переходов — в `ALLOWED_TRANSITIONS` (`backend/app/models/models.py`). Основной happy-path (после C1/C2 аудита, 2026-04-22):
+
 ```
-new → tu_parsing → tu_parsed ─┬→ waiting_client_info → client_info_received ─┬→ data_complete
-                               └→ data_complete ←──────────────────────────────┘
-data_complete → generating_project → review → completed
+new → tu_parsing → tu_parsed → waiting_client_info ⇄ client_info_received
+                                                     → contract_sent → advance_paid
+                                                     → awaiting_final_payment ─┬→ completed
+                                                                              └→ rso_remarks_received
+                                                                              → awaiting_final_payment
+Ветка ручного оформления (bank_transfer payment.html):
+  client_info_received → awaiting_contract → contract_sent → …
 Любой статус → error → new (перезапуск)
 ```
+
+В фазе C1+C2 аудита из enum удалены 3 legacy-значения (`data_complete`, `generating_project`, `review`), не использовавшиеся в современном флоу. См. миграцию `20260422_uute_drop_legacy_order_statuses.py`.
+
+Ключевые статусы оплаты/согласования:
+- `awaiting_contract` — legacy-ветка payment.html (bank_transfer): инженер вручную перевёл сюда, клиент загружает карточку предприятия и выбирает способ оплаты
+- `contract_sent` — договор + счёт на 50 % отправлены, ждём аванс
+- `advance_paid` — аванс получен, проект уехал клиенту
+- `awaiting_final_payment` — ожидаем скан РСО, замечания РСО или оплату остатка
+- `rso_remarks_received` — получены замечания РСО, заявка возвращена инженеру; после повторной отправки исправленного проекта снова `awaiting_final_payment`
 
 ---
 
@@ -66,7 +81,7 @@ AutoprojectUUTE/
 │   │   ├── core/          # config.py, database.py, celery_app.py, auth.py
 │   │   ├── models/        # models.py — SQLAlchemy ORM + enums
 │   │   ├── schemas/       # Pydantic схемы запросов/ответов
-│   │   ├── services/      # Бизнес-логика: order_service, email_service, tu_parser, tasks
+│   │   ├── services/      # order_service, email/, contract/ (+ shims email_service, contract_generator), tu_parser, tasks
 │   │   └── main.py        # FastAPI app, роутеры, статика, SPA
 │   ├── alembic/           # Миграции БД
 │   ├── templates/         # Jinja2 шаблоны email + образцы документов
@@ -81,9 +96,14 @@ AutoprojectUUTE/
 │   │   └── main.tsx
 │   └── dist/              # Сборка Vite (монтируется в Docker как /app/frontend-dist)
 ├── docs/
-│   ├── changelog.md       # Хронология изменений
-│   ├── tasktracker.md     # Задачи и их статус
-│   └── project.md         # Архитектурные заметки
+│   ├── changelog.md             # Хронология изменений (актуальный)
+│   ├── tasktracker.md           # Активные/недавние задачи
+│   ├── project.md               # Архитектурные заметки
+│   ├── calculator-config-design.md   # Дизайн настроечной БД вычислителя
+│   ├── kontrakt_ukute_template.md    # Текстовый шаблон договора (сборка в `app.services.contract`)
+│   ├── scheme-generator-roadmap.md   # Активный roadmap по принципиальным схемам
+│   ├── templates/                    # CSV/MD-шаблоны (опросный лист и пр.)
+│   └── archive/2026-Q2/              # Завершённые task-трекеры и реализованные планы
 ├── docker-compose.yml     # Dev: только postgres + redis
 ├── docker-compose.prod.yml # Prod: полный стек (на сервере)
 └── CLAUDE.md
@@ -113,22 +133,37 @@ AutoprojectUUTE/
 | POST | `/api/v1/landing/orders/{id}/upload-tu` | публичный | Загрузка ТУ (статус new) |
 | POST | `/api/v1/landing/orders/{id}/submit` | публичный | Запуск парсинга (статус new) |
 
-**Аутентификация admin:** заголовок `X-Admin-Key` или query-параметр `?_k=…`
+**Аутентификация admin:** заголовок `X-Admin-Key` (основной канал, constant-time через `secrets.compare_digest`). Query-параметр `?_k=…` — deprecated fallback с WARNING в логах, удалить в следующем релизе.
 
 ---
 
 ## Быстрый старт (production)
 
 ```bash
-# Обновление и пересборка
+# ✅ ПРАВИЛЬНО: атомарная пересборка через скрипт (рекомендуется)
+cd ~/uute-project && bash deploy.sh
+
+# ✅ ПРАВИЛЬНО: вручную — пересборка ВСЕХ сервисов без указания имён
 cd ~/uute-project
 git pull
 cd frontend && npm run build && cd ..
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build   # <── БЕЗ имени сервиса!
+
+# ❌ ЗАПРЕЩЕНО: частичная пересборка одного сервиса
+# docker compose -f docker-compose.prod.yml up -d --build backend
+# Причина: celery-worker и celery-beat работают на том же образе (uute-app:latest).
+# Если пересобрать только backend — воркер останется на старом коде и получит
+# ошибку "Received unregistered task" для новых Celery-задач.
 
 # Перезагрузка Caddy (если менялся Caddyfile)
 docker exec n8n-caddy-1 caddy reload --config /etc/caddy/Caddyfile
 ```
+
+> **Архитектура образов:** `backend`, `celery-worker` и `celery-beat` используют
+> единый Docker-образ `uute-app:latest` (см. `docker-compose.prod.yml`). Образ
+> собирается один раз через секцию `build:` в сервисе `backend`; остальные два
+> сервиса только ссылаются на него через `image: uute-app:latest` (без `build:`).
+> Это гарантирует единую версию кода во всех трёх процессах.
 
 ### Локальная разработка
 
@@ -218,6 +253,12 @@ docker exec -it uute-project-postgres-1 psql -U uute -d uute_db
 
 **Соглашение по именованию миграций:** `YYYYMMDD_uute_<описание>` (например, `20260403_fc_upper`).
 
+**Индексы (фаза B3, 2026-04-22).** В БД уже созданы под частые запросы:
+- `ix_orders_created_at_desc` — сортировка списка заявок «по новизне».
+- `ix_orders_status_created_at_desc` — композитный под админский listing с фильтром по статусу (`WHERE status=? ORDER BY created_at DESC LIMIT ?`).
+- `ix_order_files_order_id_category` — `(order_id, category)` под частый паттерн «файлы заявки X категории Y».
+Декларации в `__table_args__` моделей `Order`/`OrderFile` — metadata синхронизирована с БД. Миграция (`20260422_uute_listing_idx`) создаёт их `CONCURRENTLY` — прод не блокируется. При добавлении новых горячих запросов — сначала проверять планом (`EXPLAIN ANALYZE`), потом добавлять индекс тем же шаблоном (`CONCURRENTLY IF NOT EXISTS`).
+
 ---
 
 ## Фронтенд
@@ -239,7 +280,26 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 
 ## Конфигурация
 
-Все настройки — `backend/app/core/config.py` (Pydantic Settings).
+### Два файла окружения (оба в `.gitignore`, никогда не коммитить)
+
+| Файл | Назначение | Шаблон |
+|------|-----------|--------|
+| `backend/.env` | Секреты приложения (SMTP, API-ключи, DB URL) | `backend/.env.example` |
+| `.env` (корень) | Переменные docker-compose.prod.yml | `.env.example` |
+
+Корневой `.env` нужен только для production-деплоя через docker-compose.prod.yml.
+Содержит одну переменную: `POSTGRES_PASSWORD` — должна совпадать с паролем в `DATABASE_URL` из `backend/.env`.
+
+```bash
+# Первичная настройка на сервере
+cp .env.example .env
+nano .env   # вписать POSTGRES_PASSWORD
+
+cp backend/.env.example backend/.env
+nano backend/.env  # вписать все REQUIRED-поля
+```
+
+Все настройки приложения — `backend/app/core/config.py` (Pydantic Settings).
 
 ### Ключевые переменные окружения (backend/.env)
 
@@ -247,7 +307,8 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 |-----------|-----------|
 | `DATABASE_URL` | postgresql+asyncpg://uute:…@postgres:5432/uute_db |
 | `REDIS_URL` | redis://redis:6379/0 |
-| `UPLOAD_DIR` | /var/uute-service/uploads |
+| `UPLOAD_DIR` | /var/uute-service/uploads (prod) / `<repo>/uploads` (dev, auto) |
+| `FRONTEND_DIST_DIR` | /app/frontend-dist (prod, auto) / `<repo>/frontend/dist` (dev, auto) |
 | `ADMIN_API_KEY` | ключ для X-Admin-Key |
 | `ADMIN_EMAIL` | email инженера для уведомлений |
 | `OPENROUTER_API_KEY` | ключ OpenRouter (sk-or-v1-…) |
@@ -266,6 +327,54 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 ---
 
 ## Стандарты кода
+
+### Dev-инструменты (фаза A2 аудита)
+
+- Конфигурация: [`backend/pyproject.toml`](backend/pyproject.toml) — ruff (E/F/W/I/UP/B/RUF), mypy, pytest.
+- Pre-commit: [`.pre-commit-config.yaml`](.pre-commit-config.yaml). Установка:
+
+  ```bash
+  pip install --user pre-commit
+  pre-commit install     # в корне репо; теперь крючки запускаются перед каждым commit
+  ```
+
+- Ручной прогон: `pre-commit run --all-files`.
+- Dev-зависимости: `pip install -e "backend[dev]"` (из корня репо).
+- Mypy в режиме baseline: существующие ошибки в `app.*` игнорируются, новые модули (фазы B/D) заводятся в `[[tool.mypy.overrides]]` со `strict = true`.
+
+### Frontend baseline (фаза A4 аудита)
+
+- Env-шаблон: [`frontend/.env.example`](frontend/.env.example). Для локальной разработки — `cp frontend/.env.example frontend/.env.local`.
+- `VITE_API_BASE_URL` — опциональная. По умолчанию `/api/v1` (same-origin в prod, vite proxy в dev).
+- Тесты: [vitest](https://vitest.dev/). Запуск:
+
+  ```bash
+  cd frontend
+  npm test           # одноразовый прогон (CI)
+  npm run test:watch # watch-режим для локальной разработки
+  ```
+
+- Первый тестовый модуль: `frontend/src/utils/pricing.test.ts` (расчёт цены калькулятора). Пример как тестировать чистые функции.
+- Новые чистые функции выносить в `src/utils/*.ts` и покрывать тестами в `src/utils/*.test.ts`.
+
+### JSONB-поля `Order` (фаза B1 аудита)
+
+- Каноническое место Pydantic-моделей — [`backend/app/schemas/jsonb/`](backend/app/schemas/jsonb/):
+  - `TUParsedData` (tu.py) — результат LLM-парсинга ТУ.
+  - `SurveyData` (survey.py) — опросный лист клиента.
+  - `CompanyRequisites` (company.py) — реквизиты заказчика.
+- В бизнес-коде использовать **accessor-методы** из [`app.repositories.order_jsonb`](backend/app/repositories/order_jsonb.py), а НЕ голые `order.parsed_params["..."]`:
+
+  ```python
+  from app.repositories.order_jsonb import get_parsed_params, set_parsed_params
+
+  parsed = get_parsed_params(order)  # TUParsedData | None
+  if parsed is not None:
+      total_load = parsed.heat_loads.total_load  # типизированный float | None
+  ```
+
+- Accessor-методы валидируют данные при чтении (`extra='ignore'`): исторические записи с устаревшими ключами не падают, но в лог пишется WARNING.
+- Обратная совместимость: `from app.services.tu_schema import TUParsedData` и `from app.services.company_parser import CompanyRequisites` продолжают работать — это shim'ы.
 
 ### Python (Backend)
 
@@ -373,6 +482,19 @@ chore: bump openai sdk version
 
 ## Документирование изменений
 
+### docs/backlog.md
+
+Единый реестр технического и продуктового долга: незакрытые пункты roadmap
+аудита, хвосты завершённых фаз (backward-compat shim'ы, частичные scope),
+отложенные продуктовые решения. Каждый элемент имеет стабильный ID `BL-XXX`,
+статус (`open` / `deferred` / `blocked` / `accepted` / `done`) и матрицу
+приоритета Impact/Effort/Risk. Формат и шаблон — внутри файла. При закрытии
+пункта статус меняется на `done` со ссылкой на PR; запись остаётся для истории.
+
+Все новые «хвосты» и долги из этого момента — **в `docs/backlog.md`**, а не в
+roadmap или tasktracker. Roadmap — план фаз аудита; tasktracker — хронология
+выполненных/активных задач; backlog — оперативный реестр остатков.
+
 ### docs/changelog.md
 
 Формат записи:
@@ -436,10 +558,11 @@ chore: bump openai sdk version
 
 ### Новая Celery задача
 
-1. Добавить функцию в `backend/app/services/tasks.py` с декоратором `@celery_app.task`
-2. Вызвать из нужного места через `.delay()` или `.apply_async()`
-3. Для периодических задач — добавить в `beat_schedule` в `backend/app/core/celery_app.py`
-4. Перезапустить воркер: `docker compose -f docker-compose.prod.yml restart celery-worker`
+1. Реализация — в **подходящем** файле пакета `backend/app/services/tasks/` (фаза D1.b, 2026-04-22), например `client_response.py` или `contract_flow.py` — **не** раздувать `_common.py` бизнес-логикой. У каждой задачи: `@celery_app.task(name="app.services.tasks.<funcname>", ...)` — явное имя обязательно (см. D1.a), чтобы смена модуля не ломала очереди.
+2. Re-export: добавить имя в `backend/app/services/tasks/__init__.py` (импорт + `__all__`, если публичный API).
+3. Вызвать из нужного места через `.delay()` или `.apply_async()`
+4. Для периодических задач — добавить в `beat_schedule` в `backend/app/core/celery_app.py` (строка `task: "app.services.tasks...."`).
+5. **Деплой: пересобрать ВСЕ сервисы** — `bash deploy.sh` или `docker compose -f docker-compose.prod.yml up -d --build` (без указания имени сервиса). Частичный `--build backend` оставит воркер на старом коде — он не будет знать о новой задаче.
 
 ### Новая категория файлов (FileCategory)
 
@@ -462,23 +585,42 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Текущий статус разработки
 
-**Фаза:** MVP — пайплайн обработки заявок (активна)
+**Фаза:** Production — полный цикл от лендинга до отправки проекта и обработки замечаний РСО.
 
 **Реализовано (апрель 2026):**
-- Стейт-машина заявок: `new → tu_parsing → ... → completed`
-- Парсинг ТУ через LLM (OpenRouter/Gemini) с нормализацией `system_type`
-- Категории файлов: `tu`, `BALANCE_ACT`, `CONNECTION_PLAN`, `heat_point_plan`, `heat_scheme`
-- Публичные эндпоинты лендинга (upload-tu, submit) без авторизации
-- Страница загрузки клиента (`/upload/{id}`) — два сценария: `new` и `waiting_client_info`
-- Автонапоминания клиентам через Celery Beat
-- Админ-панель (`/admin`): список заявок, карточка, результаты парсинга ТУ
-- React лендинг (SPA): форма заявки, калькулятор, FAQ, образцы проектов
-- Fallback auth: `X-Admin-Key` header или `?_k=` query
+- Полный цикл стейт-машины: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`, с веткой `rso_remarks_received` для возврата проекта инженеру и отдельной ветвью `client_info_received → awaiting_contract` для ручного оформления через payment.html.
+- Парсинг ТУ через LLM (OpenRouter / `google/gemini-2.5-flash`), типизированные `parsed_params` (`backend/app/schemas/jsonb/tu.py`; `services/tu_schema.py` — backward-compat shim).
+- Сегментация заказов: `OrderType.express` / `OrderType.custom`, опросный лист (`upload.html`) с автозаполнением из ТУ для custom.
+- Категории файлов (`FileCategory.<member>.value`, snake_case lowercase после B2):
+  `tu`, `balance_act`, `connection_plan`, `heat_point_plan`, `heat_scheme`,
+  `company_card`, `signed_contract`, `generated_project`, `final_invoice`,
+  `rso_scan`, `rso_remarks`.
+  - В PG enum `file_category` метки — **имена членов Python** (`TU`, `BALANCE_ACT`, …), а не `.value`. SQLAlchemy без `values_callable` persist имена.
+  - **B2.b (2026-04-22):** `FileCategory._missing_` compat-shim **удалён**. API теперь отвечает **422** на UPPER_CASE-входы (`?category=BALANCE_ACT` → 422). Канонические значения — только snake_case lowercase.
+- Публичные эндпоинты лендинга (`/api/v1/landing/...`): создание заявки, upload ТУ/документов, опросный лист, страница оплаты `/payment/{id}`, загрузка скана РСО и замечаний.
+- Договор: пакет `app.services.contract` (shim `contract_generator.py`) собирает DOCX по шаблону `docs/kontrakt_ukute_template.md` с встраиванием PDF ТУ в Приложение 2 (PyMuPDF, лестница DPI, fallback ~25 МБ).
+- Email-уведомления (Jinja2 + SMTP Яндекс): запрос данных, напоминания, отправка готового проекта, уведомления инженеру (новая заявка, ТУ распарсены, документы клиента получены, скан РСО), уведомление о замечаниях РСО, повторная отправка исправленного проекта.
+- Celery Beat: ежедневные напоминания, отложенный `info_request` через 24 ч, 15-дневный reminder по финальной оплате.
+- Админ-панель `/admin`: список заявок, карточка с парсингом ТУ, опросным листом по секциям, действиями инженера на post-project ветке (отправка исправленного проекта), карточка «Настроечная БД вычислителя» с автозаполнением из ТУ и экспортом PDF.
+- Настроечная БД (`CalculatorConfig`): JSON-шаблоны ТВ7, СПТ-941.20, ЭСКО-Терра М; для express автоинициализация на ЭСКО-Терра; CRUD через `/api/v1/orders/{id}/calculator-config`.
+- React лендинг: калькулятор с двумя вариантами (Экспресс/Индивидуальный), форма заказа (EmailModal) с полем «Город объекта» и модалкой политики конфиденциальности, FAQ, образцы проектов, скачивание опросного листа `/downloads/opros_list_form.pdf`.
+- Auth: `X-Admin-Key` header или `?_k=` query (последний желательно убрать — см. [`BL-034`](../docs/backlog.md#bl-034--убрать-_k-query-параметр-для-admin-auth) в backlog).
 
-**Следующие этапы:**
-- Генерация Excel (заполнение шаблона параметрами из ТУ)
-- Интеграция T-FLEX для генерации проектной документации
-- Email: отправка готового проекта клиенту
+**Активные направления:**
+- Автоматизация принципиальных схем ИТП (см. [`docs/scheme-generator-roadmap.md`](docs/scheme-generator-roadmap.md), черновики SVG-генераторов уже в `backend/app/services/scheme_*`).
+
+**Backlog / технический долг:**
+- Безопасность: ограничить CORS до доменов, перевести `verify_admin_key` на `secrets.compare_digest`, отказаться от `?_k=` в публичных URL, убрать дефолты секретов из `config.py`, добавить rate-limit на `/landing/*`.
+- Декомпозиция «толстых» модулей: `services/tasks/` (пакет, D1.b), `services/email/` + shim `email_service.py` (D2), `services/contract/` + shim `contract_generator.py` (D3).
+- Async/sync граница (D4, 2026-04-22): в `backend/app/api/` **запрещён** `SyncSession()` — проверяется CI и тестом. Уведомления best-effort идут через Celery (`notify_engineer_new_order`); SMTP с inline-результатом — через `asyncio.to_thread`. Admin-эндпоинт `/emails/{id}/send` делегирует sync-часть в `app.services.email.manual_send.manual_send_email_sync`.
+- Типизация JSONB-полей API (B1.c, 2026-04-22): `OrderResponse`/`UploadPageInfo`/`PaymentPageInfo` отдают `parsed_params: TUParsedData | None`, `survey_data: SurveyData | None`, `company_requisites: CompanyRequisites | CompanyRequisitesError | None`. `build_order_response` строит DTO через accessor'ы `app.repositories.order_jsonb` (без `model_validate(order)`), на грязных данных — `None` + WARNING. `missing_params` остаётся `list[str] | None` (в БД ещё бывают legacy-коды).
+- Typed API фронтенда (E1, 2026-04-22): `frontend/src/api/types.ts` и `frontend/src/api/openapi.json` генерируются скриптом `scripts/generate-api-types.sh` (`app.openapi()` → `openapi-typescript`). `frontend/src/api.ts` использует `components['schemas'][…]` — при любом изменении Pydantic-схем нужно перегенерировать клиент, иначе CI-job `api-types-drift` падает. Артефакты коммитятся в репо. Скрипт сам сверяет версии `pydantic`/`fastapi` с `backend/requirements.txt` и подхватывает `backend/.venv/bin/python`, если он есть.
+- Vitest-тесты транспортного слоя (E2, 2026-04-22): `frontend/src/api.test.ts` (10 тестов) фиксирует контракт всех публичных функций `api.ts`. Fetch мокируется через `vi.stubGlobal`; `environment: 'node'`, без `jsdom` и `@testing-library/react` (компонентные тесты — вне scope E2). `npm test` в CI прогоняет 15/15.
+- Декомпозиция `admin.html` (E3 минимальный, 2026-04-22): inline `<style>` вынесен в `backend/static/css/admin.css`, inline `<script>` разбит на 5 модулей в `backend/static/js/admin/` (`config.js`, `utils.js`, `views-parsed.js`, `views-calc.js`, `admin.js`). Подключаются как **обычные** `<script>` (не `type="module"`), порядок обязателен: `config → utils → views-parsed → views-calc → admin`. Это сохраняет все 15 inline `onclick`/`onchange` в HTML, т.к. top-level идентификаторы остаются глобальными. `admin.html` сократился с 127 KB до 13 KB (−90%). Поведение не менялось — код перенесён 1-в-1.
+- Декомпозиция `upload.html` (E4, 2026-04-22) по тому же сценарию: inline `<style>` → `backend/static/css/upload.css`, inline `<script>` → 5 модулей в `backend/static/js/upload/` (`config.js`, `utils.js`, `survey.js`, `contract.js`, `upload.js`-entry). Обычные `<script>` с жёстким порядком `config → utils → survey → contract → upload`. Единственный inline-хендлер `onclick="toggleSurveyCollapse()"` сохранён: функция экспортируется как `window.toggleSurveyCollapse` в `survey.js`. `upload.html` сократился с 92 KB до 22 KB (−76%), 2323 → 402 строк. Поведение страницы `/upload/<id>` эквивалентно — код перенесён 1-в-1, тестов на `upload.html` в pytest нет (правок тестов не потребовалось).
+- Удаление legacy-статусов / нормализация enum после миграции данных.
+- Типизация JSONB-полей (`parsed_params`, `survey_data`, `company_requisites`) Pydantic-моделями.
+- CI (pytest + ruff + mypy + eslint), error-tracking (Sentry/Glitchtip), генерация TypeScript-клиента из OpenAPI.
 
 ---
 
@@ -492,6 +634,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 - **ВСЕГДА** валидируй пользовательский ввод на серверной стороне
 - **ВСЕГДА** используй параметризованные запросы (SQLAlchemy ORM — уже безопасен)
 - Перед деструктивными действиями (DROP TABLE, rm -rf, alembic downgrade) — запроси подтверждение
+
+### Безопасность runtime-конфигурации (с 2026-04-20)
+
+- `ADMIN_API_KEY` (≥16 симв.), `OPENROUTER_API_KEY`, `SMTP_PASSWORD` — **required** в `.env`. Без них `Settings()` падает на старте (см. `backend/app/core/config.py`). Дефолтов больше нет.
+- `verify_admin_key` (`backend/app/core/auth.py`) сравнивает ключ через `secrets.compare_digest` (без timing-leak). Основной канал — заголовок `X-Admin-Key`. Query-параметр `?_k=` оставлен как deprecated на 1 релиз: при использовании пишет WARNING в лог с маскированным ключом.
+- CORS управляется через ENV `CORS_ORIGINS` (JSON-список, парсится Pydantic v2). Дефолт — только `https://constructproject.ru`. Wildcard `*` в `allow_origins` запрещён (несовместим с `allow_credentials=True` по спеке).
 
 ### Файлы конфигурации (prod, на сервере)
 

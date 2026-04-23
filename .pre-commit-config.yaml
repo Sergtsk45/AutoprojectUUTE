@@ -1,0 +1,45 @@
+# Pre-commit hooks для УУТЭ Проектировщик.
+# Установка:   pip install --user pre-commit && pre-commit install
+# Прогон всех: pre-commit run --all-files
+# Конфигурация ruff/mypy/pytest — в backend/pyproject.toml.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '^backend/alembic/versions/.*\.py$'
+      - id: end-of-file-fixer
+        exclude: '^backend/alembic/versions/.*\.py$'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.11
+    hooks:
+      - id: ruff-check
+        args: ["--fix", "--exit-non-zero-on-fix"]
+        files: ^backend/.*\.py$
+      - id: ruff-format
+        files: ^backend/.*\.py$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        # Запуск на всём дереве backend/app (по конфигу из pyproject.toml).
+        # Baseline: существующий код в app.* игнорируется, новые модули —
+        # ошибки блокируют коммит. См. backend/pyproject.toml → [tool.mypy].
+        files: ^backend/app/.*\.py$
+        args: ["--config-file=backend/pyproject.toml"]
+        additional_dependencies:
+          - pydantic>=2.9
+          - pydantic-settings>=2.5
+          - sqlalchemy>=2.0
+          - fastapi>=0.115
+          - types-aiofiles
+          - types-python-dateutil
+        pass_filenames: false

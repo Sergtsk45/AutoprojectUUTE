@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -20,6 +21,7 @@ from app.core.database import Base
 
 # ─── Статусы заявки (стейт-машина) ───────────────────────────────────────────
 
+
 class OrderStatus(str, enum.Enum):
     """Конечный автомат заявки.
 
@@ -27,11 +29,10 @@ class OrderStatus(str, enum.Enum):
     tu_parsing             → ТУ отправлены на парсинг (модуль 1)
     tu_parsed              → параметры извлечены, проверяется полнота
     waiting_client_info    → клиенту отправлен запрос на доп. информацию
-    client_info_received   → клиент прислал ответ, идёт анализ
-    data_complete          → все данные собраны
-    generating_project     → Excel заполнен, T-FLEX генерирует проект
-    review                 → проект готов, ждёт проверки инженером
-    awaiting_contract      → инженер одобрил, ждём реквизиты от клиента
+    client_info_received   → клиент прислал ответ, идёт анализ;
+                             отсюда основной путь в contract_sent
+    awaiting_contract      → legacy-ветка payment.html (ручное оформление):
+                             ждём реквизиты от клиента
     contract_sent          → договор и счёт на 50% отправлены, ждём аванс
     advance_paid           → аванс получен, проект отправлен клиенту
     awaiting_final_payment → ждём скан РСО, замечания или оплату остатка 50%
@@ -45,9 +46,6 @@ class OrderStatus(str, enum.Enum):
     TU_PARSED = "tu_parsed"
     WAITING_CLIENT_INFO = "waiting_client_info"
     CLIENT_INFO_RECEIVED = "client_info_received"
-    DATA_COMPLETE = "data_complete"
-    GENERATING_PROJECT = "generating_project"
-    REVIEW = "review"
     AWAITING_CONTRACT = "awaiting_contract"
     CONTRACT_SENT = "contract_sent"
     ADVANCE_PAID = "advance_paid"
@@ -63,54 +61,45 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     OrderStatus.TU_PARSING: [OrderStatus.TU_PARSED, OrderStatus.ERROR],
     OrderStatus.TU_PARSED: [
         OrderStatus.WAITING_CLIENT_INFO,  # если данных не хватает
-        OrderStatus.DATA_COMPLETE,        # если всё есть из ТУ
-        OrderStatus.COMPLETED,            # инженер одобрил вручную
+        OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.WAITING_CLIENT_INFO: [
         OrderStatus.CLIENT_INFO_RECEIVED,
-        OrderStatus.COMPLETED,            # инженер одобрил вручную
+        OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.CLIENT_INFO_RECEIVED: [
-        OrderStatus.CONTRACT_SENT,       # новый основной путь: договор отправлен
-        OrderStatus.DATA_COMPLETE,        # всё получено
+        OrderStatus.CONTRACT_SENT,  # новый основной путь: договор отправлен
+        OrderStatus.AWAITING_CONTRACT,  # ручной перевод в legacy payment-ветку
         OrderStatus.WAITING_CLIENT_INFO,  # нужно ещё
-        OrderStatus.COMPLETED,            # инженер одобрил вручную
-        OrderStatus.ERROR,
-    ],
-    OrderStatus.DATA_COMPLETE: [OrderStatus.GENERATING_PROJECT, OrderStatus.COMPLETED, OrderStatus.ERROR],
-    OrderStatus.GENERATING_PROJECT: [OrderStatus.REVIEW, OrderStatus.COMPLETED, OrderStatus.ERROR],
-    OrderStatus.REVIEW: [
-        OrderStatus.AWAITING_CONTRACT,     # основной путь: запуск оплаты
-        OrderStatus.COMPLETED,             # ручной override инженером
-        OrderStatus.GENERATING_PROJECT,    # возврат на перегенерацию
+        OrderStatus.COMPLETED,  # инженер одобрил вручную
         OrderStatus.ERROR,
     ],
     OrderStatus.AWAITING_CONTRACT: [
-        OrderStatus.CONTRACT_SENT,         # реквизиты получены, договор отправлен
-        OrderStatus.COMPLETED,             # override
+        OrderStatus.CONTRACT_SENT,  # реквизиты получены, договор отправлен
+        OrderStatus.COMPLETED,  # override
         OrderStatus.ERROR,
     ],
     OrderStatus.CONTRACT_SENT: [
-        OrderStatus.ADVANCE_PAID,          # аванс получен
-        OrderStatus.AWAITING_CONTRACT,     # клиент обновил реквизиты — пересоздать договор
-        OrderStatus.COMPLETED,             # override
+        OrderStatus.ADVANCE_PAID,  # аванс получен
+        OrderStatus.AWAITING_CONTRACT,  # клиент обновил реквизиты — пересоздать договор
+        OrderStatus.COMPLETED,  # override
         OrderStatus.ERROR,
     ],
     OrderStatus.ADVANCE_PAID: [
         OrderStatus.AWAITING_FINAL_PAYMENT,  # проект отправлен, ждём остаток
-        OrderStatus.COMPLETED,               # override (инженер решил закрыть)
+        OrderStatus.COMPLETED,  # override (инженер решил закрыть)
         OrderStatus.ERROR,
     ],
     OrderStatus.AWAITING_FINAL_PAYMENT: [
-        OrderStatus.RSO_REMARKS_RECEIVED,   # клиент загрузил замечания РСО
-        OrderStatus.COMPLETED,             # остаток получен или скан загружен
+        OrderStatus.RSO_REMARKS_RECEIVED,  # клиент загрузил замечания РСО
+        OrderStatus.COMPLETED,  # остаток получен или скан загружен
         OrderStatus.ERROR,
     ],
     OrderStatus.RSO_REMARKS_RECEIVED: [
         OrderStatus.AWAITING_FINAL_PAYMENT,  # исправленный проект повторно отправлен клиенту
-        OrderStatus.COMPLETED,               # ручной override
+        OrderStatus.COMPLETED,  # ручной override
         OrderStatus.ERROR,
     ],
     OrderStatus.COMPLETED: [],
@@ -120,63 +109,79 @@ ALLOWED_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
 
 # ─── Метод оплаты ────────────────────────────────────────────────────────────
 
+
 class PaymentMethod(str, enum.Enum):
     BANK_TRANSFER = "bank_transfer"  # Безналичная оплата (юрлица, ИП)
-    ONLINE_CARD = "online_card"      # Онлайн картой (YooKassa)
+    ONLINE_CARD = "online_card"  # Онлайн картой (YooKassa)
 
 
 # ─── Тип заявки ──────────────────────────────────────────────────────────────
 
+
 class OrderType(str, enum.Enum):
     EXPRESS = "express"  # Экспресс-проект (по ТУ)
-    CUSTOM = "custom"    # Индивидуальный проект (опросный лист)
+    CUSTOM = "custom"  # Индивидуальный проект (опросный лист)
 
 
 # ─── Типы файлов ─────────────────────────────────────────────────────────────
 
+
 class FileCategory(str, enum.Enum):
     """Категории загружаемых файлов.
 
-    В PostgreSQL тип file_category — метки как имена членов (TU, HEAT_SCHEME, …).
-    Значения .value — для API, query-параметров и сегментов пути в хранилище.
+    Единый канонический формат `.value` — **snake_case lowercase**
+    (фаза B2.a 2026-04-21, B2.b 2026-04-22). До B2 значения
+    `BALANCE_ACT`/`CONNECTION_PLAN` хранились в UPPER_CASE; переведены в
+    lowercase. С B2.b совместимый shim `_missing_` удалён — API теперь
+    отвергает uppercase-варианты с **422 Unprocessable Entity**.
+
+    В PostgreSQL тип `file_category` — метки совпадают с **именами** членов
+    Python (`TU`, `BALANCE_ACT`, …), а не с `.value`. SQLAlchemy без
+    `values_callable` persist имена, поэтому смена `.value` не требует
+    Alembic-миграции enum. Значения `.value` используются для API,
+    query-параметров и сегментов пути в хранилище
+    (`upload_dir/<order_id>/<category.value>/...`).
     """
 
     TU = "tu"  # Технические условия (ТУ)
-    BALANCE_ACT = "BALANCE_ACT"  # Акт разграничения балансовой принадлежности
-    CONNECTION_PLAN = "CONNECTION_PLAN"  # План подключения к тепловой сети
+    BALANCE_ACT = "balance_act"  # Акт разграничения балансовой принадлежности
+    CONNECTION_PLAN = "connection_plan"  # План подключения к тепловой сети
     HEAT_POINT_PLAN = "heat_point_plan"  # План теплового пункта (УУТЭ, ШУ)
     HEAT_SCHEME = "heat_scheme"  # Принципиальная схема теплового пункта с УУТЭ
     GENERATED_EXCEL = "generated_excel"
     GENERATED_PROJECT = "generated_project"
     OTHER = "other"
-    COMPANY_CARD = "company_card"      # Карточка предприятия (загружает клиент)
+    COMPANY_CARD = "company_card"  # Карточка предприятия (загружает клиент)
     SIGNED_CONTRACT = "signed_contract"  # Скан подписанного договора от клиента
-    CONTRACT = "contract"              # Сгенерированный договор (DOCX)
-    INVOICE = "invoice"                # Счёт на оплату (DOCX)
-    FINAL_INVOICE = "final_invoice"    # Счёт на остаток по договору (DOCX)
-    RSO_SCAN = "rso_scan"              # Скан письма с входящим номером РСО
-    RSO_REMARKS = "rso_remarks"        # Замечания РСО по согласованию проекта
+    CONTRACT = "contract"  # Сгенерированный договор (DOCX)
+    INVOICE = "invoice"  # Счёт на оплату (DOCX)
+    FINAL_INVOICE = "final_invoice"  # Счёт на остаток по договору (DOCX)
+    RSO_SCAN = "rso_scan"  # Скан письма с входящим номером РСО
+    RSO_REMARKS = "rso_remarks"  # Замечания РСО по согласованию проекта
 
 
 # ─── Типы email ──────────────────────────────────────────────────────────────
 
+
 class EmailType(str, enum.Enum):
-    INFO_REQUEST = "info_request"      # Запрос доп. информации
-    REMINDER = "reminder"              # Напоминание
+    INFO_REQUEST = "info_request"  # Запрос доп. информации
+    REMINDER = "reminder"  # Напоминание
     PROJECT_DELIVERY = "project_delivery"  # Отправка готового проекта
     ERROR_NOTIFICATION = "error_notification"  # Уведомление об ошибке
-    SAMPLE_DELIVERY = "sample_delivery"        # Отправка образца проекта
+    SAMPLE_DELIVERY = "sample_delivery"  # Отправка образца проекта
     NEW_ORDER_NOTIFICATION = "new_order_notification"  # Уведомление инженеру о новой заявке
     TU_PARSED_NOTIFICATION = "tu_parsed_notification"  # ТУ загружено и успешно распарсено
     CLIENT_DOCUMENTS_RECEIVED = "client_documents_received"  # Клиент нажал «Готово» на загрузке
     PARTNERSHIP_REQUEST = "partnership_request"  # Запрос на партнёрство
-    SURVEY_REMINDER = "survey_reminder"          # Напоминание заполнить опросный лист
-    PROJECT_READY_PAYMENT = "project_ready_payment"          # Проект готов, ожидается оплата
-    CONTRACT_DELIVERY = "contract_delivery"                  # Договор и счёт отправлены клиенту
-    SIGNED_CONTRACT_NOTIFICATION = "signed_contract_notification"  # Уведомление инженеру о подписанном договоре
-    ADVANCE_RECEIVED = "advance_received"                    # Аванс получен, проект отправлен
-    FINAL_PAYMENT_REQUEST = "final_payment_request"          # Запрос финального платежа / скана РСО
-    FINAL_PAYMENT_RECEIVED = "final_payment_received"        # Финальный платёж получен
+    SURVEY_REMINDER = "survey_reminder"  # Напоминание заполнить опросный лист
+    PROJECT_READY_PAYMENT = "project_ready_payment"  # Проект готов, ожидается оплата
+    CONTRACT_DELIVERY = "contract_delivery"  # Договор и счёт отправлены клиенту
+    SIGNED_CONTRACT_NOTIFICATION = (
+        "signed_contract_notification"  # Уведомление инженеру о подписанном договоре
+    )
+    ADVANCE_RECEIVED = "advance_received"  # Аванс получен, проект отправлен
+    FINAL_PAYMENT_REQUEST = "final_payment_request"  # Запрос финального платежа / скана РСО
+    FINAL_PAYMENT_RECEIVED = "final_payment_received"  # Финальный платёж получен
 
 
 def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
@@ -197,6 +202,15 @@ class Order(Base):
     """Заявка на проектирование УУТЭ."""
 
     __tablename__ = "orders"
+
+    # Индексы под типичные запросы админского листинга (фаза B3, 2026-04-22).
+    # Миграция `20260422_uute_listing_idx` создаёт их `CONCURRENTLY` в проде.
+    # Объявление здесь — чтобы SQLAlchemy metadata и autogenerate были
+    # синхронизированы (актуально для будущей initial-миграции).
+    __table_args__ = (
+        Index("ix_orders_created_at_desc", "created_at"),
+        Index("ix_orders_status_created_at_desc", "status", "created_at"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     status = Column(
@@ -222,8 +236,10 @@ class Order(Base):
     # Пример: {"heat_load_gvs": 0.15, "heat_load_ot": 0.45, "t_supply": 150, ...}
     parsed_params = Column(JSONB, nullable=True, default=dict)
 
-    # Список параметров, которых не хватает (JSON-массив строк)
-    # Пример: ["BALANCE_ACT", "heat_scheme"] — коды как в param_labels / FileCategory
+    # Список параметров, которых не хватает (JSON-массив строк).
+    # Пример: ["balance_act", "heat_scheme"] — коды как в param_labels / FileCategory
+    # (после B2 — все в snake_case lowercase; исторические UPPER_CASE значения
+    # мигрированы в соответствующей Alembic-ревизии).
     missing_params = Column(JSONB, nullable=True, default=list)
 
     # Тип заявки
@@ -248,8 +264,7 @@ class Order(Base):
 
     # ── Оплата ────────────────────────────────────────────
     payment_method = Column(
-        Enum(PaymentMethod, name="payment_method",
-             values_callable=_enum_db_values),
+        Enum(PaymentMethod, name="payment_method", values_callable=_enum_db_values),
         nullable=True,
     )
     payment_amount = Column(Integer, nullable=True)
@@ -283,6 +298,11 @@ class OrderFile(Base):
     """Файл, привязанный к заявке."""
 
     __tablename__ = "order_files"
+
+    # Композитный индекс под «файлы заявки X категории Y» — частый паттерн
+    # в `tasks.py` (`[f for f in order.files if f.category.value == "tu"]`)
+    # и в `landing.py`. Фаза B3 (2026-04-22).
+    __table_args__ = (Index("ix_order_files_order_id_category", "order_id", "category"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(
@@ -354,7 +374,7 @@ class CalculatorConfig(Base):
         unique=True,
         index=True,
     )
-    calculator_type = Column(String(50), nullable=False)   # "tv7" | "spt941" | "esko_terra"
+    calculator_type = Column(String(50), nullable=False)  # "tv7" | "spt941" | "esko_terra"
     config_data = Column(JSONB, nullable=False, default=dict)
     status = Column(String(20), nullable=False, default="draft")  # draft | complete
     total_params = Column(Integer, nullable=False, default=0)

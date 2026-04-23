@@ -13,7 +13,6 @@ from app.services import OrderService
 from app.services.tasks import (
     start_tu_parsing,
     process_client_response,
-    initiate_payment_flow,
     send_completed_project,
     resend_corrected_project,
     process_advance_payment,
@@ -142,24 +141,18 @@ async def approve_project(
     svc: OrderService = Depends(get_service),
     _key: str = Depends(verify_admin_key),
 ):
-    """Инженерский approve.
-
-    Новый поток: advance_paid → отправка проекта клиенту.
-    Legacy-совместимость: review → запуск старого платёжного флоу.
-    """
+    """Инженерский approve: `advance_paid` → отправка проекта клиенту."""
     order = await svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
-    if order.status not in (OrderStatus.ADVANCE_PAID, OrderStatus.REVIEW):
+    if order.status != OrderStatus.ADVANCE_PAID:
         raise HTTPException(
             status_code=400,
             detail=f"Одобрение недоступно в статусе «{order.status.value}»",
         )
 
-    project_files = await svc.get_files_by_order(
-        order_id, category=FileCategory.GENERATED_PROJECT
-    )
+    project_files = await svc.get_files_by_order(order_id, category=FileCategory.GENERATED_PROJECT)
     if not project_files:
         raise HTTPException(
             status_code=422,
@@ -169,18 +162,9 @@ async def approve_project(
             ),
         )
 
-    if order.status == OrderStatus.ADVANCE_PAID:
-        task = send_completed_project.delay(str(order_id))
-        return PipelineResponse(
-            message="Проект отправляется клиенту",
-            order_id=order_id,
-            task_id=task.id,
-        )
-
-    # Legacy-ветка старых заявок.
-    task = initiate_payment_flow.delay(str(order_id))
+    task = send_completed_project.delay(str(order_id))
     return PipelineResponse(
-        message="Проект одобрен, клиенту отправлено уведомление об оплате",
+        message="Проект отправляется клиенту",
         order_id=order_id,
         task_id=task.id,
     )

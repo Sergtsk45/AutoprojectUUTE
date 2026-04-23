@@ -74,9 +74,9 @@ class TestAutoGenerateScheme:
 
     def test_success_with_valid_config(self, tmp_path, monkeypatch):
         """Успешная генерация создаёт файл и OrderFile."""
-        from app.services import tasks
+        from app.services.tasks import client_response as cr
 
-        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(
@@ -90,10 +90,8 @@ class TestAutoGenerateScheme:
             }
         )
 
-        with patch.object(
-            tasks, "render_scheme_pdf", return_value=b"%PDF-fake-bytes"
-        ):
-            result = tasks._auto_generate_scheme_if_configured(session, order)
+        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf", return_value=b"%PDF-fake-bytes"):
+            result = cr._auto_generate_scheme_if_configured(session, order)
 
         assert result is True
         session.add.assert_called_once()
@@ -109,9 +107,9 @@ class TestAutoGenerateScheme:
 
     def test_invalid_config_returns_false(self, tmp_path, monkeypatch):
         """Недопустимая комбинация параметров → False, файл не создаётся."""
-        from app.services import tasks
+        from app.services.tasks import client_response as cr
 
-        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(
@@ -125,27 +123,27 @@ class TestAutoGenerateScheme:
             }
         )
 
-        result = tasks._auto_generate_scheme_if_configured(session, order)
+        result = cr._auto_generate_scheme_if_configured(session, order)
         assert result is False
         session.add.assert_not_called()
 
     def test_missing_scheme_config_returns_false(self, tmp_path, monkeypatch):
-        from app.services import tasks
+        from app.services.tasks import client_response as cr
 
-        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(survey_data={})
 
-        result = tasks._auto_generate_scheme_if_configured(session, order)
+        result = cr._auto_generate_scheme_if_configured(session, order)
         assert result is False
         session.add.assert_not_called()
 
     def test_pdf_render_exception_returns_false(self, tmp_path, monkeypatch):
         """Если WeasyPrint падает, функция возвращает False без пробрасывания."""
-        from app.services import tasks
+        from app.services.tasks import client_response as cr
 
-        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(
@@ -159,10 +157,8 @@ class TestAutoGenerateScheme:
             }
         )
 
-        with patch.object(
-            tasks, "render_scheme_pdf", side_effect=RuntimeError("WeasyPrint error")
-        ):
-            result = tasks._auto_generate_scheme_if_configured(session, order)
+        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf", side_effect=RuntimeError("WeasyPrint error")):
+            result = cr._auto_generate_scheme_if_configured(session, order)
 
         assert result is False
         session.add.assert_not_called()
@@ -173,9 +169,9 @@ class TestProcessClientResponseIntegration:
 
     def test_heat_scheme_not_in_missing_when_auto_generated(self, tmp_path, monkeypatch):
         """После успешной автогенерации heat_scheme отсутствует в missing_params."""
-        from app.services import tasks
+        from app.services.tasks import client_response as cr
 
-        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = MagicMock()
@@ -205,8 +201,8 @@ class TestProcessClientResponseIntegration:
 
         session.add.side_effect = fake_add
 
-        with patch.object(tasks, "render_scheme_pdf", return_value=b"%PDF"):
-            success = tasks._auto_generate_scheme_if_configured(session, order)
+        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf", return_value=b"%PDF"):
+            success = cr._auto_generate_scheme_if_configured(session, order)
 
         assert success is True
         uploaded = {f.category.value for f in order.files}

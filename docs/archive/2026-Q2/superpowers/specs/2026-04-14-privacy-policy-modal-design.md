@@ -1,7 +1,7 @@
 # Design: Модалка «Политика конфиденциальности»
 
-**Дата:** 2026-04-14  
-**Ветка:** feature/calculator-config  
+**Дата:** 2026-04-14
+**Ветка:** feature/calculator-config
 **Статус:** Approved
 
 ---

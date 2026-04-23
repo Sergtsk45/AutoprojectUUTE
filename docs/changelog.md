@@ -1,211 +1,689 @@
 # Changelog
 
-## [2026-04-23] — Интеграция конфигуратора схем с пайплайном и админкой
+## [2026-04-23] — Инфраструктура деплоя: shared image + deploy.sh
 
 ### Добавлено
-- Автоматическая генерация PDF схемы в `process_client_response`, если клиент заполнил конфигуратор, но PDF ещё не сгенерирован
-- Секция "Конфигурация схемы" в админ-панели (parsed_params) с маппингом параметров на русский и кнопкой скачивания PDF
-- Тесты `backend/tests/test_scheme_auto_generation.py`
+- [`deploy.sh`](../deploy.sh): скрипт атомарного деплоя на production. Выполняет `git pull`, `npm build` и `docker compose up -d --build` (все сервисы) за один запуск. Исключает случайную частичную пересборку.
+- [`docker-compose.prod.yml`](../docker-compose.prod.yml): добавлен в репозиторий (ранее существовал только на сервере). Архитектура общего образа: `backend` собирает образ `uute-app:latest`, `celery-worker` и `celery-beat` его наследуют через `image: uute-app:latest` без собственного `build:` — физически невозможно иметь разные версии кода.
 
 ### Изменено
-- [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py): `compute_client_document_missing(uploaded_categories, survey_data=None)` — второй аргумент исключает `heat_scheme` из missing при наличии `scheme_config`
-- [`backend/app/services/tasks.py`](../backend/app/services/tasks.py): `process_client_response` и `check_data_completeness` передают `order.survey_data` в `compute_client_document_missing`
-- [`backend/static/admin.html`](../backend/static/admin.html): `renderParsedParams(params, missing, surveyData, files)` — расширенная сигнатура, новая функция `renderSchemeConfigSection`
+- [`CLAUDE.md`](../CLAUDE.md): раздел «Быстрый старт» дополнен явным запретом на частичный `--build <service>` и объяснением архитектуры общего образа. Раздел «Новая Celery задача» дополнен обязательным шагом полной пересборки при деплое.
 
 ### Исправлено
-- Клиенты больше не обязаны вручную загружать PDF схемы, если заполнили конфигуратор
+- Причина инцидента (2026-04-23): после мержа PR D4 (`notify_engineer_new_order` стал Celery-задачей) backend был пересобран, а celery-worker — нет. Воркер получал задачу `notify_engineer_new_order.delay()` и отвечал `Received unregistered task` — уведомление инженеру о новой заявке не уходило. Решение: пересборка воркера + переход на shared image для структурной защиты от повторения.
+
+## [2026-04-22] — hotfix: миграция C1/C2 — enum в UPPERCASE
+
+### Исправлено
+- [`backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py`](../backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py):
+  значения в `_LEGACY_STATUSES`, `_TARGET_STATUS`, `_NEW_ENUM_VALUES`,
+  `_OLD_ENUM_VALUES` переведены в UPPERCASE, чтобы соответствовать реальному
+  содержимому prod-БД. Причина: в [`backend/app/models/models.py`](../backend/app/models/models.py)
+  `Order.status` сконфигурирован без `values_callable=_enum_db_values`, поэтому
+  SQLAlchemy хранит Python-имя члена enum (`OrderStatus.NEW.name == "NEW"`), а
+  не `.value` (`"new"`). Миграция, написанная под lowercase, падала с
+  `invalid input value for enum order_status` на проде. Деплой уже применил
+  исправление руками — коммит синхронизирует репозиторий с тем, что накатано.
+
+### Добавлено
+- [`docs/backlog.md`](backlog.md) → [`BL-021`](backlog.md#bl-021--orderstatus-lowercase-python-values-vs-uppercase-db-storage):
+  асимметрия «lowercase `.value` в Python API ↔ UPPERCASE `.name` в БД»
+  зафиксирована как технический долг. Решение (зафиксировать как инвариант
+  комментарием+тестом или унифицировать через миграцию на `values_callable`)
+  принимается перед следующим изменением `order_status`.
+
+## [2026-04-22] — docs: единый реестр долга `docs/backlog.md`
+
+### Добавлено
+- [`docs/backlog.md`](backlog.md) — консолидированный реестр технического и
+  продуктового долга: 24 стартовых элемента (категории A — открытые фазы
+  roadmap, B — хвосты завершённых фаз, C — продуктовые развилки,
+  D — вне scope аудита §3). Каждому присвоен стабильный ID `BL-XXX`,
+  статус (`open` / `deferred` / `blocked` / `accepted` / `done`) и матрица
+  Impact/Effort/Risk.
+
+### Изменено
+- [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md):
+  перед `§11 DoD` добавлена сноска о том, что все остаточные долги теперь в
+  `docs/backlog.md`; roadmap остаётся «планом фаз», backlog — «оперативным
+  реестром остатков».
+- [`docs/tasktracker.md`](tasktracker.md): шапка со ссылкой на backlog. Новые
+  хвосты после закрытия задач фиксируются в backlog'е, tasktracker — только
+  хронология активных/закрытых задач.
+- [`docs/project.md`](project.md): шапка со ссылками на backlog, roadmap,
+  tasktracker.
+- [`CLAUDE.md`](../CLAUDE.md): в разделе «Документирование изменений»
+  добавлена подсекция `docs/backlog.md` с описанием формата и правилом
+  «новые долги — только туда». Упоминание backlog у auth `?_k=`
+  перенаправлено с `changelog.md` на конкретную запись
+  [`BL-034`](backlog.md#bl-034--убрать-_k-query-параметр-для-admin-auth).
+
+## [2026-04-22] — Фаза C1+C2 (audit): удаление legacy-статусов OrderStatus
+
+### Удалено (breaking change для внутренних потребителей API)
+- Из enum `OrderStatus` удалены три значения, не использующиеся в современном флоу:
+  - `data_complete`
+  - `generating_project`
+  - `review`
+- Из [`backend/app/services/tasks/contract_flow.py`](../backend/app/services/tasks/contract_flow.py) удалены три Celery-task-заглушки: `fill_excel` (`DATA_COMPLETE → GENERATING_PROJECT`), `generate_project` (`GENERATING_PROJECT → REVIEW`) и `initiate_payment_flow` (`REVIEW → AWAITING_CONTRACT`). Все три были `TODO`-заглушками без реальной бизнес-логики (модули 3/4 T-FLEX не реализованы), новые заявки через них не проходили.
+- Из [`backend/app/api/pipeline.py:approve_project`](../backend/app/api/pipeline.py) убрана legacy-ветка «если `status == REVIEW` → `initiate_payment_flow.delay(...)`»; одобрение доступно только в статусе `advance_paid`.
+- Из [`backend/app/services/tasks/post_project_flow.py:send_completed_project`](../backend/app/services/tasks/post_project_flow.py) убрана legacy-ветка «`REVIEW → COMPLETED`»; остался только современный путь `ADVANCE_PAID → AWAITING_FINAL_PAYMENT`.
+- Из [`backend/app/api/landing.py`](../backend/app/api/landing.py) убраны `DATA_COMPLETE`, `GENERATING_PROJECT` из `_SURVEY_SAVE_ALLOWED`.
+- Из админки ([`backend/static/js/admin/config.js`](../backend/static/js/admin/config.js), [`backend/static/js/admin/admin.js`](../backend/static/js/admin/admin.js), [`backend/static/admin.html`](../backend/static/admin.html)) убраны ярлыки/цвета/опции фильтров «Данные собраны», «Генерация проекта», «На проверке»; вместо «На проверке» в сводных карточках теперь «Договор отправлен». Фильтр статусов расширен актуальными значениями (`awaiting_contract`, `contract_sent`, `advance_paid`, `awaiting_final_payment`, `rso_remarks_received`).
+- Из клиентской части ([`backend/static/js/upload/config.js`](../backend/static/js/upload/config.js), [`contract.js`](../backend/static/js/upload/contract.js), [`upload.js`](../backend/static/js/upload/upload.js), [`backend/static/payment.html`](../backend/static/payment.html)) убраны ссылки на 3 удалённых статуса.
+
+### Добавлено
+- [`backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py`](../backend/alembic/versions/20260422_uute_drop_legacy_order_statuses.py) — миграция C1+C2:
+  1. Backfill: `UPDATE orders SET status = 'client_info_received' WHERE status IN ('data_complete', 'generating_project', 'review')`. Это безопасный «карантин»: из `CLIENT_INFO_RECEIVED` инженер вручную переведёт заявку дальше. На момент миграции прод-данных в legacy нет.
+  2. Пересоздание типа `order_status`: `CREATE TYPE order_status_new AS ENUM (...)` без 3 legacy, `ALTER TABLE orders ALTER COLUMN status TYPE order_status_new USING status::text::order_status_new`, `DROP TYPE order_status`, `RENAME TO order_status`.
+  3. Downgrade: обратный путь (без восстановления исходного статуса отдельных заявок — колонка-аудит `legacy_status_before_migration` по явному согласованию не добавлялась).
+- [`backend/tests/test_order_status_legacy_cleanup.py`](../backend/tests/test_order_status_legacy_cleanup.py) — smoke-тесты: enum не содержит legacy-значений, `ALLOWED_TRANSITIONS` не ссылается на них, `app.services.tasks` не экспортирует `fill_excel`/`generate_project`/`initiate_payment_flow`.
+- В `ALLOWED_TRANSITIONS` добавлен переход `CLIENT_INFO_RECEIVED → AWAITING_CONTRACT`: ручной перевод заявки в legacy-ветку payment.html (bank_transfer), если инженеру нужно отправить карточку предприятия отдельно — раньше этот путь был только через `initiate_payment_flow`.
+
+### Изменено
+- [`backend/app/models/models.py`](../backend/app/models/models.py): `OrderStatus` теперь содержит 12 значений (было 15), docstring пересобран, `ALLOWED_TRANSITIONS` упрощён (удалены ключи `DATA_COMPLETE`, `GENERATING_PROJECT`, `REVIEW` и ссылки на них в других переходах).
+- [`backend/app/services/tasks/__init__.py`](../backend/app/services/tasks/__init__.py): убраны импорты и `__all__`-записи трёх удалённых task.
+- [`backend/tests/test_celery_tasks_package.py`](../backend/tests/test_celery_tasks_package.py): `expected` обновлён — убраны `fill_excel`/`generate_project`/`initiate_payment_flow`.
+- [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json) + [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) регенерированы: `OrderStatus` = `"new" | "tu_parsing" | ... | "error"` без 3 удалённых значений.
+
+### Сохранено (intentionally)
+- **`AWAITING_CONTRACT` не удаляется** — он активно используется в `payment.html` (экраны «загрузка карточки» + «выбор способа оплаты»), endpoint-ах `/landing/orders/{id}/upload-company-card` + `/select-payment-method` и task `process_company_card_and_send_contract`. Удаление требует продуктового решения по судьбе payment.html-ветки (bank_transfer/YooKassa) — зафиксировано как отдельная задача backlog.
+
+### Критерии приёмки
+- `pytest backend/tests/` — 66 тестов, зелёные.
+- `mypy app/` — success.
+- `ruff check / ruff format --check` — passed.
+- `npx tsc --noEmit` + `npx vitest run` — passed.
+- `node --check` на всех 10 модулях `backend/static/js/{admin,upload}/*.js` — OK.
+
+## [2026-04-22] — Фаза E4: декомпозиция `upload.html` на модули
+
+### Добавлено
+- [`backend/static/css/upload.css`](../backend/static/css/upload.css) (~16 KB, 611 строк) — вынос inline `<style>` из `upload.html`.
+- Каталог [`backend/static/js/upload/`](../backend/static/js/upload/) с пятью JS-модулями (обычные `<script>`, не ES-модули — сохранён единственный inline `onclick="toggleSurveyCollapse()"`):
+  - [`config.js`](../backend/static/js/upload/config.js) — константы (`API_BASE`, `ORDER_ID`, `PARAM_LABELS`, `POST_PARSE_STATUSES`, `CUSTOM_EDITABLE_STATUSES`, `PARAM_TO_SURVEY`, `SURVEY_REQUIRED_FIELDS`) и mutable state (`orderData`, `isNewOrder`, `surveySavedCustom`, `uploadedCategories`, таймеры/счётчики парсинг-поллинга).
+  - [`utils.js`](../backend/static/js/upload/utils.js) — чистые хелперы (`escapeHtml`, `formatSize`, `formatMoneyRub`, `formatHttpDetail`, `showBanner`, `strVal`/`numVal`), UI-состояния (`syncSubmitButtonState`, `showDocsOptionalHint`, `applySurveySavedVisuals`, `showSurveyError`/`hideSurveyError`), DOM-refs (`$loading`, `$main`, `$checklist`, `$dropzone`, `$surveyCard`, `$contractSentCard` и др.).
+  - [`survey.js`](../backend/static/js/upload/survey.js) — опросный лист: collapse/expand/lock/unlock, hydrate из snapshot, маппинг `parsed_params → s_*`, нормализация типов подключения/систем/зданий, decorations (prefilled/needs-input badges), `collectSurveyData`, `validateSurveyFields`, обработчик submit. `toggleSurveyCollapse` экспортируется на `window`.
+  - [`contract.js`](../backend/static/js/upload/contract.js) — экран «договор и оплата»: `renderContractMeta`, `setSignedContractAcceptedState`/`resetSignedContractState`/`showContractSentState`, `showUploadAlongsideSurveyIfNeeded`, `prefillSurveyFromSaved`, `validateSignedContractFile`, `uploadSignedContract` (XHR + прогресс) и функция `bindSignedContractHandlers()` для drag&drop/change.
+  - [`upload.js`](../backend/static/js/upload/upload.js) — entry: `initCustomOrderUi`, `init`, `renderChecklist`, `renderCategoryOptions`, drag&drop-листенеры основной зоны, `handleFiles`, `uploadFile` (XHR + прогресс), обработчик submit «Всё загружено», `showCompleted`, polling парсинга ТУ (`showParsingState`, `startParsingPoll`, `stopParsingPoll`, `showParsingTimeout`). В конце — вызов `bindSignedContractHandlers()` и `init()`.
+
+### Изменено
+- [`backend/static/upload.html`](../backend/static/upload.html) сократился **с 92 153 → 21 762 байт** (−76%), с 2323 → 402 строк: удалены inline `<style>` (~612 строк) и inline `<script>` (~1318 строк), добавлены `<link rel="stylesheet" href="/static/css/upload.css">` и пять `<script src="/static/js/upload/*.js">` в конце `<body>`. Порядок подключения `config → utils → survey → contract → upload` гарантирует, что все глобальные символы доступны до первого вызова. Единственный inline `onclick="toggleSurveyCollapse()"` в HTML оставлен как был (функция экспонирована на `window` из `survey.js`).
+
+### Не затронуто
+- Ни одна функция не переименована и не переработана — код перенесён 1-в-1, поведение страницы `/upload/<id>` эквивалентно.
+- `backend/static/payment.html` остаётся монолитным (не входит в минимальный сценарий E4).
+- Никаких новых зависимостей (сборщика нет, ES-модули не используются).
+
+### Проверено
+- `node --check` на каждом из 5 модулей + склейка всех JS в один файл — синтаксис чистый.
+- `backend` pytest (63 теста) проходит локально на Python 3.10 с теми же env-переменными, что и CI.
+- Frontend `npm run lint` без ошибок (изменения не затронули `frontend/`).
+- Единственный inline-хендлер (`onclick="toggleSurveyCollapse()"`) сохранён и покрыт экспортом `window.toggleSurveyCollapse = toggleSurveyCollapse` в `survey.js`.
+
+### Результат
+- Кэш браузера теперь переиспользует CSS/JS между посещениями страницы.
+- Диффы новых фич в `upload.html` / `upload.css` / `js/upload/*.js` становятся узкоцелевыми — больше не меняется один 2,3-тысячный файл.
+- Готова площадка для перехода на ES-модули/сборщик: единственный inline-хендлер можно заменить на `addEventListener` без правок в остальных файлах.
 
 ---
 
-## [2026-04-23] — UI конфигуратора схем в upload.html ✅
+## [2026-04-22] — Фаза E3 (минимальный вариант): декомпозиция `admin.html` на модули
 
 ### Добавлено
-- В [`backend/static/upload.html`](../backend/static/upload.html): интерактивный конфигуратор принципиальных схем
-  - **HTML-секция** `schemeConfiguratorCard` между опросным листом и чеклистом документов
-  - **Вопросы с вариантами ответов:**
-    - Q1: Тип присоединения (зависимая / независимая / не знаю) — радиокнопки
-    - Q2: Регулирующий клапан (условный, только для зависимой) — радиокнопки
-    - Q3: Система ГВС (двухступенчатый подогреватель) — чекбокс
-    - Q4: Система вентиляции (условный, только при наличии ГВС) — чекбокс
-  - **Превью SVG:** автоматическая загрузка через `POST /api/v1/schemes/preview` при изменении конфигурации, inline-отображение в контейнере `schemePreviewContainer`
-  - **Генерация PDF:** кнопка «Подтвердить и сгенерировать PDF» → `POST /api/v1/schemes/{order_id}/generate` → сохранение OrderFile → отображение статуса успеха с ссылкой на скачивание
-  - **Предзаполнение:** автоматическое заполнение из `survey_data.scheme_config` (если схема уже сгенерирована) или из `parsed_params` (определение типа присоединения, ГВС из ТУ)
-  - **CSS-стили:** кастомные радиокнопки и чекбоксы, адаптивные карточки, spinner для загрузки, success/error сообщения
-  - **JavaScript-логика:**
-    - Условное отображение вопросов (valve только для dependent, ventilation только при GWP)
-    - Автообновление превью при изменении ответов (debounce через event listeners)
-    - Валидация конфигурации (HTTP 400 при недопустимых комбинациях)
-    - Интеграция с пайплайном: `showSchemeConfiguratorIfNeeded()` вызывается после сохранения опросного листа и при `init()`
+- Каталог [`backend/static/css/`](../backend/static/css/) и файл [`admin.css`](../backend/static/css/admin.css) (~18 KB) — вынос inline `<style>` из `admin.html`.
+- Каталог [`backend/static/js/admin/`](../backend/static/js/admin/) с пятью JS-модулями (обычные `<script>`, не ES-модули, чтобы inline `onclick`/`onchange` в HTML продолжали работать без изменений):
+  - [`config.js`](../backend/static/js/admin/config.js) — константы (`API_BASE`, `ORDER_ID_URL_RE`, `STATUS_LABELS/COLORS/ORDER`, `POST_PARSE_STATUSES`, `SURVEY_LABELS/VALUE_MAP/SECTIONS`) и глобальное состояние поллингов (`currentOrderId`, таймеры).
+  - [`utils.js`](../backend/static/js/admin/utils.js) — чистые хелперы: `statusBadge`, `orderTypeBadge`, `formatNum`, `fmtNum`, `addKeyToUrl`, `isParsedParamsEmpty`, `showOrderAlert`, `esc`, `formatDate`, `formatDateFull`, `formatSize`.
+  - [`views-parsed.js`](../backend/static/js/admin/views-parsed.js) — рендер разобранных параметров ТУ, опросного листа и сравнительной таблицы parsed vs survey (все `cmp*`, `buildParsedParamsTablesHtml`, `renderParsedParams`, `renderSurveyData`, `*FromParams`).
+  - [`views-calc.js`](../backend/static/js/admin/views-calc.js) — настроечная БД вычислителя (`loadCalcConfig`, `renderCalcConfig`, `renderCalcGroups`, `initCalcConfig*`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged` + UI-state).
+  - [`admin.js`](../backend/static/js/admin/admin.js) — entry: auth, fetch-хелперы (`apiFetch`/`apiJSON`), навигация, четыре поллинга (waiting-email / sending-project / payment-flow / parsing), `approveProject`, список заявок (`refreshList`, `renderStats`, `renderOrdersTable`), карточка заявки (`loadOrder`, `renderOrder`, `renderProgress`, `renderPaymentCard`, `renderFiles`, `renderEmailLog`), действия (`renderActions`, `runAction`, `sendEmail`, `uploadAdminFile`) и `DOMContentLoaded`.
 
 ### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 6 завершена ✅ (UI конфигуратора реализован)
-- Баннер после сохранения опросного листа: текст изменен на «Теперь вы можете настроить принципиальную схему или сразу отправить заявку»
+- [`backend/static/admin.html`](../backend/static/admin.html) сократился **с 129 645 → 13 131 байт** (−90%): удалены inline `<style>` (~586 строк) и inline `<script>` (~2045 строк), добавлены `<link rel="stylesheet" href="/static/css/admin.css">` и пять `<script src="/static/js/admin/*.js">` в конце `<body>`. Порядок подключения `config → utils → views-parsed → views-calc → admin` гарантирует, что все глобальные функции определены до первого `onclick` (15 inline-хендлеров в HTML остались без правок).
 
-### Технические детали
-**Пайплайн работы UI:**
-```
-Клиент сохраняет опросный лист
-    ↓
-showSchemeConfiguratorIfNeeded() → отображение секции конфигуратора
-    ↓
-Клиент отвечает на вопросы (радиокнопки, чекбоксы)
-    ↓
-При изменении → getSchemeConfig() → updateSchemeUI()
-    ↓
-loadSchemePreview() → POST /api/v1/schemes/preview → inline SVG
-    ↓
-Клиент нажимает «Подтвердить и сгенерировать PDF»
-    ↓
-generateSchemePDF() → POST /api/v1/schemes/{order_id}/generate
-    ↓
-Сохранение OrderFile + scheme_config в survey_data
-    ↓
-Отображение success-сообщения с ссылкой на скачивание PDF
-```
+### Не затронуто
+- Ни одна функция не переименована и не переработана — код перенесён 1-в-1, поведение админки эквивалентно.
+- `backend/static/upload.html` и `backend/static/payment.html` остались без изменений: их декомпозиция — отдельный пункт backlog (B1/B2 в расширенном варианте), не входит в «минимальный» E3.
+- Никаких новых зависимостей (сборщика нет, ES-модули не используются).
 
-**Условная логика вопросов:**
-- Вопрос о клапане (Q2) отображается только при выборе «Зависимая» (Q1)
-- Вопрос о вентиляции (Q4) отображается только при включенной ГВС (Q3)
-- Для независимой схемы `has_valve` автоматически `true` (требование ГОСТ)
+### Проверено
+- `node --check` на каждом из 5 модулей — чистый синтаксис.
+- Локальный `python3 -m http.server` по `backend/static/`: `/admin.html`, `/css/admin.css` и все пять `/js/admin/*.js` отдаются HTTP 200.
+- Полный аудит глобальных функций, вызываемых из inline `onclick` (`doLogin`, `doLogout`, `refreshList`, `showList`, `showOrderScreen`, `uploadAdminFile`, `initCalcConfig`, `initCalcConfigExpress`, `saveCalcConfig`, `exportCalcConfigPdf`, `calcParamChanged`, `addKeyToUrl`) — все 12 определены в модулях. `window.actionBtns` по-прежнему выставляется в `renderActions`.
 
-**Предзаполнение из parsed_params:**
-- `connection.connection_type` → автовыбор радиокнопки «Зависимая» / «Независимая»
-- `connection.heating_system` → автоотметка чекбокса ГВС (если содержит «ГВС» или «горяч»)
-- Если `survey_data.scheme_config` существует → восстановление всей конфигурации и отображение статуса «сгенерирована»
+### Связано с roadmap
+- [Раздел E3](plans/2026-04-20-audit-section-3-maintainability-roadmap.md) — «минимальный» сценарий закрыт. Для среднего/полного варианта (бандлер + ES-модули + тесты на UI) потребуется отдельная задача.
+- DoD выполнен: «`admin.html` уменьшился до <30 КБ (skeleton + подключение модулей)».
 
-## [2026-04-23] — API эндпоинты конфигуратора схем ✅
+### Откат
+- `git revert` ветки `refactor/audit-e3-admin-html-modules`: удаляет новые `css/admin.css` и `js/admin/*.js`, восстанавливает inline-версию `admin.html`.
+
+---
+
+## [2026-04-22] — Фаза E2: Vitest-тесты на транспортный слой фронта
 
 ### Добавлено
-- Файл [`backend/app/api/scheme_generator.py`](../backend/app/api/scheme_generator.py): REST API для конфигуратора принципиальных схем
-  - **GET /api/v1/schemes/templates** — список всех 8 доступных конфигураций схем с описаниями (используется UI для отображения вариантов клиенту)
-  - **POST /api/v1/schemes/preview** — генерация превью SVG схемы по конфигурации (SchemeConfig + SchemeParams → SVG с ГОСТ-рамкой)
-  - **POST /api/v1/schemes/{order_id}/generate** — генерация PDF схемы и сохранение как OrderFile (category=heat_scheme), запись конфигурации в survey_data заявки
-  - **GET /api/v1/schemes/{order_id}/config** — получение сохраненной конфигурации схемы из survey_data (для восстановления состояния UI)
-- В [`backend/app/main.py`](../backend/app/main.py): подключен роутер `scheme_generator_router` с префиксом `/api/v1`
+- Новый тест-модуль [`frontend/src/api.test.ts`](../frontend/src/api.test.ts) (10 тестов): покрытие публичных функций `requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`. Зафиксированы:
+  - URL/метод/заголовки/сериализация тела JSON для всех JSON-эндпоинтов;
+  - контракт multipart-запроса `kp-request` (Content-Type **не** ставится вручную — только браузер/Undici со своим boundary);
+  - разбор ошибок FastAPI: строковый `detail`, валидационный массив `detail=[{msg}]`, HTTP-fallback на невалидном JSON;
+  - override `VITE_API_BASE_URL` через `vi.stubEnv` + динамический импорт модуля.
 
 ### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 5 завершена ✅ (API эндпоинты реализованы и протестированы)
+- Итог vitest: `npm test` теперь прогоняет 15 тестов (было 5 — только `utils/pricing.test.ts`).
 
-### Технические детали
-**Пайплайн генерации PDF через API:**
-```
-POST /api/v1/schemes/preview
-  → SchemeConfig валидация
-  → resolve_scheme_type() → SchemeType
-  → render_scheme() → SVG контент
-  → gost_frame_a3() → SVG с рамкой
-  → Response: SchemePreviewResponse (inline SVG для браузера)
+### Не затронуто
+- Никаких новых зависимостей — тесты используют встроенный в Node 20 `fetch`/`FormData` и штатный `vi.stubGlobal` из vitest 2.1. `@testing-library/react` оставлен на будущую фазу (тесты компонентов вне scope E2).
+- `vitest.config` без изменений (`environment: 'node'` достаточен, `jsdom` не подключался).
 
-POST /api/v1/schemes/{order_id}/generate
-  → Проверка Order в БД
-  → SchemeConfig валидация
-  → Автозаполнение params из Order.parsed_params
-  → render_scheme() → SVG
-  → gost_frame_a3() → SVG с рамкой и штампом
-  → render_scheme_pdf() → PDF bytes
-  → Сохранение OrderFile (category=heat_scheme)
-  → Запись scheme_config в Order.survey_data
-```
+### Проверено
+- `vitest run` — 15/15 зелёных, 2 тест-файла.
+- `tsc --noEmit`, `npm run lint`, `npm run build` — зелёные.
 
-**Автозаполнение параметров:**
-- `project_number` ← `Order.id` (формат: УУТЭ-UUID[:8])
-- `object_address` ← `Order.object_address`
-- `company_name` ← `Order.client_organization`
-- Параметры из `Order.parsed_params` через `extract_scheme_params_from_parsed()`
+### Связано с roadmap
+- [Раздел E2](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`npm test` в CI зелёный на >0 тестов» — выполнен (5 → 15).
+- Фронт-тесты уже гоняются в CI-job `frontend` (`npm test`), отдельный шаг не нужен.
 
-**Валидация конфигурации:**
-- Pydantic-валидация `SchemeConfig` (model_validator проверяет допустимые комбинации)
-- Маппинг через `SCHEME_MAP` — 8 типовых конфигураций
-- HTTP 400 при недопустимой комбинации (например, независимая без клапана)
+### Откат
+- `git revert` ветки `feat/audit-e2-frontend-tests`. Удаление файла `src/api.test.ts` возвращает vitest на исходные 5 тестов.
 
-## [2026-04-23] — PDF-рендер схем: WeasyPrint интеграция ✅
+---
+
+## [2026-04-22] — Фаза E1: Typed API через `openapi-typescript`
 
 ### Добавлено
-- Файл [`backend/app/services/scheme_pdf_renderer.py`](../backend/app/services/scheme_pdf_renderer.py): модуль генерации PDF из SVG-схем через WeasyPrint
-  - Функция `render_scheme_pdf(svg_content, stamp_data, format)` — конвертирует SVG в PDF с правильными размерами страницы (A3 landscape / A4 portrait)
-  - Функция `render_scheme_pdf_from_params(svg_content, params, format)` — удобная обертка с автоформированием данных штампа из параметров схемы
-  - Поддержка форматов A3 (альбомная, 420×297 мм) и A4 (книжная, 210×297 мм)
-- HTML-шаблоны для PDF:
-  - [`backend/templates/scheme_pdf/gost_frame_a3.html`](../backend/templates/scheme_pdf/gost_frame_a3.html) — обертка SVG для A3 landscape
-  - [`backend/templates/scheme_pdf/gost_frame_a4.html`](../backend/templates/scheme_pdf/gost_frame_a4.html) — обертка SVG для A4 portrait
-- В [`backend/requirements.txt`](../backend/requirements.txt):
-  - `weasyprint==61.2` — генерация PDF из HTML/SVG (чистый Python, работает в Docker без headless-браузера)
-  - `pydyf==0.10.0` — совместимая версия зависимости для weasyprint 61.2
-- В [`backend/app/schemas/scheme.py`](../backend/app/schemas/scheme.py): расширен `SchemeParams`:
-  - Добавлены метки для датчиков и расходомеров: `t1_label`, `t2_label`, `p1_label`, `p2_label`, `g1_label`, `g2_label`, `g3_label`
-  - Добавлены параметры для таблицы УУТЭ: `q_heat`, `q_gwp`, `m1`, `m2`, `t1`, `t2`, `p1`, `p2`
-- Тестовый скрипт [`backend/test_scheme_pdf.py`](../backend/test_scheme_pdf.py): проверка генерации PDF для схемы 1 (A3 и A4), автоматическое сохранение результатов
+- Dev-зависимость [`openapi-typescript@7.4.4`](https://github.com/openapi-ts/openapi-typescript) в [`frontend/package.json`](../frontend/package.json).
+- Скрипт [`scripts/generate-api-types.sh`](../scripts/generate-api-types.sh): импортирует FastAPI-приложение, экспортирует `app.openapi()` в `frontend/src/api/openapi.json` и регенерирует `frontend/src/api/types.ts`. Идемпотентен, работает с dummy-ENV (SMTP/ADMIN/OPENROUTER) — схемы не инициализируют внешние ресурсы. Автоматически подхватывает `backend/.venv/bin/python` и падает с понятной инструкцией, если версии `pydantic`/`fastapi` не совпадают с `backend/requirements.txt` (разные Pydantic-версии по-разному ставят `additionalProperties` в OpenAPI — это ломало CI-job).
+- Сгенерированные артефакты [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json) (~155 KB) и [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) (~121 KB) — **коммитятся в репо**, источник правды для TS-клиента. README в том же каталоге объясняет контракт и процесс обновления.
+- CI-job `api-types-drift` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml): перегенерирует артефакты и падает по `git diff --exit-code`, если Pydantic-схема поменялась, а скрипт не прогнали. Fail-инструкция печатает первые 120 строк diff для диагностики.
+
+### Изменено
+- [`frontend/src/api.ts`](../frontend/src/api.ts) переписан: ручные `interface OrderRequest/OrderCreatedResponse/SimpleResponse` заменены на алиасы `components['schemas'][…]` из сгенерированного `types.ts`. Публичные функции (`requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`) сохранили сигнатуры — компоненты `EmailModal.tsx` / `KpRequestModal.tsx` не меняются. Ошибки API теперь разбираются единообразно (`handleJsonResponse`) — нет копипасты try/catch.
+- В [`frontend/package-lock.json`](../frontend/package-lock.json) URL артефактов переведены на `registry.npmjs.org` (integrity-хеши идентичны).
+
+### UX/контракт API
+- **Публичный контракт фронта без изменений.** Все 4 вызова лендинга работают как раньше: те же URL, те же поля запроса. Фронт-билд теперь падает по TS-ошибке, если бэк поменяет схему без регенерации клиента.
+- **Закрыт классический рассинхрон** между ручной `OrderRequest` в старом `api.ts` и Pydantic на бэке (OpenAPI помечает `order_type` обязательным с дефолтом `express`; сгенерированный тип это фиксирует — фронт уже и так всегда отправляет `order_type`).
+
+### Не затронуто
+- Backend-код (`app/*.py`) **не менялся** — E1 — чисто инструментация фронта и CI.
+- Legacy-страницы на Jinja (`admin.html`, `upload.html`, `payment.html`) — они не импортируют `frontend/src/api.ts` и типы, продолжают работать через собственный JS.
+- Ручные тесты `pricing.test.ts` — без изменений.
+
+### Проверено
+- Backend: `ruff check`, `ruff format --check`, `pytest backend/tests/` (63/63) — всё зелёное.
+- Frontend: `tsc --noEmit`, `npm run lint`, `npm test` (5/5), `npm run build` — зелёные.
+- `scripts/generate-api-types.sh` идемпотентен: повторный прогон не выдаёт diff.
+
+### Связано с roadmap
+- [Раздел E1](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «Typed API через openapi-typescript, CI-drift-check» — выполнен.
+- Разблокировано предыдущей фазой B1.c: в OpenAPI теперь точно описаны `company_requisites`, `parsed_params`, `survey_data` — при следующих итерациях TS-клиент получит эти структуры «бесплатно».
+- Следующий логичный шаг — E3/E4 (декомпозиция React-компонентов и legacy HTML).
+
+### Откат
+- `git revert` ветки `feat/audit-e1-typed-api`. Никаких миграций БД или ENV-изменений не внесено; CI-job без ветки просто отключается.
+
+---
+
+## [2026-04-22] — Фаза B1.c: строгая типизация `OrderResponse` и публичных DTO
+
+### Добавлено
+- Новая Pydantic-модель [`CompanyRequisitesError`](../backend/app/schemas/jsonb/company.py) — маркер неудачного парсинга «Карточки предприятия» (`{"error": "..."}`). Выделена отдельно, чтобы Union-тип `OrderResponse.company_requisites` точно описывал оба варианта в OpenAPI и TS-клиентах.
+- Алиас `CompanyRequisitesResponse = CompanyRequisites | CompanyRequisitesError` в [`app.schemas.schemas`](../backend/app/schemas/schemas.py) — общее имя для всех DTO.
+- Хелпер `company_requisites_for_response(order)` в `app.schemas.schemas` — единая точка сборки `company_requisites` из ORM-объекта: `None` / `CompanyRequisitesError` / `CompanyRequisites` (через accessor с WARN+None на грязных данных).
+- Тест-модуль [`tests/test_order_response_typing.py`](../backend/tests/test_order_response_typing.py) (11 тестов): проверка типизации полей, happy-path, error-маркер, legacy `missing_params`, невалидные `parsed_params` / `survey_data` (→ `None` + WARNING).
+
+### Изменено
+- [`OrderResponse`](../backend/app/schemas/schemas.py):
+  - `parsed_params: dict | None` → `parsed_params: TUParsedData | None`
+  - `survey_data: dict | None` → `survey_data: SurveyData | None`
+  - `company_requisites: dict | None` → `company_requisites: CompanyRequisites | CompanyRequisitesError | None`
+  - `missing_params: list | None` → `missing_params: list[str] | None` (сознательно сохранено как plain-строки — в БД бывают legacy-коды `floor_plan`/`connection_scheme`/и т.п., которые чинятся только на upload-странице через `fix_legacy_client_document_params`).
+- [`UploadPageInfo`](../backend/app/schemas/schemas.py) и [`PaymentPageInfo`](../backend/app/schemas/schemas.py) — те же JSONB-поля строго типизированы.
+- `build_order_response` переписан: больше **не вызывает** `OrderResponse.model_validate(order)` — строит DTO вручную через accessor'ы `app.repositories.order_jsonb.*`, которые уже валидируют JSONB и возвращают `None` + WARNING на невалидных исторических записях. Это устраняет риск падения ответа при грязных данных после смены типов.
+- [`backend/app/api/landing.py`](../backend/app/api/landing.py): локальный `_company_requisites_for_response` удалён (используется общий `company_requisites_for_response`). Чтение `parsed_params`/`survey_data` в `upload-page` — через `get_parsed_params`/`get_survey_data` (типизированные модели).
+
+### UX/контракт API
+- **Фронт-контракт сохранён.** Все ключи JSON-ответов остаются прежними:
+  - `payment.html` / `admin.html` — читают `data.company_requisites.error`: при ошибке парсинга бэкенд отдаёт `{"error": "..."}` (`CompanyRequisitesError.model_dump()` выдаёт ровно этот dict).
+  - `admin.html` — читает `order.parsed_params.object.object_address` и т. п.: `TUParsedData.model_dump()` публикует те же вложенные ключи.
+- **OpenAPI теперь строже.** Для внешних потребителей OpenAPI-схема описывает точную структуру JSONB; поля, не входящие в Pydantic-модели (`extra='ignore'`), при сериализации фильтруются. Для LLM-парсера это не критично — Pydantic-модели `TUParsedData`/`SurveyData`/`CompanyRequisites` полностью покрывают ожидаемые ключи.
+- **Новое поведение на грязных данных.** Если в БД исторически невалидный `parsed_params`/`survey_data`, в ответе API соответствующее поле будет `null` (раньше — возвращался исходный dict «как есть»). В логе — WARNING с причиной. Для custom-заказов это означает пустой опрос на фронте вместо падения страницы (сохранено поведение B1.b).
+
+### Не затронуто
+- `OrderListItem` — без JSONB-полей, типизация не меняется.
+- `PipelineResponse`, `OrderCreate`, `FileResponse`, `EmailLogResponse` — без изменений.
+- `missing_params` — остаётся `list[str] | None` (см. выше причину). Переход на `list[FileCategory]` увязан с финальной data-миграцией legacy-кодов в БД и в scope B1.c не входит.
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy --config-file backend/pyproject.toml backend/app` ✓ (55 файлов).
+- `pytest backend/tests/` — 61/61 (добавлены 11 новых тестов).
+- CI-parity прогон в Docker `python:3.12-slim`: все шаги зелёные.
+
+### Связано с roadmap
+- [Раздел B1.c](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «строгие Pydantic-схемы на JSONB в OrderResponse» — выполнен для `parsed_params`/`survey_data`/`company_requisites`. `missing_params` — открытый вопрос, зависит от B2.c (финальная миграция legacy-кодов).
+- Разблокирует **E1** (typed API через `openapi-typescript`): TS-клиент теперь получает полноценные типы JSONB-полей вместо `Record<string, unknown>`.
+
+### Rollback
+- `git revert` коммита возвращает `dict | None` в DTO и старый `build_order_response`. Схемы в БД не затрагивались — откат данных не требуется.
+
+---
+
+## [2026-04-22] — Фаза B2.b: удаление legacy UPPER_CASE у `FileCategory` (BREAKING CHANGE API)
+
+### Удалено
+- `FileCategory._missing_` (compat-shim, B2.a) — case-insensitive lookup из `backend/app/models/models.py`. После B2.b enum строго принимает только канонические `.value` (snake_case lowercase).
+- `_B2_LEGACY_ALIASES` и `_canonicalize` из [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py) — `get_missing_items` / `get_sample_paths` больше не подменяют UPPER_CASE → lowercase.
+- Записи `BALANCE_ACT` / `CONNECTION_PLAN` из множества `_LEGACY_DOCUMENT_PARAM_CODES` (исторические данные мигрированы Alembic-ревизией `20260421_uute_fc_lower_missing` в B2.a).
+
+### Изменено
+- Тест-модуль [`backend/tests/test_file_category_b2.py`](../backend/tests/test_file_category_b2.py): `test_missing_accepts_legacy_uppercase` → `test_missing_rejects_legacy_uppercase` и т. п. Покрытие: 14 тестов (рост с 12), включая регрессии на канонический lowercase-lookup и поведение `get_missing_items` / `get_sample_paths` на устаревших кодах.
+- `FileCategory` docstring обновлён: явно указано, что в B2.b API возвращает 422 на uppercase-входы.
+
+### BREAKING CHANGE
+- **API:** запросы вида `?category=BALANCE_ACT` / `?category=CONNECTION_PLAN` теперь отвечают **422 Unprocessable Entity** вместо тихой канонизации. До B2.b такие запросы принимались с `WARNING` в лог (`FileCategory: принят устаревший uppercase-алиас …`).
+- **Контракт миграции:** клиент должен использовать только `balance_act` / `connection_plan` (snake_case lowercase). Любые внешние интеграции, не обновлённые после релиза B2.a, поломаются.
+
+### Не затронуто
+- **PG-enum `file_category`** на `order_files.category` — labels по-прежнему UPPER_CASE-имена членов Python (`BALANCE_ACT`, …). SQLAlchemy без `values_callable` persist имена, не `.value`. RENAME enum-меток в БД (`ALTER TYPE ... RENAME VALUE`) — отдельная задача, требует zero-downtime migration с переключением на `values_callable`; в scope B2.b не входит.
+- Данные в `orders.missing_params` (JSONB-массив) уже мигрированы B2.a (Alembic `20260421_uute_fc_lower_missing`).
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy app/models/models.py app/services/param_labels.py` ✓.
+- `pytest tests/` — 52/52 (14 в `test_file_category_b2.py`).
+- CI-parity в Docker `python:3.12-slim`: `ruff` + `mypy app` (55 файлов) + `pytest tests/` (52/52) — зелёные.
+
+### Связано с roadmap
+- [Раздел B2.b](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`SELECT DISTINCT category FROM files` → только lowercase-значения» сохраняется (см. оговорку про PG-enum выше); «API на UPPER_CASE → 422» — выполнено.
+
+### Rollback
+- `git revert` коммита B2.b возвращает `_missing_` и `_canonicalize`. Данные в БД (`orders.missing_params`) уже в lowercase — никаких операций над БД для отката не требуется. Если нужно вернуть исходный B2.a-shim вместе с logs — достаточно git revert.
+
+---
+
+## [2026-04-22] — Фаза D4: Async/sync граница — убран `SyncSession()` из async-роутеров
+
+### Добавлено
+- Celery-задача [`notify_engineer_new_order`](../backend/app/services/tasks/client_response.py) — асинхронное уведомление инженера о новой заявке. Регистрируется под именем `app.services.tasks.notify_engineer_new_order`.
+- Хелпер [`app.services.email.manual_send.manual_send_email_sync`](../backend/app/services/email/manual_send.py) и исключение `ManualSendError` — переиспользуемая sync-обёртка над `SyncSession + SMTP` для админской ручной отправки; вызывается через `asyncio.to_thread` из `POST /emails/{order_id}/send`.
+- CI-шаг `forbid SyncSession() in backend/app/api/` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — падает при появлении `SyncSession()` в async-роутерах.
+- Smoke-тесты [`tests/test_async_sync_boundary.py`](../backend/tests/test_async_sync_boundary.py): запрет `SyncSession()` в `app/api/`, регистрация задачи, `ManualSendError(404)` на отсутствующей заявке.
+
+### Изменено
+- [`backend/app/api/landing.py`](../backend/app/api/landing.py):
+  - `POST /landing/order` больше не открывает `SyncSession()` в async-обработчике — уведомление инженеру уходит best-effort через `notify_engineer_new_order.delay(...)`; event loop не блокируется.
+  - `POST /landing/sample-request`, `/partnership`, `/kp-request` — SMTP-вызовы выполняются через `await asyncio.to_thread(...)`. UX ответа не меняется (`success=True` как раньше; `/kp-request` по-прежнему отвечает 500, если SMTP упал).
+- [`backend/app/api/emails.py`](../backend/app/api/emails.py): `POST /emails/{order_id}/send` делегирует sync-часть хелперу `manual_send_email_sync` через `asyncio.to_thread`; 404/409/400 пробрасываются через `ManualSendError` → `HTTPException`. Ответ остаётся синхронным (админ получает `success`/`message` в том же запросе).
+
+### UX/контракт API
+- `POST /landing/order`: было — уведомление уходило (или падало с exception в try/except) до ответа 201; теперь уходит асинхронно. **Гарантия атомарности email+заявка ослаблена**, но: (а) `try/except` уже глушил ошибки SMTP; (б) при недоступности брокера `.delay()` обёрнут в `try/except` — создание заявки не падает.
+- Остальные эндпоинты сохраняют прежние статусы ответа и тело.
+
+### Проверено
+- `ruff check` ✓, `ruff format --check` ✓, `mypy` ✓, `pytest tests/` 50/50 (добавлены 3 новых теста).
+- CI-parity прогон в Docker (python:3.12-slim) — все шаги зелёные.
+
+### Связано с roadmap
+- [Раздел D4](plans/2026-04-20-audit-section-3-maintainability-roadmap.md): DoD «`rg SyncSession backend/app/api/` = 0 совпадений» выполнен. Следующий шаг — D5 (Celery hardening).
+
+---
+
+## [2026-04-22] — Фаза D3: `contract_generator.py` → пакет `services/contract/`
+
+### Добавлено
+- Пакет [`backend/app/services/contract/`](../backend/app/services/contract/):
+  - [`number_format.py`](../backend/app/services/contract/number_format.py) — пропись сумм, `fmt_rub`, `ru_date`, `extract_city`.
+  - [`tu_embed.py`](../backend/app/services/contract/tu_embed.py) — растр PDF ТУ в PNG, лимит размера DOCX, `TU_DPI_LADDER`.
+  - [`docx_utils.py`](../backend/app/services/contract/docx_utils.py) — таблицы и параграфы python-docx для договора.
+  - [`contract_docx.py`](../backend/app/services/contract/contract_docx.py) — контекст, разделы 1–15, приложения, `generate_contract`, `generate_contract_number`.
+  - [`invoice.py`](../backend/app/services/contract/invoice.py) — `generate_invoice`.
+- Re-export: [`__init__.py`](../backend/app/services/contract/__init__.py). Совместимость: тонкий [`contract_generator.py`](../backend/app/services/contract_generator.py) — re-export из пакета (импорты `app.services.contract_generator` без смены путей в вызовах).
+
+### Изменено
+- **Удалён** дублирующий модуль `backend/app/services/tasks.py` (лог-дубликат рядом с пакетом `tasks/` после D1.b; `import app.services.tasks` по-прежнему ведёт в пакет `tasks/`).
+
+### Проверено
+- `ruff check backend/` ✓, `mypy` (override `app.services.contract.*`, strict) ✓, `pytest` 47/47.
+
+### Исправлено (после CI)
+- `pyproject.toml`: для `app.services.contract.*` в `disable_error_code` добавлен `valid-type` — в CI (Python 3.12) mypy иначе падает на аннотациях `Document` из python-docx (фабрика вместо класса в стабах).
+
+---
+
+## [2026-04-22] — Фаза D2: `email_service.py` → пакет `services/email/`
+
+### Добавлено
+- Пакет [`backend/app/services/email/`](../backend/app/services/email/):
+  - [`smtp.py`](../backend/app/services/email/smtp.py) — `build_mime_message`, `send_smtp_message` (единая точка SSL/STARTTLS + login + `send_message`), `send_email`.
+  - [`idempotency.py`](../backend/app/services/email/idempotency.py) — `has_successful_email`, `log_email` (логи по клиентским письмам с `order.client_email`).
+  - [`renderers.py`](../backend/app/services/email/renderers.py) — Jinja2, `COMMON_CONTEXT`, все `render_*` (в т.ч. уведомления инженеру: ТУ, документы, подписанный договор).
+  - [`service.py`](../backend/app/services/email/service.py) — все `send_*` и оркестрация.
+- Re-export публичного API в [`__init__.py`](../backend/app/services/email/__init__.py). Совместимость: тонкий [`email_service.py`](../backend/app/services/email_service.py) — `from .email import *` (импорты `app.services.email_service` не меняются).
+
+### Изменено
+- `send_kp_request_notification` вместо дублирования блока try/except + SMTP вызывает общий `send_smtp_message` (поведение доставки то же, логирование — через слой `smtp`).
+
+### Проверено
+- `ruff check app/services/email app/services/email_service.py` ✓, `mypy app/services/email app/services/email_service.py` ✓, `pytest` 47/47 (с `SMTP_PASSWORD`, `ADMIN_API_KEY`, `OPENROUTER_API_KEY` в окружении).
+
+---
+
+## [2026-04-22] — Фаза D1.b: `services/tasks.py` → пакет `services/tasks/`
+
+### Добавлено
+- Пакет [`backend/app/services/tasks/`](../backend/app/services/tasks/): публичный API `app.services.tasks` прежний (`import app.services.tasks as tasks` и `from app.services.tasks import ...` без изменений).
+- Подмодули:
+  - [`_common.py`](../backend/app/services/tasks/_common.py) — `SyncSession`, хелперы БД, `_normalize_client_requisites`, вложения проекта, `FINAL_*` / `INFO_REQUEST_*` константы.
+  - [`tu_parsing.py`](../backend/app/services/tasks/tu_parsing.py) — `start_tu_parsing`, `check_data_completeness`.
+  - [`client_response.py`](../backend/app/services/tasks/client_response.py) — `send_info_request_email`, `process_due_info_requests`, уведомления инженеру, `process_client_response`.
+  - [`contract_flow.py`](../backend/app/services/tasks/contract_flow.py) — `process_card_and_contract`, заглушки `fill_excel` / `generate_project`, платёжный флоу, `parse_company_card_task`, `process_company_card_and_send_contract`.
+  - [`post_project_flow.py`](../backend/app/services/tasks/post_project_flow.py) — `send_completed_project`, `resend_corrected_project`, RSO-нотификации.
+  - [`reminders.py`](../backend/app/services/tasks/reminders.py) — beat-задачи напоминаний.
+- Re-export в [`__init__.py`](../backend/app/services/tasks/__init__.py): все задачи + `compute_client_document_missing` (для тестов, патч `app.services.tasks.*`).
+- Скрипт-референс [`scripts/split_tasks_d1b.py`](../scripts/split_tasks_d1b.py) — логика line-range (см. docstring `T()`: 1-based inclusive, не обрезать закрывающие скобки).
+- Тест [`tests/test_celery_tasks_package.py`](../backend/tests/test_celery_tasks_package.py) — 23 зарегистрированных имени `app.services.tasks.*`.
+
+### Изменено
+- **Удалён** монолитный **`backend/app/services/tasks.py`** (≈1.8K строк) — теперь **пакет** `tasks/`.
+- **`tests/test_tu_parsed_engineer_notification.py`** — патчи перенесены на реальные модули-носители (`tu_parsing`, `client_response`), т.к. `patch(tasks, "_get_order")` больше не подменял имя, импортированное в подмодуле из `_common`.
+
+### Проверено
+- D1.a: `name="app.services.tasks.<funcname>"` — без изменений, registry совпадает.
+- `ruff` ✓, `mypy --strict` ✓, `pytest tests/ -q` → 47/47 (вкл. smoke registry).
+
+### Следующий шаг
+- **D4** (roadmap) — async/sync граница в API.
+
+---
+
+## [2026-04-22] — Фаза D1.a: Явные `name=` для всех Celery-задач (подготовка к декомпозиции)
+
+### Изменено
+- **`backend/app/services/tasks.py`** — всем 23 Celery-задачам добавлен параметр `name="app.services.tasks.<funcname>"` в декораторе `@celery_app.task`. До этого Celery вычислял имя автоматически как `<module>.<funcname>`; при будущем перемещении функций в подмодули (D1.b) имена в registry сломались бы (`beat_schedule` и сообщения в очереди завязаны на полные имена).
+
+### Зачем
+Подготовительный шаг перед декомпозицией «толстого» `services/tasks.py` (1717 строк, 70 КБ) на пакет `tasks/{_common, tu_parsing, client_response, contract_flow, post_project_flow, reminders}.py` — roadmap фаза D1. Отдельный атомарный PR, чтобы снизить риск: даже если D1.b задержится или отменится, защита имён уже в проде.
+
+### Проверено
+- `celery_app.tasks.keys()` — все 23 задачи зарегистрированы по именам `app.services.tasks.*` (совпадают с именами до изменения).
+- `beat_schedule` ссылается на `send_reminders`, `process_due_info_requests`, `send_final_payment_reminders_after_rso_scan` — все три имени сохранились.
+- `ruff` ✓, `mypy --strict` ✓, `pytest tests/ -q` → 46/46.
+
+### Не меняется
+- Поведение задач (retries, delays, логика).
+- Имена задач в registry (строки совпадают до символа).
+- API или БД.
+
+### Следующий шаг
+- **D1.b** — собственно декомпозиция `tasks.py` на 6 подмодулей (`_common`, `tu_parsing`, `client_response`, `contract_flow`, `post_project_flow`, `reminders`) + `__init__.py` с re-export'ами для backward-compat.
+
+---
+
+## [2026-04-22] — Фаза B3: Alembic — чистые имена + индексы для листинга
+
+### Добавлено
+- Alembic-миграция [`20260422_uute_add_listing_indexes.py`](../backend/alembic/versions/20260422_uute_add_listing_indexes.py) — создаёт 3 индекса `CREATE INDEX CONCURRENTLY IF NOT EXISTS` (безопасно в проде, не блокирует таблицу):
+  - `ix_orders_created_at_desc` — сортировка «по новизне» в админском listing.
+  - `ix_orders_status_created_at_desc` — композитный под `WHERE status = ? ORDER BY created_at DESC` (топ-кейс).
+  - `ix_order_files_order_id_category` — под частый паттерн `[f for f in order.files if f.category.value == "tu"]` (см. `app/services/tasks/`, `landing.py`).
+  - Downgrade — reversible (`DROP INDEX CONCURRENTLY IF EXISTS`).
+  - Защита `if bind.dialect.name != "postgresql": return` — миграция no-op на SQLite/тестах.
+
+### Изменено
+- **Переименованы две Alembic-миграции** под соглашение `YYYYMMDD_uute_<описание>.py` (см. CLAUDE.md). Revision ID внутри файлов **не меняются**, чтобы не ломать уже применённую историю в `alembic_version`:
+  - `8867df9549c4_add_order_type_and_survey_data.py` → `20260403_uute_add_order_type_and_survey_data.py` (revision = `8867df9549c4` сохранён).
+  - `rename_standard_to_custom_order_type.py` → `20260403_uute_rename_order_type_value_to_custom.py` (revision = `rename_standard_to_custom` сохранён).
+- **`backend/app/models/models.py`** — добавлены `__table_args__` с `Index(...)`-декларациями на `Order` (2 индекса) и `OrderFile` (1 индекс). SQLAlchemy metadata теперь синхронизирована с БД — это подготовка к будущей initial-миграции (`chore/alembic-initial-migration`).
+
+### Проверено (локально)
+- `ruff check` + `ruff format --check` + `mypy --strict` по `app/` — чисто.
+- `alembic.ScriptDirectory.walk_revisions()` — одна голова (`20260422_uute_listing_idx`), цепочка длиной 14, без дубликатов и веток.
+- `pytest tests/ -q` — 46/46 зелёных.
+
+### Деплой
+- **Migration runtime** — первые два индекса `CONCURRENTLY` создаются параллельно чтению, ожидаемое время на ~10k заявок <1 сек. Третий индекс на `order_files` — аналогично.
+- **EXPLAIN до/после** — собирается на проде после миграции (см. PR description).
+
+### Следующий шаг
+- **Фаза C** по roadmap: упрощение стейт-машины — удаление legacy-статусов (`data_complete`, `generating_project`, `review`, `awaiting_contract`) из `OrderStatus`. По § 13.1 roadmap C1+C2 можно объединить в один PR, так как legacy-заявок в проде нет.
+
+## [2026-04-21] — Фаза B2.a: Нормализация `FileCategory` (non-breaking)
+
+### Добавлено
+- Alembic-миграция [`20260421_uute_file_category_lowercase_missing_params.py`](../backend/alembic/versions/20260421_uute_file_category_lowercase_missing_params.py): нормализует исторические значения в `orders.missing_params` JSONB (`BALANCE_ACT` → `balance_act`, `CONNECTION_PLAN` → `connection_plan`). Reversible (downgrade возвращает UPPER_CASE).
+- Новый тест-модуль [`tests/test_file_category_b2.py`](../backend/tests/test_file_category_b2.py) (12 тестов): все `.value` — snake_case lowercase, `_missing_` принимает legacy-алиасы, `param_labels.*` корректно работает и на lowercase, и на UPPER_CASE.
+
+### Изменено
+- **`backend/app/models/models.py` → `FileCategory`:**
+  - `BALANCE_ACT = "balance_act"` (было `"BALANCE_ACT"`).
+  - `CONNECTION_PLAN = "connection_plan"` (было `"CONNECTION_PLAN"`).
+  - Добавлен classmethod `_missing_(value)` — case-insensitive lookup с `WARNING` в лог: старые клиенты (`?category=BALANCE_ACT`) продолжают работать, **но в B2.b (следующий PR) это станет 422**.
+- **`backend/app/services/param_labels.py`:**
+  - `CLIENT_DOCUMENT_PARAM_CODES`, `MISSING_PARAM_LABELS`, `SAMPLE_DOCUMENTS` переведены на snake_case lowercase.
+  - `_LEGACY_DOCUMENT_PARAM_CODES` расширен UPPER_CASE-кодами — `client_document_list_needs_migration` теперь триггерит миграцию списка для заявок с legacy-значениями в `missing_params`.
+  - `get_missing_items` / `get_sample_paths` канонизируют входные коды через `_canonicalize` — письмо «запрос документов» не ломается на старых заявках.
+- **Фронтенд:**
+  - [`backend/static/admin.html`](../backend/static/admin.html): `<option value>` в форме загрузки файла + словарь `catLabels`.
+  - [`backend/static/upload.html`](../backend/static/upload.html): `PARAM_LABELS` перешёл на lowercase ключи.
+
+### Не меняется
+- **PG enum `file_category`** — labels остаются UPPER_CASE именами членов (`BALANCE_ACT`, `CONNECTION_PLAN`, …). SQLAlchemy без `values_callable` persist имена, а не `.value`, поэтому смена `.value` не требует `ALTER TYPE ... RENAME VALUE`.
+- **Старые файлы в хранилище** (`.../BALANCE_ACT/<uuid>_<name>`) — доступны через `order_files.storage_path` (хранится в БД как относительный путь). Новые файлы сохраняются в `.../balance_act/...`.
+
+### API-контракт
+- `GET /api/v1/files?category=balance_act` — канонический формат.
+- `GET /api/v1/files?category=BALANCE_ACT` — **по-прежнему работает** в этом релизе (deprecation WARNING в логах). В B2.b будет отвергнут с 422.
+
+### Следующий шаг
+- **B2.b** (планируется в отдельном PR через 1–2 релиза): убрать `FileCategory._missing_` compat-shim и legacy-алиасы в `param_labels._B2_LEGACY_ALIASES`. После этого uppercase-значения API категорически не принимаются.
+
+## [2026-04-21] — Фаза B1.b: Миграция мест чтения JSONB через accessor-методы
+
+### Добавлено
+- В [`app/repositories/order_jsonb.py`](../backend/app/repositories/order_jsonb.py) — три вспомогательных хелпера `get_*_dict(order)`: валидированный `dict` для шаблонизаторов и legacy-функций (`_normalize_client_requisites`, `auto_fill`), мусорные ключи фильтруются через `extra='ignore'`.
+- 4 новых теста в [`tests/test_jsonb_schemas.py`](../backend/tests/test_jsonb_schemas.py) на `*_dict` хелперы (34/34 passed).
+
+### Изменено
+- **`backend/app/api/landing.py`:**
+  - `POST /landing/orders/{order_id}/survey` — **теперь валидирует тело через Pydantic** (`SurveyData.model_validate(body)`). Некорректные данные → `HTTP 422`. Неизвестные ключи молча отбрасываются (`extra='ignore'`).
+  - `UploadPageInfo` / `PaymentPageInfo` собираются через `get_parsed_params_dict` / `get_survey_data_dict`. Ответы с невалидными историческими данными больше не ломают страницу — возвращается пустой объект + WARNING в логе.
+  - Введён хелпер `_company_requisites_for_response(order)` — отделяет маркеры ошибок парсинга (`{"error": "..."}`) от нормальных реквизитов.
+- **`backend/app/api/parsing.py`:** чтение через accessor, сброс `parsed_params` при `retrigger_parsing` — через `set_parsed_params(order, None)`.
+- **`backend/app/api/calculator_config.py`:** `survey_data.get("manufacturer")` → `survey.manufacturer` (типизированно). `auto_fill` получает валидированные dict.
+- **`backend/app/services/calculator_config_service.py`:** `resolve_calculator_type_for_express`, `init_config`, `init_config_sync` — через accessor + `*_dict`.
+- **`backend/app/services/tasks.py`:**
+  - `_collect_project_attachments`: убран локальный `TUParsedData.model_validate`, переведён на `get_parsed_params(order)`.
+  - `process_card_and_contract`, `process_company_card_and_send_contract`:
+    - `set_company_requisites(order, requisites)` вместо ручного `.model_dump(mode="json")`.
+    - Чтение `doc_info` / `rso_info` через типизированный `parsed.document` / `parsed.rso`.
+    - `_normalize_client_requisites(get_company_requisites_dict(order), ...)` вместо raw-dict.
+  - `parse_company_card_task`: `set_company_requisites(order, requisites)`.
+  - Сознательно оставлен raw-доступ в трёх местах (прокомментировано):
+    - `_resolve_initial_payment_amount` — ключ `circuits` не описан в `TUParsedData` (устаревший flat-формат).
+    - `start_tu_parsing` — ручной `model_dump(exclude={"raw_text"})`: raw_text слишком велик для JSONB.
+    - Маркеры ошибок `{"error": "..."}` в `company_requisites` — не `CompanyRequisites`, отдельный формат.
+
+### Инструменты
+- [`backend/pyproject.toml`](../backend/pyproject.toml) → `[[tool.mypy.overrides]]`: для `app.schemas.jsonb.*` и `app.repositories.*` включён `strict = true`. Отключены три known-false-positive кода (`no-untyped-call`, `attr-defined`, `arg-type`, `assignment`) — подробные причины в комментарии.
+
+### Безопасность / поведение
+- `save_survey` теперь **возвращает 422** на невалидное тело. Реальный фронт (`backend/static/upload.html`) шлёт ровно `collectSurveyData()` — совпадает со схемой, регрессий не ожидается.
+- Места, где показывалась ошибка парсинга карточки предприятия (`{"error": "..."}`), продолжают работать — хелпер `_company_requisites_for_response` сохраняет этот особый формат.
+
+### Следующий шаг
+- **B1.c** (строгая типизация `OrderResponse` в `schemas.py`) — в связке с **E1** (typed API через `openapi-typescript`), т.к. это формальный breaking change контракта API.
+
+## [2026-04-21] — Фаза B1.a: Pydantic-схемы для JSONB (каркас)
+
+### Добавлено
+- Новый модуль [`backend/app/schemas/jsonb/`](../backend/app/schemas/jsonb/):
+  - `tu.py` — `TUParsedData` и все её submodel'и (перенесены из `services/tu_schema.py`).
+  - `survey.py` — новая модель `SurveyData` для `Order.survey_data` (опросный лист клиента). Поля 1:1 с `collectSurveyData()` в `backend/static/upload.html`.
+  - `company.py` — `CompanyRequisites` (перенесена из `services/company_parser.py`).
+  - `__init__.py` — публичный API модуля.
+- Новый слой [`backend/app/repositories/`](../backend/app/repositories/):
+  - `order_jsonb.py` — типизированные accessor-методы `get_parsed_params/set_parsed_params`, `get_survey_data/set_survey_data`, `get_company_requisites/set_company_requisites`. Валидация через `TypeAdapter` происходит **при чтении** с `extra='ignore'`. На невалидных исторических данных — WARNING в лог + возврат `None` (не падаем).
+- [`backend/tests/test_jsonb_schemas.py`](../backend/tests/test_jsonb_schemas.py) — 23 unit-теста на модели + accessor-методы (валидация, границы, fallback, backward-compat имортов).
+
+### Изменено
+- [`backend/app/services/tu_schema.py`](../backend/app/services/tu_schema.py) — превращён в backward-compat shim (реэкспорт из `app.schemas.jsonb.tu`). Все существующие импорты (`from app.services.tu_schema import TUParsedData`) продолжают работать.
+- [`backend/app/services/company_parser.py`](../backend/app/services/company_parser.py) — удалено локальное определение `CompanyRequisites`, добавлен реэкспорт из `app.schemas.jsonb.company`. Поведение парсера не изменилось.
+
+### Безопасность / деплой
+- **Runtime не затронут.** Места чтения JSONB в бизнес-коде пока обращаются к полям как раньше (`order.parsed_params["heat_loads"]`). Это будет переписано в следующем PR **B1.b**.
+- Модели JSONB используют `extra='ignore'` — исторические записи с устаревшими ключами читаются без ошибок (важно для миграций промпта LLM).
+
+### Следующие шаги (B1.b, B1.c)
+- **B1.b:** переписать все места чтения (`admin.py`, `landing.py`, `contract_generator.py`, `email_service.py`, `tasks.py`, `calculator_config_service.py`) через accessor-методы из `app.repositories.order_jsonb`.
+- **B1.c:** строгая типизация `OrderResponse` — breaking для фронта, делать в связке с E1 (typed API).
+
+## [2026-04-21] — Фаза A4: Frontend baseline (vitest + .env.example)
+
+### Добавлено
+- [`frontend/.env.example`](../frontend/.env.example) — шаблон env для фронта с `VITE_API_BASE_URL=/api/v1`. Документирует поведение в prod (same-origin), dev (vite proxy) и при выносе API на отдельный домен.
+- [`frontend/src/utils/pricing.ts`](../frontend/src/utils/pricing.ts) — чистые функции расчёта цены (`calcIndividualPrice`, `calcExpressPrice`, `formatPrice`) + константы `INDIVIDUAL_PRICES` / `EXPRESS_PRICE`. Единый источник правды по тарифам.
+- [`frontend/src/utils/pricing.test.ts`](../frontend/src/utils/pricing.test.ts) — 5 unit-тестов на pricing (vitest).
+- **`vitest`** (v2.1.x) в `frontend/package.json` → `devDependencies`. Скрипты `test` (vitest run) и `test:watch` (watch-режим).
+- Секция `test` в [`frontend/vite.config.ts`](../frontend/vite.config.ts) (node environment, `src/**/*.{test,spec}.{ts,tsx}`).
+- Шаг **`Test (vitest)`** в CI `frontend` job (между lint и build).
+
+### Изменено
+- [`frontend/src/api.ts`](../frontend/src/api.ts): `const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'` — обратно-совместимо, без `.env` работает как раньше.
+- [`frontend/src/components/CalculatorSection.tsx`](../frontend/src/components/CalculatorSection.tsx): удалён дублирующий расчёт цен (`useState` + `useEffect` с inline-объектом prices), подключён `src/utils/pricing.ts`. Поведение UI не изменилось.
+
+### Безопасность / деплой
+- **Runtime не затронут.** Prod-образ использует `/api/v1` как раньше (переменная не задана → fallback).
+- CI frontend-job стал строже: теперь падает не только на lint/build, но и на регрессии pricing.
+
+## [2026-04-21] — Фаза A3: GitHub Actions CI
+
+### Добавлено
+- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — четыре активных job:
+  - **lint-type** — `ruff check` + `ruff format --check` + `mypy` на `backend/`.
+  - **tests** — `pytest backend/tests/` (7 unit-тестов, БД не требуется).
+  - **frontend** — `node 20`, `npm ci` + `npm run lint` + `npm run build`.
+  - **pre-commit** — прогон всех хуков через `pre-commit/action@v3.0.1` (кэшируется).
+- Конкурентность: `concurrency.group=ci-${{ github.ref }}, cancel-in-progress=true` — автоматически отменяет предыдущие прогоны в той же ветке.
+- CI-бейдж в корневом [`README.md`](../README.md).
+
+### Изменено
+- [`frontend/src/components/EmailModal.tsx`](../frontend/src/components/EmailModal.tsx) — убран `any` в `catch (err)`, заменён на `unknown` + narrowing через `err instanceof Error`.
+- [`backend/pyproject.toml`](../backend/pyproject.toml) — в `[tool.pytest.ini_options]` добавлены `pythonpath = ["."]` и `testpaths = ["tests"]` (пути относительно backend/). Без этого pytest без editable install не находил пакет `app`.
+- [`backend/alembic/env.py`](../backend/alembic/env.py) — добавлен sys.path-shim: корень `backend/` вставляется в `sys.path` перед `from app.*` импортами. В Docker безвреден (WORKDIR=/app уже в path), в dev/CI делает `alembic` работоспособным без editable install.
 
 ### Исправлено
-- Совместимость версий `weasyprint` и `pydyf` — установлены протестированные версии (61.2 и 0.10.0), избегающие ошибок `AttributeError` и `TypeError` в новых версиях
+- CI `lint-type` и `tests` изначально падали на `pip install -e "backend[dev]"` из-за отсутствия секции `[build-system]` в `pyproject.toml`. Решение: dev-deps ставятся напрямую по тем же версиям (`pip install "ruff>=0.6,<1.0" ...`). Editable install вернём, когда появится фаза, где пакет `app` имеет смысл инсталлировать как distribution.
 
-### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 4 завершена ✅ (PDF-рендер с ГОСТ-рамкой через WeasyPrint)
+### Известные ограничения
+- **Job `alembic` временно отключён (закомментирован в `ci.yml`)**. На чистой БД `alembic upgrade head` падает с `UndefinedTableError: relation "order_files" does not exist`: в репо нет initial-миграции, первая в цепочке уже ссылается на таблицу, созданную «до base». Включим обратно после задачи `chore/alembic-initial-migration` (см. `docs/tasktracker.md`). В prod это не воспроизводится — БД живёт с предыдущих релизов.
 
-### Технические детали
-**Пайплайн генерации PDF:**
-```
-SVG контент (scheme_svg_renderer)
-    ↓
-+ ГОСТ-рамка (scheme_gost_frame: gost_frame_a3/a4)
-    ↓
-Полный SVG с рамкой и штампом
-    ↓
-HTML-шаблон (Jinja2: gost_frame_a3.html / gost_frame_a4.html)
-    ↓
-WeasyPrint → PDF bytes
-```
+### Безопасность / деплой
+- **Runtime не затронут.** Workflow запускается на `push` (все ветки) и `pull_request` в `main`.
+- В job-ах, требующих `Settings()`, заданы фейковые значения `ADMIN_API_KEY`, `SMTP_PASSWORD`, `OPENROUTER_API_KEY` — в тестах они не используются.
 
-**Размеры страниц:**
-- A3 landscape: 420×297 мм (1190×842 px в SVG)
-- A4 portrait: 210×297 мм (595×842 px в SVG)
-
-**Зависимости:**
-- `weasyprint==61.2` выбран вместо Puppeteer (не требует headless-браузера, чистый Python, работает в Docker)
-- `pydyf==0.10.0` — совместимая версия, более новые версии несовместимы с weasyprint 61.2
-
-## [2026-04-20] — SVG: схемы 6–8 (независимые) — все 8 схем готовы ✅
+## [2026-04-21] — Фаза A2: pyproject + ruff + mypy + pre-commit
 
 ### Добавлено
-- В [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py):
-  - Схема 6 (`render_scheme_06_indep`) — независимая базовая: два контура (сетевой и внутренний) соединены теплообменником, 2-ходовой клапан, насос ВК, подпитка G3
-  - Схема 7 (`render_scheme_07_indep_gwp`) — независимая + ГВС (врезка из сетевого контура, двухступенчатый подогреватель)
-  - Схема 8 (`render_scheme_08_indep_gwp_vent`) — независимая + ГВС + параллельная ветка вентиляции
+- [`backend/pyproject.toml`](../backend/pyproject.toml) — PEP 621-конфиг: `[project]` (имя, Python ≥3.12), `[project.optional-dependencies.dev]` (ruff, mypy, pytest, pytest-asyncio, pytest-cov, httpx, pre-commit), настройки `[tool.ruff]`, `[tool.ruff.lint]`, `[tool.ruff.format]`, `[tool.mypy]`, `[tool.pytest.ini_options]`. Dev-зависимости ставятся через `pip install -e "backend[dev]"`; prod продолжает использовать `requirements.txt` без изменений.
+- [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) — хуки: `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-toml`, `check-merge-conflict`, `check-added-large-files`, `ruff-check --fix`, `ruff-format`, `mypy` (с runtime-зависимостями Pydantic/SQLAlchemy/FastAPI). Установка: `pip install --user pre-commit && pre-commit install`.
+- В [`CLAUDE.md`](../CLAUDE.md) раздел «Dev-инструменты» с инструкцией по установке и запуску.
 
 ### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 3 завершена ✅ (все 8 типовых конфигураций реализованы и протестированы).
-- В [`docs/project.md`](project.md): дополнен раздел SVG с упоминанием `scheme_svg_renderer.py` и статусом задачи 3 ✅.
-- Добавлен файл [`docs/scheme-implementation-notes.md`](scheme-implementation-notes.md): технические заметки о реализации всех 8 схем (архитектура модулей, топологические особенности, координатная сетка, коммиты, известные ограничения MVP).
+- Однократный прогон `ruff format backend/` — 34 файла `backend/app/**/*.py` переформатированы (LF, двойные кавычки, trailing-commas); поведение кода не меняется.
+- Автофиксы хуков `end-of-file-fixer` и `trailing-whitespace` — добавлены финальные переводы строк в ряде docs- и frontend-файлов (косметика).
 
-## [2026-04-20] — SVG: схемы 3–5 (зависимые с клапаном/ГВС/вентиляцией)
+### Безопасность / деплой
+- **Runtime не затронут.** Prod-образ собирается по-прежнему из `requirements.txt`; pyproject используется только dev-инструментами.
+- Ruff линтинг настроен в режиме **baseline**: кириллица в строках/комментариях не триггерит RUF001/002/003; правила с массовыми нарушениями (I001, UP017, UP035, B904 и др.) временно в `ignore` — будут сняты отдельным PR `chore/audit-ruff-cleanup`.
+- Mypy в режиме baseline: существующий код в `app.*` игнорируется через `[[tool.mypy.overrides]] ignore_errors = true`; новые модули (фазы B1/D1–D3) будут заводиться со `strict = true`.
 
-### Добавлено
-- В [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py): 
-  - Схема 3 (`render_scheme_03_dep_valve`) — трёхходовой клапан и насос на перемычке для регулирования температуры
-  - Схема 4 (`render_scheme_04_dep_valve_gwp`) — комбинация схемы 3 (клапан+насос) и схемы 2 (ГВС)
-  - Схема 5 (`render_scheme_05_dep_valve_gwp_vent`) — самая сложная зависимая: клапан+насос, ГВС и параллельная ветка вентиляции с теплообменником
+## [2026-04-21] — Фаза A1: пути к фронту и uploads вынесены в Settings
 
 ### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): подзадача 3.2 завершена ✅ (все 5 зависимых схем готовы).
+- В [`backend/app/core/config.py`](../backend/app/core/config.py) добавлены поля `frontend_dist_dir` и `upload_dir` (перезаписан) с factory-дефолтами. Логика дефолтов:
+  - `FRONTEND_DIST_DIR` — prod: `/app/frontend-dist` (если существует); dev: `<repo>/frontend/dist`.
+  - `UPLOAD_DIR` — prod: `/var/uute-service/uploads` (если существует); dev: `<repo>/uploads`.
+  - Оба значения переопределяются переменными окружения.
+- В [`backend/app/main.py`](../backend/app/main.py) убран захардкоженный `FRONTEND_DIR = Path("/app/frontend-dist")`; теперь используется `settings.frontend_dist_dir`.
+- В [`backend/.env.example`](../backend/.env.example) задокументирован `FRONTEND_DIST_DIR` (оставлен закомментированным — auto-fallback в коде), обновлено описание `UPLOAD_DIR`.
+- В [`CLAUDE.md`](../CLAUDE.md) в таблице ENV-переменных уточнены значения `UPLOAD_DIR` и добавлен `FRONTEND_DIST_DIR`.
 
-## [2026-04-20] — SVG: схема 2 (зависимая с ГВС) и fix text_label
+### Безопасность / деплой
+- **Prod не требует изменений.** Если обе переменные не заданы в `backend/.env` на сервере, код автоматически выбирает prod-пути (`/app/frontend-dist`, `/var/uute-service/uploads`) за счёт проверки существования каталогов. Поведение идентично прежнему.
+- **Dev-среда** (`uvicorn backend.app.main:app --reload` на хосте): SPA-маршруты больше не зависят от существования `/app/frontend-dist` — после `cd frontend && npm run build` backend отдаёт SPA из `frontend/dist`.
+- Pydantic-валидация обязательных полей (`ADMIN_API_KEY`, `OPENROUTER_API_KEY`, `SMTP_PASSWORD`) сохранена.
+
+## [2026-04-21] — Раздел 3 аудита: решения по открытым вопросам
+
+### Изменено
+- В [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md) добавлена секция **§ 13.1 «Принятые решения (2026-04-21)»**. Зафиксировано:
+  - Legacy-статусы: живых заявок в проде нет, все записи в `orders` тестовые и удаляемы → фаза C упрощается, C1+C2 допустимо слить в один PR.
+  - `FileCategory` нормализация: делаем **через два релиза** (non-breaking → breaking).
+  - `admin.html` декомпозиция: ответ отложен; пока планируем минимальный вариант (модули без React).
+  - Sentry, `psycopg3`, CI provider, coverage gate — приняты дефолты (отложено / GitHub Actions / без fail-порога).
+- В § 7 roadmap добавлено примечание о том, что data-миграция в C1 теперь не требуется.
+
+### Безопасность / деплой
+- Решений, меняющих runtime, нет — только планирование. Следующий шаг — открыть PR `chore/audit-a1-paths` (фаза A, пункт A1).
+
+## [2026-04-20] — Восстановление пропущенной prod-миграции advance_payment_model
 
 ### Добавлено
-- В [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py): реализация схемы 2 (`render_scheme_02_dep_simple_gwp`) — базовая схема + блок ГВС (двухступенчатый подогреватель с теплообменниками 1-й и 2-й ступени, врезки в подачу/обратку, насос ГВС, расходомер G3, подписи ХВС/ГВС, зона ГВС с пунктирной рамкой).
+- Файл [`backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py`](../backend/alembic/versions/87fcef6f52ff_20260415_uute_advance_payment_model.py) — миграция `87fcef6f52ff`, которая создаёт enum `payment_method` и добавляет в `orders` колонки `payment_method`, `payment_amount`, `advance_amount`, `advance_paid_at`, `final_paid_at`, `company_requisites`, `contract_number`; дополняет значения в enum-ах `order_status` (`AWAITING_CONTRACT`, `CONTRACT_SENT`, `ADVANCE_PAID`, `AWAITING_FINAL_PAYMENT`), `file_category` (`COMPANY_CARD`, `CONTRACT`, `INVOICE`, `RSO_SCAN`), `email_type` (`PROJECT_READY_PAYMENT`, `CONTRACT_DELIVERY`, `ADVANCE_RECEIVED`, `FINAL_PAYMENT_REQUEST`, `FINAL_PAYMENT_RECEIVED`); заменяет unique-constraint на unique-индекс в `calculator_configs`. Миграция была сгенерирована через `alembic revision --autogenerate` прямо на production-сервере 2026-04-14 и применена к prod-БД, но никогда не попала в git — на clean БД `alembic upgrade head` не создавал `advance_amount`/`advance_paid_at`, хотя модель `Order` (`backend/app/models/models.py:256-257`) эти колонки читает. Это блокировало любой re-deploy на новой инфраструктуре.
+- Файл [`backend/alembic/script.py.mako`](../backend/alembic/script.py.mako) — стандартный шаблон Alembic для `alembic revision`; ранее отсутствовал в репозитории, из-за чего нельзя было сгенерировать новые миграции локально.
+
+### Изменено
+- В [`backend/alembic/versions/20260416_uute_signed_contract_enums.py`](../backend/alembic/versions/20260416_uute_signed_contract_enums.py): `down_revision` переключён с `"20260412_uute_calc_configs"` на `"87fcef6f52ff"`. Это встраивает восстановленную миграцию в линейную цепочку без появления двух голов. На prod БД ничего не меняется (alembic_version = `20260416_uute_tu_parsed_notification`, `upgrade head` = nothing to do), на чистой БД цепочка корректно пройдёт все 12 ревизий от `20260402_uute_fc` до текущей головы.
+
+### Безопасность / деплой
+- Перед следующим деплоем (`docker compose up -d --build backend`) на prod сверить `docker exec uute-project-postgres-1 psql -U postgres -d uute -c "SELECT version_num FROM alembic_version;"` — должно быть `20260416_uute_tu_parsed_notification`, `alembic upgrade head` ничего не применит.
+- На dev-стендах, клонирующих репо заново: `alembic upgrade head` корректно пройдёт всю цепочку.
+
+## [2026-04-20] — Раздел 3 аудита: roadmap по поддерживаемости и архитектуре
+
+### Добавлено
+- Файл [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md) — подробный roadmap по разделу 3 аудита (пункты 3.1–3.11): 6 фаз (Фундамент, Типизация данных, Упрощение стейт-машины, Декомпозиция «толстых» модулей, Frontend, Зависимости), матрица приоритетов (impact × effort × risk), mermaid-граф зависимостей фаз, критерии готовности, риски с mitigation, открытые вопросы для продакта, последовательность из ~18 PR.
+
+## [2026-04-20] — Раздел 2 аудита: срочные правки безопасности
+
+### Изменено
+- В [`backend/app/main.py`](../backend/app/main.py): `CORSMiddleware` больше не использует wildcard `*`; список origin-ов читается из `settings.cors_origins` (ENV `CORS_ORIGINS`, JSON-список). Дефолт — только `https://constructproject.ru`. Сочетание `*` + `allow_credentials=True` всё равно отбрасывалось браузерами по спеке, поэтому регрессов на проде нет.
+- В [`backend/app/core/auth.py`](../backend/app/core/auth.py): `verify_admin_key` теперь сравнивает ключ через `secrets.compare_digest` (защита от timing-атак). Query-параметр `?_k=` оставлен как deprecated fallback и при использовании логируется WARNING с маскированным ключом — чтобы найти и убрать оставшихся клиентов перед его удалением.
+- В [`backend/app/core/config.py`](../backend/app/core/config.py): убраны небезопасные дефолты для секретов — `admin_api_key` (≥16 симв.), `openrouter_api_key`, `smtp_password` теперь `Field(..., ...)` без значения. Если переменных нет в `.env`, `Settings()` падает с понятной ошибкой Pydantic. Добавлено поле `cors_origins: list[str]`.
+- В [`backend/.env.example`](../backend/.env.example): помечены `[REQUIRED]` поля, добавлен `CORS_ORIGINS` с примером JSON-списка, добавлена подсказка по генерации `ADMIN_API_KEY` через `secrets.token_urlsafe(32)`.
 
 ### Исправлено
-- В [`backend/app/services/scheme_svg_elements.py`](../backend/app/services/scheme_svg_elements.py): функция `text_label()` — исправлен return (многострочный литерал требует явных скобок), теперь текстовые подписи корректно генерируются.
+- В [`backend/app/api/landing.py`](../backend/app/api/landing.py): тихий `except Exception: pass` после `send_new_order_notification` (создание заявки) заменён на `logger.exception(...)` — теперь сбои отправки уведомления инженеру попадают в логи и не маскируются.
 
-### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): схема 2 завершена ✅.
+### Безопасность
+- Wildcard CORS больше не разрешён. Перед деплоем убедиться, что в боевом `.env` задан `CORS_ORIGINS` со всеми реальными origin-ами (как минимум прод-домен; для preview-стендов — добавить их в JSON-список).
+- При обновлении на сервере **обязательно** проверить, что в `~/uute-project/backend/.env` есть `ADMIN_API_KEY`, `OPENROUTER_API_KEY`, `SMTP_PASSWORD` — иначе backend не стартует.
 
-## [2026-04-20] — SVG: рендерер схем УУТЭ — эталонная схема 1
+## [2026-04-20] — Уборка документации и репозитория после аудита
 
 ### Добавлено
-- Файл [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py): модуль компоновки полных схем, диспетчер `render_scheme()` и реализация эталонной схемы 1 (`render_scheme_01_dep_simple`) — зависимая без клапана (топология: подача/обратка, задвижки, фильтры, датчики t/P, расходомеры G1/G2, радиатор, УУТЭ с таблицей).
+- Каталог [`docs/archive/2026-Q2/`](archive/2026-Q2/) со всеми завершёнными task-трекерами и реализованными планами (включая `payment-advance-tasktracker.md`, `smart-survey-tasktracker.md`, `two-option-order-tasktracker.md`, `tasktracker-soprovod.md`, `tasktrecker-otchet-parsing.md`, `tasktrecker-progrssbar.md`, `plan-unified-upload-contract.md`, а также `plans/2026-04-16-*.md`, `superpowers/plans/*.md`, `superpowers/specs/*.md`).
+- В [`.gitignore`](../.gitignore): `*.sql`, `*Zone.Identifier`, `docs/rekvizit_acc.md`, `docs/secrets/`, `.secrets/` — чтобы локальные дампы БД, артефакты Windows/WSL и реквизиты ИП больше не попадали в git.
 
 ### Изменено
-- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): задача 3 в работе, подзадача 3.1 завершена.
+- Переименованы файлы с пробелами и `(N)` в имени:
+  - `docs/kontrakt_ukute_template (2).md` → [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md)
+  - `docs/scheme-generator-roadmap (1).md` → [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md)
+- Перенесён справочник городов: `docs/cities_from_table1.md` → [`backend/calculator_templates/cities_from_table1.md`](../backend/calculator_templates/cities_from_table1.md) (рядом с другими шаблонами калькулятора).
+- В [`frontend/package.json`](../frontend/package.json): `name` изменён с placeholder `vite-react-typescript-starter` на `uute-landing`, добавлены `description` и `version` `0.1.0`.
+- В [`CLAUDE.md`](../CLAUDE.md): актуализированы стейт-машина (`OrderStatus` с веткой оплаты и замечаний РСО), раздел «Текущий статус разработки» (полный production-флоу + backlog), описание структуры `docs/` (включая `archive/`).
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): docstring и комментарии указывают на новое имя шаблона `docs/kontrakt_ukute_template.md`.
+- В [`docs/project.md`](project.md), [`docs/changelog.md`](changelog.md), [`docs/tasktracker.md`](tasktracker.md): обновлены ссылки на переименованные/перенесённые в архив файлы.
+
+### Удалено
+- Пустые/устаревшие файлы:
+  - `backup_20260411.sql` (пустой дамп в корне репо)
+  - `frontend/.env` (пустой файл)
+  - `cursorrules` (устаревший — актуальные правила теперь в `.cursor/rules/`)
+  - `.cursor/rules/calculator-config-design.md:Zone.Identifier` (артефакт WSL/Windows)
+  - `docs/opros_list_form.pdf` (полный дубликат [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf), md5 совпадает)
+  - `docs/rekvizit_acc.md` (содержал реальные реквизиты ИП; в git ещё не был зафиксирован, поэтому из истории убирать не требуется)
 
 ## [2026-04-20] — SVG: библиотека условных обозначений и ГОСТ-рамка для схем УУТЭ
 
@@ -225,7 +703,7 @@ WeasyPrint → PDF bytes
 ## [2026-04-19] — Договор DOCX: новый шаблон и компактная вёрстка
 
 ### Изменено
-- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): текст договора и приложений синхронизирован с шаблоном [`docs/kontrakt_ukute_template (2).md`](kontrakt_ukute_template%20(2).md), включая обновлённые формулировки разделов 4–14 и приложений 1–3.
+- В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): текст договора и приложений синхронизирован с шаблоном [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md), включая обновлённые формулировки разделов 4–14 и приложений 1–3.
 - В [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py): для договора задан компактный формат документа — базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы уменьшить объём DOCX и приблизить вёрстку к образцу.
 
 ## [2026-04-19] — Договор DOCX: вставка страниц ТУ и лимит размера
@@ -474,7 +952,7 @@ WeasyPrint → PDF bytes
 ## [2026-04-11] — Скачивание опросного листа (PDF) с лендинга
 
 ### Добавлено
-- Статический файл [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf): копия [`docs/opros_list_form.pdf`](opros_list_form.pdf) для раздачи Vite/production.
+- Статический файл [`frontend/public/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf): единственный источник опросного листа (ранее дублировался в `docs/opros_list_form.pdf`, дубль удалён — см. запись `[2026-04-20]`).
 
 ### Изменено
 - В [`frontend/src/components/ProcessSection.tsx`](../frontend/src/components/ProcessSection.tsx): ссылки «Скачать опросный лист» (шаг 1 и блок под `#questionnaire`) ведут на `/downloads/opros_list_form.pdf` с атрибутом `download`.

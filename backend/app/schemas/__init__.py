@@ -1,10 +1,29 @@
 from app.schemas.schemas import (
-    OrderCreate, OrderStatusUpdate, OrderResponse, OrderListItem,
-    FileResponse, EmailLogResponse, UploadPageInfo, PaymentPageInfo, PipelineResponse,
+    CompanyRequisitesResponse,
+    EmailLogResponse,
+    FileResponse,
+    OrderCreate,
+    OrderListItem,
+    OrderResponse,
+    OrderStatusUpdate,
+    PaymentPageInfo,
+    PipelineResponse,
+    UploadPageInfo,
     build_order_response,
+    company_requisites_for_response,
 )
+
 __all__ = [
-    "OrderCreate", "OrderStatusUpdate", "OrderResponse", "OrderListItem",
-    "FileResponse", "EmailLogResponse", "UploadPageInfo", "PaymentPageInfo", "PipelineResponse",
+    "CompanyRequisitesResponse",
+    "EmailLogResponse",
+    "FileResponse",
+    "OrderCreate",
+    "OrderListItem",
+    "OrderResponse",
+    "OrderStatusUpdate",
+    "PaymentPageInfo",
+    "PipelineResponse",
+    "UploadPageInfo",
     "build_order_response",
+    "company_requisites_for_response",
 ]

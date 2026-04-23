@@ -17,7 +17,7 @@ from app.api.scheme_generator import router as scheme_generator_router
 from app.core.config import settings
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
-FRONTEND_DIR = Path("/app/frontend-dist")
+FRONTEND_DIR = settings.frontend_dist_dir
 
 
 def _safe_dist_file(full_path: str) -> Path | None:
@@ -49,10 +49,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — разрешаем запросы с лендинга
+# CORS — разрешаем запросы только с известных origin-ов (см. settings.cors_origins).
+# Wildcard "*" + allow_credentials=True по спеке невалиден и всё равно отбрасывается
+# браузерами, поэтому держим явный whitelist через ENV `CORS_ORIGINS`.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: ограничить вашим доменом
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

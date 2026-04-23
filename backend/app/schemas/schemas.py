@@ -1,3 +1,14 @@
+"""
+@file: app/schemas/schemas.py
+@description: Pydantic-схемы API — DTO для заявок, файлов, email-логов, публичных
+    страниц клиента. Фаза B1.c (2026-04-22): `parsed_params`, `survey_data`,
+    `company_requisites` в `OrderResponse`/`UploadPageInfo`/`PaymentPageInfo`
+    переведены на строгие Pydantic-модели из `app.schemas.jsonb` — OpenAPI-
+    контракт описывает точную структуру JSONB-полей, TS-клиенты (E1) получают
+    полноценные типы.
+@dependencies: pydantic v2, app.schemas.jsonb.*, app.repositories.order_jsonb.*
+"""
+
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -6,9 +17,25 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.models.models import EmailType, FileCategory, OrderStatus, OrderType, PaymentMethod
 from app.post_project_state import derive_post_project_flags
+from app.repositories.order_jsonb import (
+    get_company_requisites,
+    get_parsed_params,
+    get_survey_data,
+)
+from app.schemas.jsonb import (
+    CompanyRequisites,
+    CompanyRequisitesError,
+    SurveyData,
+    TUParsedData,
+)
 
 if TYPE_CHECKING:
     from app.models.models import Order as OrderModel
+
+
+# Типизированное представление «реквизитов клиента» в публичных DTO:
+# либо валидная карточка, либо маркер неудачного парсинга, либо пусто.
+CompanyRequisitesResponse = CompanyRequisites | CompanyRequisitesError
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -36,7 +63,19 @@ class OrderStatusUpdate(BaseModel):
 
 
 class OrderResponse(BaseModel):
-    """Ответ API — полная информация о заявке."""
+    """Ответ API — полная информация о заявке.
+
+    JSONB-поля (`parsed_params`, `survey_data`, `company_requisites`) с B1.c
+    типизированы строго. Валидация происходит в `build_order_response` через
+    accessor'ы `app.repositories.order_jsonb.*` — невалидные исторические
+    записи становятся `None` (+ WARNING в лог), а `OrderResponse` не падает.
+
+    Поле `missing_params: list[str] | None` сохранено как plain-строки:
+    в БД возможны legacy-коды (`floor_plan`, `connection_scheme` и т. п.),
+    которые сервис `fix_legacy_client_document_params` приводит к канонике
+    только при открытии страницы загрузки клиентом. Для админки эти коды
+    иногда важно видеть «как есть».
+    """
 
     id: UUID
     status: OrderStatus
@@ -47,9 +86,9 @@ class OrderResponse(BaseModel):
     client_organization: str | None
     object_address: str | None
     object_city: str | None
-    parsed_params: dict | None
-    missing_params: list | None
-    survey_data: dict | None
+    parsed_params: TUParsedData | None
+    missing_params: list[str] | None
+    survey_data: SurveyData | None
     retry_count: int
     reviewer_comment: str | None
     payment_method: PaymentMethod | None = None
@@ -58,7 +97,7 @@ class OrderResponse(BaseModel):
     advance_paid_at: datetime | None = None
     final_paid_at: datetime | None = None
     rso_scan_received_at: datetime | None = None
-    company_requisites: dict | None = None
+    company_requisites: CompanyRequisitesResponse | None = None
     contract_number: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -137,24 +176,36 @@ class EmailLogResponse(BaseModel):
 
 
 class UploadPageInfo(BaseModel):
-    """Информация для страницы загрузки файлов клиентом."""
+    """Информация для страницы загрузки файлов клиентом.
+
+    JSONB-поля типизированы (B1.c). `company_requisites` — `CompanyRequisites`
+    для валидных реквизитов либо `CompanyRequisitesError` для маркера ошибки
+    парсинга карточки (фронт `upload.html` этот маркер по нынешнему коду
+    не показывает, но контракт совпадает с `PaymentPageInfo`).
+    """
 
     order_id: UUID
     client_name: str
     order_status: str
     order_type: str | None = None
-    parsed_params: dict | None = None
-    survey_data: dict | None = None
+    parsed_params: TUParsedData | None = None
+    survey_data: SurveyData | None = None
     contract_number: str | None = None
     payment_amount: int | None = None
     advance_amount: int | None = None
-    company_requisites: dict | None = None
+    company_requisites: CompanyRequisitesResponse | None = None
     missing_params: list[str]
     files_uploaded: list[FileResponse]
 
 
 class PaymentPageInfo(BaseModel):
-    """Информация для страницы оплаты клиентом."""
+    """Информация для страницы оплаты клиентом.
+
+    `company_requisites` с B1.c — строгий Union. Фронт `payment.html` по-прежнему
+    проверяет `data.company_requisites && data.company_requisites.error` — при
+    ошибке парсинга бэкенд отдаёт `CompanyRequisitesError` (`{"error": "..."}`)
+    и флоу остаётся прежним.
+    """
 
     order_id: UUID
     client_name: str
@@ -165,7 +216,7 @@ class PaymentPageInfo(BaseModel):
     payment_method: str | None = None
     payment_amount: int | None = None
     advance_amount: int | None = None
-    company_requisites: dict | None = None
+    company_requisites: CompanyRequisitesResponse | None = None
     payment_requisites: dict | None = None
     contract_number: str | None = None
     has_rso_scan: bool = False
@@ -184,16 +235,49 @@ class PipelineResponse(BaseModel):
     task_id: str | None = None
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# BUILDERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def company_requisites_for_response(
+    order: "OrderModel",
+) -> CompanyRequisitesResponse | None:
+    """Единый хелпер сборки `company_requisites` для публичных DTO.
+
+    - Пустое поле → `None`.
+    - Запись-маркер `{"error": "..."}` → `CompanyRequisitesError`
+      (фронты `admin.html` / `payment.html` показывают баннер с ошибкой).
+    - Нормальные реквизиты → `CompanyRequisites`
+      (через accessor `get_company_requisites` — валидирует `extra='ignore'`,
+      на грязных данных возвращает `None` + WARNING в лог).
+    """
+    raw = order.company_requisites
+    if not raw:
+        return None
+    if isinstance(raw, dict) and raw.get("error"):
+        return CompanyRequisitesError(error=str(raw["error"]))
+    return get_company_requisites(order)
+
+
 def build_order_response(order: "OrderModel") -> OrderResponse:
-    """Собирает OrderResponse с флагами одноразовых писем (по успешным записям в логе)."""
-    emails = order.emails or []
+    """Собирает `OrderResponse` с флагами одноразовых писем и типизированными JSONB.
+
+    Не использует `OrderResponse.model_validate(order)`, чтобы не зависеть от
+    автоматической валидации JSONB-полей на ORM-объекте. Вместо этого JSONB
+    читается через accessor'ы (`get_parsed_params`, `get_survey_data`,
+    `get_company_requisites`) — они уже логируют WARNING и возвращают `None`
+    на невалидных исторических записях, что сохраняет прежнее поведение
+    «ответ не падает на грязных данных».
+    """
+    emails = list(order.emails or [])
+    files_orm = list(order.files or [])
+
     info_request_sent = any(
-        e.email_type == EmailType.INFO_REQUEST and e.sent_at is not None
-        for e in emails
+        e.email_type == EmailType.INFO_REQUEST and e.sent_at is not None for e in emails
     )
     reminder_sent = any(
-        e.email_type == EmailType.REMINDER and e.sent_at is not None
-        for e in emails
+        e.email_type == EmailType.REMINDER and e.sent_at is not None for e in emails
     )
     earliest_auto: datetime | None = None
     if (
@@ -203,19 +287,41 @@ def build_order_response(order: "OrderModel") -> OrderResponse:
     ):
         earliest_auto = order.waiting_client_info_at + timedelta(hours=24)
 
-    base = OrderResponse.model_validate(order)
     post_project_flags = derive_post_project_flags(
-        order.files or [],
+        files_orm,
         order.final_paid_at,
         order.status,
     )
-    return base.model_copy(
-        update={
-            **post_project_flags,
-            "info_request_sent": info_request_sent,
-            "reminder_sent": reminder_sent,
-            "info_request_earliest_auto_at": earliest_auto,
-        }
+
+    return OrderResponse(
+        id=order.id,
+        status=order.status,
+        order_type=order.order_type,
+        client_name=order.client_name,
+        client_email=order.client_email,
+        client_phone=order.client_phone,
+        client_organization=order.client_organization,
+        object_address=order.object_address,
+        object_city=order.object_city,
+        parsed_params=get_parsed_params(order),
+        missing_params=list(order.missing_params) if order.missing_params else None,
+        survey_data=get_survey_data(order),
+        retry_count=order.retry_count,
+        reviewer_comment=order.reviewer_comment,
+        payment_method=order.payment_method,
+        payment_amount=order.payment_amount,
+        advance_amount=order.advance_amount,
+        advance_paid_at=order.advance_paid_at,
+        final_paid_at=order.final_paid_at,
+        rso_scan_received_at=order.rso_scan_received_at,
+        company_requisites=company_requisites_for_response(order),
+        contract_number=order.contract_number,
+        created_at=order.created_at,
+        updated_at=order.updated_at,
+        files=[FileResponse.model_validate(f) for f in files_orm],
+        emails=[EmailLogResponse.model_validate(e) for e in emails],
+        info_request_sent=info_request_sent,
+        reminder_sent=reminder_sent,
+        info_request_earliest_auto_at=earliest_auto,
+        **post_project_flags,
     )
-
-

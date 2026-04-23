@@ -1,14 +1,58 @@
 # УУТЭ Проектировщик — архитектура (фрагмент)
 
+> Технический и продуктовый долг, хвосты завершённых фаз аудита,
+> отложенные решения — в [`docs/backlog.md`](backlog.md). Стратегический
+> план — в
+> [`docs/plans/2026-04-20-audit-section-3-maintainability-roadmap.md`](plans/2026-04-20-audit-section-3-maintainability-roadmap.md).
+> Хронология выполненных задач — в [`docs/tasktracker.md`](tasktracker.md).
+
 ## Публичный фронтенд (React SPA)
 
 Контактные данные и юридические реквизиты на лэндинге задаются в [`frontend/src/constants/siteLegal.ts`](../frontend/src/constants/siteLegal.ts): `SITE_CONTACT` используется в подвале и в секции «Свяжитесь с нами» (`Footer`, `PartnerFormSection`), `SITE_REQUISITES` — только в подвале.
 
 Сборка Vite кладётся в `frontend/dist`; в production образ монтируется в контейнер как `/app/frontend-dist` (`docker-compose.prod.yml`). FastAPI в [`backend/app/main.py`](../backend/app/main.py) отдаёт `index.html` для путей вне зарегистрированных маршрутов (`/{full_path:path}` регистрируется последним) и статику `/assets` из той же папки. Явные маршруты `/api/v1/*`, `/health`, `/upload/{id}`, `/admin`, `/static` имеют приоритет.
 
-Файлы из [`frontend/public/`](../frontend/public/) попадают в корень статики: опросный лист для скачивания с лендинга — `/downloads/opros_list_form.pdf` (копия [`docs/opros_list_form.pdf`](opros_list_form.pdf); при обновлении PDF в `docs/` нужно обновить копию в `public/downloads/`). В production [`backend/app/main.py`](../backend/app/main.py) для путей вне `/api`, `/upload`, `/admin`, `/static`, `/assets` сначала проверяет наличие **реального файла** в `frontend-dist` (`_safe_dist_file`) и отдаёт его через `FileResponse`; иначе — `index.html` SPA. Без этого запрос к PDF попадал бы в SPA и отдавал бы HTML под именем `.pdf`.
+Файлы из [`frontend/public/`](../frontend/public/) попадают в корень статики: опросный лист для скачивания с лендинга — [`/downloads/opros_list_form.pdf`](../frontend/public/downloads/opros_list_form.pdf) (единственная копия PDF; ранее дубль лежал в `docs/` и был удалён, чтобы не плодить расхождения). В production [`backend/app/main.py`](../backend/app/main.py) для путей вне `/api`, `/upload`, `/admin`, `/static`, `/assets` сначала проверяет наличие **реального файла** в `frontend-dist` (`_safe_dist_file`) и отдаёт его через `FileResponse`; иначе — `index.html` SPA. Без этого запрос к PDF попадал бы в SPA и отдавал бы HTML под именем `.pdf`.
+
+## Лендинг загрузки документов (`/upload/<id>`, `backend/static/upload.html`)
+
+**Структура статики (фаза E4, 2026-04-22).** `upload.html` теперь — тонкий HTML-скелет (~22 KB, 402 строки) с внешним CSS и пятью `<script>`-тегами (обычные скрипты, чтобы сохранился единственный inline `onclick="toggleSurveyCollapse()"`):
+
+```mermaid
+flowchart LR
+  HTML[upload.html skeleton<br/>~22 KB]
+  CSS[css/upload.css<br/>~16 KB]
+  CFG[js/upload/config.js<br/>константы, state, словари]
+  UT[js/upload/utils.js<br/>формат+DOM-refs+ошибки]
+  SV[js/upload/survey.js<br/>опросный лист]
+  CT[js/upload/contract.js<br/>договор+signed upload]
+  UP[js/upload/upload.js<br/>init+checklist+upload+poll]
+
+  HTML -->|link| CSS
+  HTML -->|script, в порядке| CFG --> UT --> SV --> CT --> UP
+```
+
+Переходы между состояниями: сначала заявка собирается (`new` → `tu_parsing` → `tu_parsed`), затем открывается опросный лист (`survey.js` заполняет его из `parsed_params` или сохранённого snapshot), параллельно можно догружать недостающие документы. После стадии `contract_sent` показывается экран с реквизитами договора и зона загрузки подписанного скана (`contract.js`). `upload.js` держит polling `/landing/orders/<id>/upload-page` в интервале 5с, пока статус в `tu_parsing`.
 
 ## Админка (`/admin`, `backend/static/admin.html`)
+
+**Структура статики (фаза E3, 2026-04-22).** `admin.html` теперь — тонкий HTML-скелет (~13 KB) с внешними стилями и пятью `<script>`-тегами (обычные скрипты, не ES-модули — чтобы inline `onclick`/`onchange` в HTML работали без переписывания):
+
+```mermaid
+flowchart LR
+  HTML[admin.html skeleton<br/>~13 KB]
+  CSS[css/admin.css<br/>~18 KB]
+  CFG[js/admin/config.js<br/>константы, state]
+  UT[js/admin/utils.js<br/>форматтеры, badges]
+  VP[js/admin/views-parsed.js<br/>parsed+survey+cmp]
+  VC[js/admin/views-calc.js<br/>настроечная БД]
+  APP[js/admin/admin.js<br/>auth+api+nav+polls+list+order+actions]
+
+  HTML -->|link| CSS
+  HTML -->|script, в порядке| CFG --> UT --> VP --> VC --> APP
+```
+
+Порядок подключения обязателен — все модули определяют top-level идентификаторы глобально, и `admin.js` использует константы из `config.js`, хелперы из `utils.js` и рендер-функции из `views-*`. Переименования и изменения поведения не вводились — код перенесён 1-в-1.
 
 Статический интерфейс инженера: список заявок, карточка заявки, файлы, действия по пайплайну. Результат парсинга ТУ (`orders.parsed_params`, JSON из `TUParsedData`) отображается в блоке «Результат парсинга ТУ»: уверенность, раскрываемые таблицы параметров по группам, `missing_params`, `warnings`. Данные подгружаются из `GET /api/v1/orders/{id}` без отдельного эндпоинта.
 
@@ -18,60 +62,97 @@
 
 Защищённые админские API: заголовок `X-Admin-Key` или query `?_k=…` (см. `app.core.auth.verify_admin_key`).
 
-## SVG: функциональные схемы УУТЭ и ГОСТ-рамка
-
-Для сборки принципиальных/функциональных схем в формате SVG (без внешних библиотек) используются чисто строковые генераторы:
-
-- [`backend/app/services/scheme_svg_elements.py`](../backend/app/services/scheme_svg_elements.py) — условные обозначения теплоснабжения (трубопроводы, задвижки, фильтры, клапаны, насос, теплообменник, расходомеры, датчики, тепловычислитель с таблицей параметров на `<rect>`/`<text>`), а также `svg_canvas`, `connection_line`, `dashed_rect`. Базовый холст по умолчанию 1190×842 px (A3 альбомно, ~72 dpi), линии чёрные, координаты задаются абсолютно.
-- [`backend/app/services/scheme_gost_frame.py`](../backend/app/services/scheme_gost_frame.py) — полные документы `gost_frame_a3` / `gost_frame_a4` с внешней/внутренней рамкой (поле подшивки слева 20 px, прочие поля 5 px), рабочей областью для вложенного фрагмента и основной надписью в правом нижнем углу (ширина штампа ~524 px).
-- [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py) — компоновка полных схем из элементов, диспетчер `render_scheme(scheme_type, params)` и 8 типовых конфигураций: схемы 1–5 (зависимые: простая, с ГВС, с 3-ходовым клапаном/насосом, с клапаном+ГВС, с клапаном+ГВС+вентиляцией); схемы 6–8 (независимые: два контура через теплообменник, с ГВС, с ГВС+вентиляцией). Каждая схема возвращает SVG-фрагмент (без корневого `<svg>`), оборачиваемый ГОСТ-рамкой для полного документа. **Статус (2026-04-20):** все 8 конфигураций реализованы и протестированы ✅. Детали: [`docs/scheme-implementation-notes.md`](scheme-implementation-notes.md).
-
 ## Категории файлов (`FileCategory`)
 
 Значения хранятся в PostgreSQL как тип `file_category` и в коде как `app.models.FileCategory`.
 
 **Документы от клиента (после ТУ):**
 
-| Значение | Назначение |
+| Значение API (`.value`) | Назначение |
 |----------|------------|
 | `tu` | Технические условия |
-| `BALANCE_ACT` | Акт разграничения балансовой принадлежности (действующие объекты) |
-| `CONNECTION_PLAN` | План подключения потребителя к тепловой сети |
+| `balance_act` | Акт разграничения балансовой принадлежности (действующие объекты) |
+| `connection_plan` | План подключения потребителя к тепловой сети |
 | `heat_point_plan` | План теплового пункта с указанием мест установки узла учёта и ШУ |
 | `heat_scheme` | Принципиальная схема теплового пункта с узлом учёта |
 
 **Post-project / служебные:** `generated_excel`, `generated_project`, `invoice`, `final_invoice`, `signed_contract`, `rso_scan`, `rso_remarks`, `other`.
 
-Список того, что ещё нужно от клиента, задаётся в `orders.missing_params` (JSON-массив строк). Коды документов совпадают с `FileCategory` для сопоставления с загруженными файлами в `process_client_response` (сравнение с `OrderFile.category`). Подписи для писем и страницы загрузки — `app/services/param_labels.py`.
+Список того, что ещё нужно от клиента, задаётся в `orders.missing_params` (JSON-массив строк). Коды документов совпадают с `FileCategory.<member>.value` (snake_case lowercase) для сопоставления с загруженными файлами в `process_client_response` (сравнение с `OrderFile.category`). Подписи для писем и страницы загрузки — `app/services/param_labels.py`.
 
-### Автогенерация принципиальной схемы
-
-В `process_client_response` (Celery-задача) перед вычислением `missing_params` выполняется проверка:
-
-```
-if order.survey_data.get('scheme_config') and 'heat_scheme' not in uploaded_categories:
-    _auto_generate_scheme_if_configured(session, order)
-```
-
-Функция читает конфигурацию из `survey_data`, подбирает шаблон SVG (одна из 8 типовых схем), рендерит PDF через WeasyPrint и сохраняет как `OrderFile(category=HEAT_SCHEME)`. Ошибки не блокируют пайплайн — `heat_scheme` остаётся в `missing_params`, клиент получает стандартный запрос на ручную загрузку.
-
-`compute_client_document_missing(uploaded_categories, survey_data)` исключает `heat_scheme` из списка обязательных документов при наличии `scheme_config`, даже если файл ещё не создан.
-
-Миграция `20260402_uute_file_category` добавляет значения перечисления в БД (изначально `balance_act` / `connection_plan`), переносит файлы `floor_plan` → `other` и нормализует устаревшие коды в `missing_params`. Миграция `20260403_fc_upper` переименовывает метки enum в `BALANCE_ACT` / `CONNECTION_PLAN` и обновляет соответствующие строки в `orders.missing_params`.
+**Эволюция перечисления:**
+- `20260402_uute_file_category` — заводит enum `file_category` в PG (изначально `balance_act` / `connection_plan` lowercase), переносит файлы `floor_plan` → `other`, нормализует устаревшие коды в `missing_params`.
+- `20260403_fc_upper` — RENAME enum-меток в БД на `BALANCE_ACT` / `CONNECTION_PLAN` и обновление `orders.missing_params`. **PG-метки остаются UPPER_CASE именами членов Python** (SQLAlchemy без `values_callable` persist имена, не `.value`).
+- **B2.a (2026-04-21):** `FileCategory.BALANCE_ACT.value` / `CONNECTION_PLAN.value` переведены в lowercase; добавлен `_missing_` shim. Alembic `20260421_uute_fc_lower_missing` мигрирует `orders.missing_params` JSONB → lowercase.
+- **B2.b (2026-04-22):** `_missing_` shim **удалён**. API строго принимает только canonical `.value`; запросы вида `?category=BALANCE_ACT` отвечают **422 Unprocessable Entity** (BREAKING CHANGE). PG-enum не затронут — RENAME меток на lowercase отложен (требует zero-downtime migration с `values_callable`).
 
 На странице загрузки (`GET .../upload-page`) в ответе для статусов ожидания клиента в `missing_params` приходят коды из `CLIENT_DOCUMENT_PARAM_CODES` (технические документы + `company_card`), а UI строит чеклист с галочками по факту загруженных файлов. Устаревшие значения в БД подменяются на канонические при первом открытии (`fix_legacy_client_document_params`). После нажатия «Готово» Celery записывает в БД только ещё не закрытые позиции: `compute_client_document_missing`. Для заявок `order_type=custom` в том же ответе приходят `parsed_params` (если не пустой JSON после парсинга ТУ) и `survey_data` (если уже сохранён), для `express` эти поля `null`. На `upload.html` для custom после отправки ТУ страница показывает ожидание парсинга и опрашивает этот эндпоинт до статуса `tu_parsed` (или далее), затем открывает опросный лист с предзаполнением из `parsed_params`. Если клиент уже сохранял опрос (`survey_data`), при загрузке страницы подставляются сохранённые значения; иначе поля заполняются из ТУ по таблице `PARAM_TO_SURVEY`, с подсветкой источника и блоком уверенности/предупреждений парсера. Для custom-заявок `init()` ветвится по `order_status`: `new` — загрузка ТУ и заблокированный опрос (overlay); `tu_parsing` — экран ожидания и polling; после парсинга — редактируемый опрос и при необходимости блок догрузки документов; для custom после парсинга кнопка «Всё загружено — отправить» включается только после сохранения опроса (`POST .../survey`) и загрузки файлов по всем позициям `missing_params`; `review`/`completed` — экран «готово»; `error` — сообщение и возможность снова обратиться к загрузке. Публичный `POST /landing/orders/{id}/survey` записывает `survey_data` только в статусах, где клиенту разрешено редактировать опрос на upload-странице (`tu_parsed` … `generating_project`), не в `review`/`completed`/`new` и т.п.
 
-Подробный трекер: [`docs/smart-survey-tasktracker.md`](smart-survey-tasktracker.md).
+Подробный трекер (в архиве): [`docs/archive/2026-Q2/smart-survey-tasktracker.md`](archive/2026-Q2/smart-survey-tasktracker.md).
+
+## Celery-задачи (`app.services.tasks`)
+
+С **фазы D1.b (2026-04-22)** код вынесен из одного файла в пакет [`backend/app/services/tasks/`](../backend/app/services/tasks/): `_common` (синхронная сессия, хелперы вложений), `tu_parsing`, `client_response`, `contract_flow`, `post_project_flow`, `reminders`. Публичный импорт прежний: `from app.services.tasks import start_tu_parsing`, `SyncSession`, `_get_order`. У каждой задачи в декораторе зафиксировано явное `name="app.services.tasks.<funcname>"` (фаза D1.a) — смена файла в пакете не меняет имя в Redis/beat.
+
+## Email-сервис (`app.services.email`)
+
+С **фазы D2 (2026-04-22)** отправка писем разбита на пакет [`backend/app/services/email/`](../backend/app/services/email/): `renderers` (Jinja2 и все `render_*`), `smtp` (сборка MIME, `send_email`, общий `send_smtp_message` для нестандартных писем, например с `Reply-To` и вложениями), `idempotency` (`has_successful_email`, `log_email` для писем клиенту с логом по `order_id`), `service` (все `send_*`). Обратная совместимость: `from app.services.email_service import …` (модуль-обёртка re-export'ит пакет); допустим также `from app.services.email import …`.
+
+## Генерация договора и счёта (`app.services.contract`)
+
+С **фазы D3 (2026-04-22)** логика вынесена из [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) в пакет [`backend/app/services/contract/`](../backend/app/services/contract/): `number_format` (пропись, формат рублей), `tu_embed` (PyMuPDF → PNG, лимит 25 МБ), `docx_utils` (таблицы/параграфы), `contract_docx` (текст договора и приложений), `invoice` (счёт). Публичный API прежний: `generate_contract`, `generate_contract_number`, `generate_invoice` — через shim `contract_generator` или `from app.services.contract import …`.
+
+## Типизация JSONB в API-ответах (фаза B1.c)
+
+С **фазы B1.c (2026-04-22)** Pydantic-схемы ответов API строго типизируют JSONB-поля. Было `parsed_params: dict | None` — стало `parsed_params: TUParsedData | None` в [`OrderResponse`](../backend/app/schemas/schemas.py), `UploadPageInfo`, `PaymentPageInfo`. Аналогично `survey_data: SurveyData | None` и `company_requisites: CompanyRequisites | CompanyRequisitesError | None` (Union учитывает маркер неудачного парсинга карточки предприятия — `{"error": "..."}`).
+
+Ключевые инварианты:
+- `build_order_response(order)` строит DTO **вручную** через accessor'ы `app.repositories.order_jsonb.*` — без `OrderResponse.model_validate(order)`. На невалидных исторических JSONB accessor логирует WARNING и возвращает `None`, поэтому ответ API не падает.
+- Фронт-контракт сохранён: `model_dump()` по-прежнему возвращает те же ключи — `payment.html` / `admin.html` читают `data.company_requisites.error` как раньше.
+- `missing_params` сознательно оставлен `list[str] | None` — в БД могут встречаться legacy-коды (`floor_plan`, `connection_scheme` и т. п.), которые чинятся только через `fix_legacy_client_document_params` на upload-странице. Переход на `list[FileCategory]` отложен до финальной data-миграции legacy-кодов.
+- OpenAPI теперь описывает точную структуру — это разблокирует **E1** (typed API через `openapi-typescript`).
+
+## Typed API во фронтенде (фаза E1)
+
+С **фазы E1 (2026-04-22)** TS-клиент фронтенда построен на автогенерируемых типах из OpenAPI-спеки бэкенда. Процесс:
+
+1. [`scripts/generate-api-types.sh`](../scripts/generate-api-types.sh) импортирует FastAPI-приложение (`from app.main import app`) и экспортирует `app.openapi()` в [`frontend/src/api/openapi.json`](../frontend/src/api/openapi.json).
+2. `openapi-typescript@7.4.4` (dev-зависимость `frontend/package.json`) превращает `openapi.json` в [`frontend/src/api/types.ts`](../frontend/src/api/types.ts) — типы `paths`, `operations`, `components.schemas`.
+3. [`frontend/src/api.ts`](../frontend/src/api.ts) использует `components['schemas'][…]` и предоставляет публичные функции (`requestSample`, `createOrder`, `sendPartnershipRequest`, `sendKpRequest`) — их сигнатуры не меняются для React-компонентов.
+
+Оба артефакта (`openapi.json`, `types.ts`) **коммитятся в репо** — они источник правды для TS-клиента. CI-job `api-types-drift` в [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) регенерирует их и падает при `git diff --exit-code`: Pydantic-схемы не могут измениться без перегенерации клиента. README в [`frontend/src/api/`](../frontend/src/api/README.md) объясняет процесс обновления для разработчика.
+
+```mermaid
+flowchart LR
+  A[Pydantic schemas<br/>backend/app/*.py] -->|FastAPI app.openapi()| B[openapi.json]
+  B -->|openapi-typescript| C[types.ts]
+  C -->|re-exports| D[frontend/src/api.ts]
+  D --> E[EmailModal.tsx<br/>KpRequestModal.tsx]
+  B -. drift check .-> CI[CI: api-types-drift job]
+  C -. drift check .-> CI
+```
+
+Транспортный слой [`frontend/src/api.ts`](../frontend/src/api.ts) покрыт unit-тестами в [`frontend/src/api.test.ts`](../frontend/src/api.test.ts) (фаза E2): URL/метод/заголовки/тело для каждого эндпоинта, разбор ошибок FastAPI (string `detail` / validation `[{msg}]` / HTTP fallback), multipart-контракт `kp-request` (без ручного Content-Type), override `VITE_API_BASE_URL`. Fetch мокируется через `vi.stubGlobal` — новых зависимостей не добавлено (`fetch`/`FormData` нативны в Node 20).
+
+## Async/sync граница в API (фаза D4)
+
+С **фазы D4 (2026-04-22)** в async-роутерах `backend/app/api/` **запрещено** открывать `with SyncSession()` или вызывать синхронный SMTP напрямую — это блокировало event loop на секунды. Правила:
+
+- **Fire-and-forget уведомления** (`POST /landing/order`) → Celery-задача `notify_engineer_new_order.delay(...)`. Гарантии атомарности email+записи ослаблены сознательно: при недоступности брокера `.delay()` глушится, создание заявки не падает.
+- **Inline-SMTP с результатом в ответе** (`POST /landing/sample-request | /partnership | /kp-request`) → `await asyncio.to_thread(send_*, ...)`. Event loop свободен, UX-контракт сохранён (например, `kp-request` по-прежнему возвращает 500 на неудачный SMTP).
+- **Админская ручная отправка** (`POST /emails/{order_id}/send`) → `asyncio.to_thread(manual_send_email_sync, ...)`. `SyncSession + SMTP` живут в выделенном хелпере [`app/services/email/manual_send.py`](../backend/app/services/email/manual_send.py); функциональные ошибки транспортируются через `ManualSendError(status_code, detail)` → `HTTPException`.
+
+CI-гуард [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) (`forbid SyncSession() in backend/app/api/`) и smoke-тест [`tests/test_async_sync_boundary.py`](../backend/tests/test_async_sync_boundary.py) падают при попытке вернуть `SyncSession()` в async-роутеры.
 
 ## Генерация договора (DOCX)
 
-Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template (2).md`](kontrakt_ukute_template%20(2).md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). Для договора используется компактная вёрстка: базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы DOCX оставался плотным и ближе к согласованному шаблону.
+Сервис [`backend/app/services/contract_generator.py`](../backend/app/services/contract_generator.py) формирует договор по тексту шаблона [`docs/kontrakt_ukute_template.md`](kontrakt_ukute_template.md): разделы 1–15, приложения 1–3 (состав документации, ТУ РСО, лист согласования). Для договора используется компактная вёрстка: базовый шрифт `10 pt`, нулевые интервалы до/после абзацев и минимальный межстрочный интервал, чтобы DOCX оставался плотным и ближе к согласованному шаблону.
 
 PDF технических условий (`FileCategory.TU`, путь вычисляется как `upload_dir / OrderFile.storage_path`) опционально встраивается в Приложение №2: страницы раструются через PyMuPDF в PNG во временный каталог под `/tmp`, в документ вставляются с шириной 16.5 см. Чтобы вложение письма укладывалось в лимит SMTP (~25 МБ целевой запас к 30 МБ), при превышении порога размер снижается за счёт DPI 150 → 120 → 100; если и на минимальном DPI файл слишком велик — генерируется версия без встроенных страниц ТУ (текст-заглушка) и пишется ERROR в лог. Счёт `generate_invoice` и номер `generate_contract_number` не затрагиваются.
 
 ## Unified upload + contract flow
 
-Актуальный основной поток заявки для клиентского/админского UI: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`, с дополнительной post-project петлёй `awaiting_final_payment → rso_remarks_received → awaiting_final_payment`, если РСО вернула замечания. Legacy-статусы (`data_complete`, `generating_project`, `review`, `awaiting_contract`) поддерживаются для обратной совместимости старых заявок и отображаются в интерфейсах как дополнительные.
+Актуальный основной поток заявки для клиентского/админского UI: `new → tu_parsing → tu_parsed → waiting_client_info → client_info_received → contract_sent → advance_paid → awaiting_final_payment → completed`, с дополнительной post-project петлёй `awaiting_final_payment → rso_remarks_received → awaiting_final_payment`, если РСО вернула замечания. Дополнительная ветвь `client_info_received → awaiting_contract → contract_sent` (ручное оформление инженером, payment.html, bank_transfer) остаётся доступной — инженер может вручную перевести заявку в `awaiting_contract`, чтобы клиент загрузил карточку предприятия на отдельной странице оплаты. В рамках фазы C1/C2 аудита (2026-04-22) из enum удалены 3 legacy-статуса (`data_complete`, `generating_project`, `review`), отвечавшие за устаревшую цепочку автогенерации T-FLEX; все их следы вычищены из Python, Celery, фронтенда и Alembic (`20260422_uute_drop_legacy_order_statuses.py`).
 
 Роль страницы `/upload/{id}`:
 - в `waiting_client_info` и `client_info_received` клиент догружает недостающие документы из `missing_params`, при этом `company_card` выделяется отдельным блоком как реквизитный документ для договора/счёта;

@@ -47,9 +47,7 @@ async def download_file(
 @router.get("/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
     """Простая статистика для дашборда."""
-    result = await db.execute(
-        select(Order.status, func.count(Order.id)).group_by(Order.status)
-    )
+    result = await db.execute(select(Order.status, func.count(Order.id)).group_by(Order.status))
     status_counts = {row[0].value: row[1] for row in result.all()}
     total = sum(status_counts.values())
 

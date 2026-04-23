@@ -4,13 +4,14 @@
 label — что показываем клиенту в письме.
 hint  — подсказка, как подготовить документ.
 
-Коды документов совпадают с FileCategory для загружаемых файлов.
+Коды документов совпадают с `FileCategory.<member>.value` для загружаемых файлов.
+После фазы B2 (2026-04-21) все коды — в snake_case lowercase.
 """
 
 # Обязательные документы от клиента после ТУ (фиксированный порядок в UI)
 CLIENT_DOCUMENT_PARAM_CODES: tuple[str, ...] = (
-    "BALANCE_ACT",
-    "CONNECTION_PLAN",
+    "balance_act",
+    "connection_plan",
     "heat_point_plan",
     "heat_scheme",
     "company_card",
@@ -42,7 +43,11 @@ def compute_client_document_missing(
 
 
 _LEGACY_DOCUMENT_PARAM_CODES = frozenset(
-    {"floor_plan", "connection_scheme", "system_type"}
+    {
+        "floor_plan",
+        "connection_scheme",
+        "system_type",
+    }
 )
 
 
@@ -62,11 +67,11 @@ MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
         "label": "Технические условия",
         "hint": "Документ от теплоснабжающей организации",
     },
-    "BALANCE_ACT": {
+    "balance_act": {
         "label": "Акт разграничения балансовой принадлежности",
         "hint": "Для действующих объектов",
     },
-    "CONNECTION_PLAN": {
+    "connection_plan": {
         "label": "План подключения потребителя к тепловой сети",
         "hint": "С указанием точек подключения",
     },
@@ -103,8 +108,8 @@ MISSING_PARAM_LABELS: dict[str, dict[str, str]] = {
 
 # Документы, которые прикладываются как образцы
 SAMPLE_DOCUMENTS: dict[str, str] = {
-    "BALANCE_ACT": "samples/sample_balance_act.pdf",
-    "CONNECTION_PLAN": "samples/sample_connection_plan.pdf",
+    "balance_act": "samples/sample_balance_act.pdf",
+    "connection_plan": "samples/sample_connection_plan.pdf",
     "heat_point_plan": "samples/sample_heat_point_plan.pdf",
     "heat_scheme": "samples/sample_heat_scheme.pdf",
 }
@@ -115,6 +120,12 @@ def get_missing_items(missing_params: list[str]) -> list[dict[str, str]]:
 
     Returns:
         [{"label": "...", "hint": "..."}, ...]
+
+    Все коды ожидаются в каноническом snake_case lowercase (фаза B2.b,
+    2026-04-22). Legacy UPPER_CASE-варианты больше не канонизируются —
+    исторические данные мигрированы Alembic-ревизией
+    `20260421_uute_fc_lower_missing`. Незнакомые коды показываются как
+    plain text, без подписи.
     """
     items = []
     for code in missing_params:
@@ -122,15 +133,14 @@ def get_missing_items(missing_params: list[str]) -> list[dict[str, str]]:
         if info:
             items.append({"label": info["label"], "hint": info.get("hint", "")})
         else:
-            # Неизвестный код — показываем как есть
             items.append({"label": code, "hint": ""})
     return items
 
 
 def get_sample_paths(missing_params: list[str]) -> list[str]:
-    """Возвращает пути к образцам, релевантным для missing_params."""
-    paths = []
-    for code in missing_params:
-        if code in SAMPLE_DOCUMENTS:
-            paths.append(SAMPLE_DOCUMENTS[code])
-    return paths
+    """Возвращает пути к образцам, релевантным для missing_params.
+
+    Ожидает snake_case lowercase коды (фаза B2.b). Legacy UPPER_CASE
+    теперь возвращает пустой список для соответствующего кода.
+    """
+    return [SAMPLE_DOCUMENTS[code] for code in missing_params if code in SAMPLE_DOCUMENTS]

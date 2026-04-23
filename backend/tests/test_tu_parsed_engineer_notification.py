@@ -39,30 +39,28 @@ class TuParsedEngineerNotificationTests(unittest.TestCase):
         notify_task = Mock()
 
         with (
-            patch.object(
-                tasks,
-                "SyncSession",
+            patch(
+                "app.services.tasks.tu_parsing.SyncSession",
                 return_value=_SessionContextStub(_SessionStub()),
             ),
-            patch.object(tasks, "_get_order", return_value=order),
-            patch.object(
-                tasks,
-                "compute_client_document_missing",
+            patch("app.services.tasks.tu_parsing._get_order", return_value=order),
+            patch(
+                "app.services.tasks.tu_parsing.compute_client_document_missing",
                 return_value=["heat_scheme"],
             ),
-            patch.object(
-                tasks,
-                "_transition",
+            patch(
+                "app.services.tasks.tu_parsing._transition",
                 side_effect=lambda _session, current_order, new_status: setattr(
                     current_order, "status", new_status
                 ),
             ),
-            patch.object(tasks.send_info_request_email, "apply_async") as send_info_mock,
             patch.object(
-                tasks,
-                "notify_engineer_tu_parsed",
+                tasks.send_info_request_email,
+                "apply_async",
+            ) as send_info_mock,
+            patch(
+                "app.services.tasks.client_response.notify_engineer_tu_parsed",
                 new=notify_task,
-                create=True,
             ),
         ):
             tasks.check_data_completeness.run(str(order_id))

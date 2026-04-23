@@ -1,26 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import EmailModal from './EmailModal';
+import { calcExpressPrice, calcIndividualPrice, formatPrice } from '../utils/pricing';
 
 const CalculatorSection: React.FC = () => {
   const [circuits, setCircuits] = useState(1);
-  const [price, setPrice] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [orderType, setOrderType] = useState<'express' | 'custom'>('express');
 
-  useEffect(() => {
-    const prices: Record<number, number> = {
-      1: 22500,
-      2: 35000,
-      3: 50000,
-    };
-    setPrice(prices[circuits] || 22500);
-  }, [circuits]);
-
-  const formatPrice = (p: number) => new Intl.NumberFormat('ru-RU').format(p);
-
-  /** Тариф «Экспресс» / ЭСКО (1 контур) — фиксированная цена в калькуляторе и в заявке. */
-  const EXPRESS_PRICE = 11250;
-  const expressPrice = circuits === 1 ? EXPRESS_PRICE : price;
+  // Цены — производные от `circuits`, отдельный useState/useEffect не нужен
+  // (см. `src/utils/pricing.ts`, тесты в `pricing.test.ts`).
+  const price = calcIndividualPrice(circuits);
+  const expressPrice = calcExpressPrice(circuits);
 
   const handleOrder = (type: 'express' | 'custom') => {
     setOrderType(type);

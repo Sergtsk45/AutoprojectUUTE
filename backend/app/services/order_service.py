@@ -95,9 +95,7 @@ class OrderService:
             raise ValueError(f"Заявка {order_id} не найдена")
 
         if not order.can_transition_to(data.status):
-            raise ValueError(
-                f"Переход {order.status.value} → {data.status.value} недопустим"
-            )
+            raise ValueError(f"Переход {order.status.value} → {data.status.value} недопустим")
 
         order.status = data.status
         if data.reviewer_comment is not None:

@@ -3,6 +3,7 @@
 Публичные (без авторизации) — вызываются фронтендом.
 """
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -16,17 +17,25 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.models import FileCategory, OrderStatus, OrderType, PaymentMethod
 from app.post_project_state import derive_post_project_flags
+from app.repositories.order_jsonb import (
+    get_parsed_params,
+    get_survey_data,
+    set_survey_data,
+)
+from app.schemas.jsonb import SurveyData
 from app.services.param_labels import CLIENT_DOCUMENT_PARAM_CODES
 from app.services import OrderService
 from app.services.email_service import send_kp_request_notification
-from app.services.tasks import start_tu_parsing
+from app.services.tasks import notify_engineer_new_order, start_tu_parsing
 from app.schemas import (
     FileResponse,
     OrderCreate,
     PaymentPageInfo,
     PipelineResponse,
     UploadPageInfo,
+    company_requisites_for_response,
 )
+from pydantic import ValidationError
 
 router = APIRouter(prefix="/landing", tags=["landing"])
 logger = logging.getLogger(__name__)
@@ -37,8 +46,6 @@ _SURVEY_SAVE_ALLOWED: frozenset[OrderStatus] = frozenset(
         OrderStatus.TU_PARSED,
         OrderStatus.WAITING_CLIENT_INFO,
         OrderStatus.CLIENT_INFO_RECEIVED,
-        OrderStatus.DATA_COMPLETE,
-        OrderStatus.GENERATING_PROJECT,
     }
 )
 
@@ -109,7 +116,8 @@ async def request_sample(data: SampleRequest):
     """
     from app.services.email_service import send_sample_delivery
 
-    send_sample_delivery(data.email)
+    # D4: SMTP выносим из event loop. Результат не влияет на UX (success=True всегда).
+    await asyncio.to_thread(send_sample_delivery, data.email)
 
     return SimpleResponse(
         success=True,  # Всегда true для UX — даже если SMTP упал, не пугаем клиента
@@ -124,12 +132,9 @@ async def create_order_from_landing(
 ):
     """Сценарий B: Клиент заказывает проект.
 
-    Создаёт заявку в БД, уведомляет инженера, возвращает ссылку на upload-страницу.
+    Создаёт заявку в БД, уведомляет инженера (Celery, best-effort),
+    возвращает ссылку на upload-страницу.
     """
-    from app.core.config import settings
-    from app.services.email_service import send_new_order_notification
-    from app.services.tasks import SyncSession, _get_order
-
     svc = OrderService(db)
     order_data = OrderCreate(
         client_name=data.client_name,
@@ -142,19 +147,21 @@ async def create_order_from_landing(
     )
     order = await svc.create_order(order_data)
 
-    # Уведомление инженеру + письмо клиенту для custom (синхронно через отдельную сессию)
+    # D4: раньше уведомление шло через синхронную сессию прямо в async-роутере и
+    # блокировало event loop. Теперь — best-effort через Celery.
+    # Исключения при enqueue глушим: отсутствие уведомления не должно ломать создание заявки.
     try:
-        with SyncSession() as sync_session:
-            sync_order = _get_order(sync_session, order.id)
-            if sync_order:
-                send_new_order_notification(
-                    sync_session, sync_order,
-                    circuits=data.circuits,
-                    price=data.price,
-                    order_type=data.order_type,
-                )
+        notify_engineer_new_order.delay(
+            str(order.id),
+            circuits=data.circuits,
+            price=data.price,
+            order_type=data.order_type,
+        )
     except Exception:
-        pass  # Не ломаем создание заявки из-за проблем с email
+        logger.exception(
+            "notify_engineer_new_order enqueue failed for order %s; продолжаем без уведомления",
+            order.id,
+        )
 
     upload_url = f"{settings.app_base_url}/upload/{order.id}"
 
@@ -173,7 +180,10 @@ async def partnership_request(data: PartnershipRequest):
     """
     from app.services.email_service import send_partnership_request
 
-    send_partnership_request(
+    # D4: SMTP вне event loop. Возвращаем success=True при любом исходе
+    # (поведение совпадает с прежним — в роутере результат send_partnership_request не проверялся).
+    await asyncio.to_thread(
+        send_partnership_request,
         contact_name=data.name,
         company=data.company,
         contact_email=data.email,
@@ -205,7 +215,9 @@ async def kp_request(
 
     tu_filename = tu_file.filename or "tu.pdf"
 
-    ok = send_kp_request_notification(
+    # D4: SMTP + attachment до 20 МБ — inline (нельзя гонять через Redis), но out-of-loop.
+    ok = await asyncio.to_thread(
+        send_kp_request_notification,
         organization=organization,
         responsible_name=responsible_name,
         phone=phone,
@@ -214,7 +226,9 @@ async def kp_request(
         tu_bytes=tu_bytes,
     )
     if not ok:
-        raise HTTPException(status_code=500, detail="Не удалось отправить запрос. Попробуйте позже.")
+        raise HTTPException(
+            status_code=500, detail="Не удалось отправить запрос. Попробуйте позже."
+        )
 
     return SimpleResponse(
         success=True,
@@ -252,13 +266,16 @@ async def get_upload_page_info(
     else:
         missing = order.missing_params or []
 
-    parsed_params: dict | None = None
-    survey_data: dict | None = None
-    if order.order_type == OrderType.CUSTOM:
-        if order.parsed_params:
-            parsed_params = order.parsed_params
-        if order.survey_data is not None:
-            survey_data = order.survey_data
+    # Для custom-заказов отдаём клиенту типизированные parsed_params / survey_data.
+    # На невалидных исторических записях accessor вернёт `None` (+ WARNING в лог) —
+    # фронт отобразит пустой опрос вместо падения страницы. Для express-заказов
+    # поля не актуальны (парсер не запускается) и остаются `None`.
+    parsed_params = get_parsed_params(order) if order.order_type == OrderType.CUSTOM else None
+    survey_data = (
+        get_survey_data(order)
+        if order.order_type == OrderType.CUSTOM and order.survey_data is not None
+        else None
+    )
 
     return UploadPageInfo(
         order_id=order.id,
@@ -268,7 +285,7 @@ async def get_upload_page_info(
         contract_number=order.contract_number,
         payment_amount=order.payment_amount,
         advance_amount=order.advance_amount,
-        company_requisites=order.company_requisites,
+        company_requisites=company_requisites_for_response(order),
         missing_params=missing,
         files_uploaded=files,
         parsed_params=parsed_params,
@@ -369,7 +386,18 @@ async def save_survey(
             detail=f"Сохранение опроса недоступно в статусе «{order.status.value}»",
         )
 
-    order.survey_data = body
+    # Валидируем тело запроса через Pydantic — неизвестные ключи молча отбрасываем
+    # (`extra='ignore'` в `SurveyData`), но типы и диапазоны проверяем строго.
+    # Невалидный запрос → 422 с понятным сообщением для фронта.
+    try:
+        survey = SurveyData.model_validate(body)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Некорректные данные опроса: {exc.errors()}",
+        ) from exc
+
+    set_survey_data(order, survey)
     db.add(order)
     await db.commit()
 
@@ -420,7 +448,7 @@ async def get_payment_page_info(
         payment_method=order.payment_method.value if order.payment_method else None,
         payment_amount=order.payment_amount,
         advance_amount=order.advance_amount,
-        company_requisites=order.company_requisites,
+        company_requisites=company_requisites_for_response(order),
         payment_requisites={
             "company_full_name": settings.company_full_name,
             "company_inn": settings.company_inn,
@@ -593,8 +621,7 @@ async def client_upload_rso_remarks(
         )
 
     has_rso_scan = any(
-        existing_file.category == FileCategory.RSO_SCAN
-        for existing_file in (order.files or [])
+        existing_file.category == FileCategory.RSO_SCAN for existing_file in (order.files or [])
     )
     if order.rso_scan_received_at is None and not has_rso_scan:
         raise HTTPException(

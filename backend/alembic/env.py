@@ -1,5 +1,14 @@
 import asyncio
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+
+# Гарантируем, что каталог `backend/` в sys.path — иначе `from app.*` не работает
+# при запуске `alembic` из backend/ без editable install (например, в CI).
+# В Docker-контейнере WORKDIR=/app, и `/app` уже в sys.path — вставка безвредна.
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
 
 from alembic import context
 from sqlalchemy import pool
