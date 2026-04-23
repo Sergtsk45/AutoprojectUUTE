@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-20] — SVG: схемы 3–5 (зависимые с клапаном/ГВС/вентиляцией)
+
+### Добавлено
+- В [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py): 
+  - Схема 3 (`render_scheme_03_dep_valve`) — трёхходовой клапан и насос на перемычке для регулирования температуры
+  - Схема 4 (`render_scheme_04_dep_valve_gwp`) — комбинация схемы 3 (клапан+насос) и схемы 2 (ГВС)
+  - Схема 5 (`render_scheme_05_dep_valve_gwp_vent`) — самая сложная зависимая: клапан+насос, ГВС и параллельная ветка вентиляции с теплообменником
+
+### Изменено
+- В [`docs/scheme-generator-roadmap.md`](scheme-generator-roadmap.md): подзадача 3.2 завершена ✅ (все 5 зависимых схем готовы).
+
 ## [2026-04-20] — SVG: схема 2 (зависимая с ГВС) и fix text_label
 
 ### Добавлено
