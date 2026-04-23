@@ -612,6 +612,226 @@
       margin-top: 16px;
     }
 
+    /* ── Scheme configurator ───────────────────────── */
+    .scheme-intro {
+      padding: 12px 16px;
+      background: var(--c-drop-bg);
+      border-radius: 8px;
+      border: 1px solid var(--c-drop-border);
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: var(--c-text-secondary);
+    }
+
+    .scheme-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scheme-radio-label,
+    .scheme-checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 2px solid var(--c-border);
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .scheme-radio-label:hover,
+    .scheme-checkbox-label:hover {
+      border-color: var(--c-primary);
+      background: #eff6ff;
+    }
+
+    .scheme-radio-label input[type="radio"],
+    .scheme-checkbox-label input[type="checkbox"] {
+      display: none;
+    }
+
+    .radio-custom,
+    .checkbox-custom {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--c-border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      position: relative;
+      transition: all 0.2s;
+      margin-top: 2px;
+    }
+
+    .checkbox-custom {
+      border-radius: 4px;
+    }
+
+    input[type="radio"]:checked + .radio-custom {
+      border-color: var(--c-primary);
+      background: var(--c-primary);
+    }
+
+    input[type="radio"]:checked + .radio-custom::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+    }
+
+    input[type="checkbox"]:checked + .checkbox-custom {
+      border-color: var(--c-primary);
+      background: var(--c-primary);
+    }
+
+    input[type="checkbox"]:checked + .checkbox-custom::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .radio-text,
+    .checkbox-text {
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    .radio-text strong,
+    .checkbox-text strong {
+      display: block;
+      font-size: 15px;
+      color: var(--c-text);
+      margin-bottom: 2px;
+    }
+
+    .radio-hint,
+    .checkbox-hint {
+      display: block;
+      font-size: 13px;
+      color: var(--c-text-secondary);
+    }
+
+    .scheme-summary {
+      padding: 12px 16px;
+      background: var(--c-success-bg);
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .scheme-summary strong {
+      color: var(--c-success);
+      margin-right: 8px;
+    }
+
+    .scheme-preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    .scheme-preview-header strong {
+      font-size: 14px;
+      color: var(--c-text);
+    }
+
+    .scheme-preview-container {
+      background: #f9fafb;
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+    }
+
+    .scheme-preview-loading {
+      text-align: center;
+      color: var(--c-text-secondary);
+    }
+
+    .scheme-preview-loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .scheme-preview-container svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .error-message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: var(--c-error-bg);
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    .success-message {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: var(--c-success-bg);
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    .success-message svg {
+      flex-shrink: 0;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--c-primary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 0;
+      margin-left: 8px;
+    }
+
+    .btn-link:hover {
+      text-decoration: underline;
+    }
+
     @media (max-width: 480px) {
       .page { padding: 20px 16px 48px; }
       .card { padding: 20px; }
@@ -883,6 +1103,135 @@
           <div class="actions" id="surveyBackActions" style="display:none; margin-top: 16px;">
             <a class="btn btn-secondary" href="/">Вернуться на сайт</a>
           </div>
+        </div>
+      </div>
+
+      <!-- Scheme configurator (between survey and files) -->
+      <div class="card" id="schemeConfiguratorCard" style="display:none;">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
+          </svg>
+          Принципиальная схема теплового пункта
+        </h2>
+        
+        <div class="scheme-intro">
+          <p>Ответьте на несколько вопросов, и система автоматически подберёт типовую схему УУТЭ.</p>
+        </div>
+
+        <!-- Q1: Connection type -->
+        <div class="survey-group">
+          <div class="survey-group-title">1. Тип присоединения к тепловой сети</div>
+          <div class="scheme-radio-group">
+            <label class="scheme-radio-label">
+              <input type="radio" name="connection_type" value="dependent">
+              <span class="radio-custom"></span>
+              <span class="radio-text">
+                <strong>Зависимая</strong>
+                <span class="radio-hint">Прямое подключение к тепловой сети</span>
+              </span>
+            </label>
+            <label class="scheme-radio-label">
+              <input type="radio" name="connection_type" value="independent">
+              <span class="radio-custom"></span>
+              <span class="radio-text">
+                <strong>Независимая</strong>
+                <span class="radio-hint">Через теплообменник (два контура)</span>
+              </span>
+            </label>
+            <label class="scheme-radio-label">
+              <input type="radio" name="connection_type" value="unknown">
+              <span class="radio-custom"></span>
+              <span class="radio-text">
+                <strong>Не знаю</strong>
+                <span class="radio-hint">Определит инженер по ТУ</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Q2: Valve (conditional, only for dependent) -->
+        <div class="survey-group" id="schemeValveQuestion" style="display:none;">
+          <div class="survey-group-title">2. Регулирующий клапан и насос</div>
+          <div class="scheme-radio-group">
+            <label class="scheme-radio-label">
+              <input type="radio" name="has_valve" value="no">
+              <span class="radio-custom"></span>
+              <span class="radio-text">
+                <strong>Нет</strong>
+                <span class="radio-hint">Простая схема без регулирования</span>
+              </span>
+            </label>
+            <label class="scheme-radio-label">
+              <input type="radio" name="has_valve" value="yes">
+              <span class="radio-custom"></span>
+              <span class="radio-text">
+                <strong>Есть 3-ходовой клапан и насос на перемычке</strong>
+                <span class="radio-hint">Для регулирования температуры</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Q3: GWP (hot water supply) -->
+        <div class="survey-group">
+          <div class="survey-group-title">3. Система ГВС (горячее водоснабжение)</div>
+          <label class="scheme-checkbox-label">
+            <input type="checkbox" id="has_gwp">
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">
+              <strong>Есть двухступенчатый подогреватель ГВС</strong>
+              <span class="checkbox-hint">Подогрев воды для бытовых нужд</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Q4: Ventilation (conditional, only if GWP) -->
+        <div class="survey-group" id="schemeVentQuestion" style="display:none;">
+          <div class="survey-group-title">4. Система вентиляции</div>
+          <label class="scheme-checkbox-label">
+            <input type="checkbox" id="has_ventilation">
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">
+              <strong>Есть параллельное включение вентиляции</strong>
+              <span class="checkbox-hint">Отдельная ветка для вентиляции</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Config summary -->
+        <div id="schemeConfigSummary" class="scheme-summary" style="display:none;">
+          <strong>Выбранная конфигурация:</strong>
+          <span id="schemeSummaryText"></span>
+        </div>
+
+        <!-- SVG Preview -->
+        <div id="schemePreviewBlock" style="display:none;">
+          <div class="scheme-preview-header">
+            <strong>Предварительный просмотр схемы</strong>
+            <button type="button" class="btn-link" id="schemeRefreshBtn">Обновить</button>
+          </div>
+          <div id="schemePreviewContainer" class="scheme-preview-container">
+            <div class="scheme-preview-loading">
+              <div class="spinner"></div>
+              <p>Генерация схемы...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+          <button class="btn btn-primary" id="schemeGenerateBtn" disabled>Подтвердить и сгенерировать PDF</button>
+        </div>
+
+        <div id="schemeError" class="error-message" style="display:none;"></div>
+        <div id="schemeSuccess" class="success-message" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <span id="schemeSuccessText">Схема успешно сгенерирована!</span>
+          <a href="#" id="schemeDownloadLink" class="btn-link">Скачать PDF</a>
         </div>
       </div>
 
@@ -1428,6 +1777,7 @@
         surveySavedCustom =
           orderData.order_type === 'custom' && hasMeaningfulSurveyData(orderData.survey_data);
         syncSubmitButtonState();
+        showSchemeConfiguratorIfNeeded();
       } catch (err) {
         $loading.style.display = 'none';
         $error.style.display = 'block';
@@ -2204,10 +2554,11 @@
         surveySavedCustom = true;
         applySurveySavedVisuals(true);
         syncSubmitButtonState();
+        showSchemeConfiguratorIfNeeded();
         if ($surveyCard) {
           $surveyCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        showBanner('success', 'Опросный лист сохранён. Вы можете отправить заявку сейчас или дополнительно загрузить документы из списка выше.', 12000);
+        showBanner('success', 'Опросный лист сохранён. Теперь вы можете настроить принципиальную схему или сразу отправить заявку.', 12000);
       } catch (err) {
         showSurveyError(`Ошибка: ${err.message}`);
         $surveySubmitBtn.disabled = false;
@@ -2313,6 +2664,330 @@
         if (!$signedContractInput.files || $signedContractInput.files.length === 0) return;
         uploadSignedContract($signedContractInput.files[0]);
       });
+    }
+
+    // ── Scheme Configurator ─────────────────────────────────────────────
+
+    const $schemeConfiguratorCard = document.getElementById('schemeConfiguratorCard');
+    const $schemeValveQuestion = document.getElementById('schemeValveQuestion');
+    const $schemeVentQuestion = document.getElementById('schemeVentQuestion');
+    const $schemeConfigSummary = document.getElementById('schemeConfigSummary');
+    const $schemeSummaryText = document.getElementById('schemeSummaryText');
+    const $schemePreviewBlock = document.getElementById('schemePreviewBlock');
+    const $schemePreviewContainer = document.getElementById('schemePreviewContainer');
+    const $schemeGenerateBtn = document.getElementById('schemeGenerateBtn');
+    const $schemeRefreshBtn = document.getElementById('schemeRefreshBtn');
+    const $schemeError = document.getElementById('schemeError');
+    const $schemeSuccess = document.getElementById('schemeSuccess');
+    const $schemeSuccessText = document.getElementById('schemeSuccessText');
+    const $schemeDownloadLink = document.getElementById('schemeDownloadLink');
+
+    let currentSchemeConfig = null;
+    let schemeGeneratedFileId = null;
+
+    // Получение текущей конфигурации схемы из формы
+    function getSchemeConfig() {
+      const connectionType = document.querySelector('input[name="connection_type"]:checked')?.value;
+      if (!connectionType || connectionType === 'unknown') return null;
+
+      const config = {
+        connection_type: connectionType,
+        has_valve: false,
+        has_gwp: document.getElementById('has_gwp')?.checked || false,
+        has_ventilation: document.getElementById('has_ventilation')?.checked || false
+      };
+
+      // For dependent: check valve question
+      if (connectionType === 'dependent') {
+        const valveValue = document.querySelector('input[name="has_valve"]:checked')?.value;
+        config.has_valve = valveValue === 'yes';
+      } else if (connectionType === 'independent') {
+        // Independent always requires valve
+        config.has_valve = true;
+      }
+
+      return config;
+    }
+
+    // Обработка изменения типа присоединения
+    function handleConnectionTypeChange() {
+      const connectionType = document.querySelector('input[name="connection_type"]:checked')?.value;
+      
+      // Show/hide valve question (only for dependent)
+      if (connectionType === 'dependent') {
+        $schemeValveQuestion.style.display = '';
+      } else {
+        $schemeValveQuestion.style.display = 'none';
+        // Clear valve selection
+        document.querySelectorAll('input[name="has_valve"]').forEach(el => el.checked = false);
+      }
+
+      updateSchemeUI();
+    }
+
+    // Обработка изменения ГВС
+    function handleGwpChange() {
+      const hasGwp = document.getElementById('has_gwp')?.checked;
+      
+      // Show/hide ventilation question (only if GWP is checked)
+      if (hasGwp) {
+        $schemeVentQuestion.style.display = '';
+      } else {
+        $schemeVentQuestion.style.display = 'none';
+        // Clear ventilation
+        const ventCheckbox = document.getElementById('has_ventilation');
+        if (ventCheckbox) ventCheckbox.checked = false;
+      }
+
+      updateSchemeUI();
+    }
+
+    // Обновление UI (summary, preview, button state)
+    function updateSchemeUI() {
+      const config = getSchemeConfig();
+      currentSchemeConfig = config;
+
+      if (!config) {
+        $schemeConfigSummary.style.display = 'none';
+        $schemePreviewBlock.style.display = 'none';
+        $schemeGenerateBtn.disabled = true;
+        return;
+      }
+
+      // Update summary text
+      let summaryParts = [];
+      summaryParts.push(config.connection_type === 'dependent' ? 'Зависимая' : 'Независимая');
+      if (config.has_valve) {
+        summaryParts.push(config.connection_type === 'dependent' ? '3-ходовой клапан' : '2-ходовой клапан');
+      }
+      if (config.has_gwp) summaryParts.push('ГВС');
+      if (config.has_ventilation) summaryParts.push('Вентиляция');
+      
+      $schemeSummaryText.textContent = summaryParts.join(', ');
+      $schemeConfigSummary.style.display = '';
+
+      // Enable generate button
+      $schemeGenerateBtn.disabled = false;
+
+      // Show preview
+      loadSchemePreview(config);
+    }
+
+    // Загрузка превью схемы
+    async function loadSchemePreview(config) {
+      if (!config) return;
+
+      $schemePreviewBlock.style.display = '';
+      $schemePreviewContainer.innerHTML = '<div class="scheme-preview-loading"><div class="spinner"></div><p>Генерация схемы...</p></div>';
+
+      try {
+        const response = await fetch('/api/v1/schemes/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config })
+        });
+
+        if (!response.ok) {
+          throw new Error('Ошибка генерации превью');
+        }
+
+        const data = await response.json();
+        $schemePreviewContainer.innerHTML = data.svg_content;
+      } catch (error) {
+        console.error('Scheme preview error:', error);
+        $schemePreviewContainer.innerHTML = '<p style="color: var(--c-error);">Ошибка загрузки превью. Попробуйте обновить.</p>';
+      }
+    }
+
+    // Генерация PDF схемы
+    async function generateSchemePDF() {
+      if (!currentSchemeConfig) return;
+
+      $schemeGenerateBtn.disabled = true;
+      $schemeGenerateBtn.textContent = 'Генерация...';
+      $schemeError.style.display = 'none';
+      $schemeSuccess.style.display = 'none';
+
+      try {
+        const response = await fetch(`/api/v1/schemes/${ORDER_ID}/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: currentSchemeConfig })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || 'Ошибка генерации схемы');
+        }
+
+        const data = await response.json();
+        schemeGeneratedFileId = data.file_id;
+
+        // Show success
+        $schemeSuccessText.textContent = `Схема успешно сгенерирована! (${data.filename})`;
+        $schemeDownloadLink.href = `/api/v1/orders/${ORDER_ID}/files/${data.file_id}/download`;
+        $schemeSuccess.style.display = 'inline-flex';
+
+        // Hide generate button
+        $schemeGenerateBtn.style.display = 'none';
+
+        // Refresh checklist (scheme is now uploaded)
+        if (typeof fetchOrder === 'function') {
+          await fetchOrder();
+        }
+      } catch (error) {
+        console.error('Scheme generation error:', error);
+        $schemeError.textContent = error.message;
+        $schemeError.style.display = '';
+        $schemeGenerateBtn.disabled = false;
+        $schemeGenerateBtn.textContent = 'Подтвердить и сгенерировать PDF';
+      }
+    }
+
+    // Event listeners for configurator
+    if ($schemeConfiguratorCard) {
+      // Connection type radio buttons
+      document.querySelectorAll('input[name="connection_type"]').forEach(radio => {
+        radio.addEventListener('change', handleConnectionTypeChange);
+      });
+
+      // Valve radio buttons
+      document.querySelectorAll('input[name="has_valve"]').forEach(radio => {
+        radio.addEventListener('change', updateSchemeUI);
+      });
+
+      // GWP checkbox
+      const gwpCheckbox = document.getElementById('has_gwp');
+      if (gwpCheckbox) {
+        gwpCheckbox.addEventListener('change', handleGwpChange);
+      }
+
+      // Ventilation checkbox
+      const ventCheckbox = document.getElementById('has_ventilation');
+      if (ventCheckbox) {
+        ventCheckbox.addEventListener('change', updateSchemeUI);
+      }
+
+      // Generate button
+      if ($schemeGenerateBtn) {
+        $schemeGenerateBtn.addEventListener('click', generateSchemePDF);
+      }
+
+      // Refresh button
+      if ($schemeRefreshBtn) {
+        $schemeRefreshBtn.addEventListener('click', () => {
+          if (currentSchemeConfig) {
+            loadSchemePreview(currentSchemeConfig);
+          }
+        });
+      }
+    }
+
+    // Pre-fill scheme configurator from saved config
+    function prefillSchemeConfig(config) {
+      if (!config) return;
+
+      // Connection type
+      const connectionType = config.connection_type === 'independent' ? 'independent' : 'dependent';
+      const connectionRadio = document.querySelector(`input[name="connection_type"][value="${connectionType}"]`);
+      if (connectionRadio) {
+        connectionRadio.checked = true;
+        handleConnectionTypeChange();
+      }
+
+      // Valve (only for dependent)
+      if (connectionType === 'dependent') {
+        const valveValue = config.has_valve ? 'yes' : 'no';
+        const valveRadio = document.querySelector(`input[name="has_valve"][value="${valveValue}"]`);
+        if (valveRadio) {
+          valveRadio.checked = true;
+        }
+      }
+
+      // GWP
+      const gwpCheckbox = document.getElementById('has_gwp');
+      if (gwpCheckbox) {
+        gwpCheckbox.checked = config.has_gwp || false;
+        handleGwpChange();
+      }
+
+      // Ventilation
+      const ventCheckbox = document.getElementById('has_ventilation');
+      if (ventCheckbox && config.has_ventilation) {
+        ventCheckbox.checked = true;
+      }
+
+      // Update UI
+      updateSchemeUI();
+    }
+
+    // Suggest scheme config from parsed_params
+    function suggestSchemeFromParsedParams() {
+      if (!orderData || !orderData.parsed_params) return;
+
+      const parsed = orderData.parsed_params;
+      
+      // Try to detect connection type from parsed params
+      if (parsed.connection && parsed.connection.connection_type) {
+        const connType = parsed.connection.connection_type.toLowerCase();
+        if (connType.includes('зависим') || connType.includes('dependent')) {
+          const radio = document.querySelector('input[name="connection_type"][value="dependent"]');
+          if (radio) radio.checked = true;
+          handleConnectionTypeChange();
+        } else if (connType.includes('независим') || connType.includes('independent')) {
+          const radio = document.querySelector('input[name="connection_type"][value="independent"]');
+          if (radio) radio.checked = true;
+          handleConnectionTypeChange();
+        }
+      }
+
+      // Try to detect GWP from heating system
+      if (parsed.connection && parsed.connection.heating_system) {
+        const heatingSys = parsed.connection.heating_system.toLowerCase();
+        if (heatingSys.includes('гвс') || heatingSys.includes('горяч')) {
+          const gwpCheckbox = document.getElementById('has_gwp');
+          if (gwpCheckbox) {
+            gwpCheckbox.checked = true;
+            handleGwpChange();
+          }
+        }
+      }
+    }
+
+    // Show scheme configurator for custom orders after survey
+    function showSchemeConfiguratorIfNeeded() {
+      if (!orderData) return;
+      
+      // Show for custom orders in states after survey
+      const shouldShow = orderData.order_type === 'custom' && 
+                        CUSTOM_EDITABLE_STATUSES.includes(orderData.order_status) &&
+                        surveySavedCustom;
+      
+      if (shouldShow && $schemeConfiguratorCard) {
+        $schemeConfiguratorCard.style.display = 'block';
+        
+        // Check if scheme already generated
+        if (orderData.survey_data && orderData.survey_data.scheme_config) {
+          // Pre-fill and show success state
+          const savedConfig = orderData.survey_data.scheme_config;
+          prefillSchemeConfig(savedConfig);
+          
+          // Check if PDF exists
+          const schemeFile = (orderData.files_uploaded || []).find(f => f.category === 'heat_scheme');
+          if (schemeFile) {
+            $schemeGenerateBtn.style.display = 'none';
+            $schemeSuccess.style.display = 'inline-flex';
+            $schemeSuccessText.textContent = 'Схема успешно сгенерирована!';
+            $schemeDownloadLink.href = `/api/v1/orders/${ORDER_ID}/files/${schemeFile.id}/download`;
+            $schemeDownloadLink.style.display = 'inline';
+          }
+        } else {
+          // Suggest config from parsed_params
+          suggestSchemeFromParsedParams();
+        }
+      } else if ($schemeConfiguratorCard) {
+        $schemeConfiguratorCard.style.display = 'none';
+      }
     }
 
     // ── Start ───────────────────────────────────────────────────────────
