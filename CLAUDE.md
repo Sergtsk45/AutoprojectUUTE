@@ -280,7 +280,26 @@ Vite собирает в `frontend/dist/`. В Docker это монтируетс
 
 ## Конфигурация
 
-Все настройки — `backend/app/core/config.py` (Pydantic Settings).
+### Два файла окружения (оба в `.gitignore`, никогда не коммитить)
+
+| Файл | Назначение | Шаблон |
+|------|-----------|--------|
+| `backend/.env` | Секреты приложения (SMTP, API-ключи, DB URL) | `backend/.env.example` |
+| `.env` (корень) | Переменные docker-compose.prod.yml | `.env.example` |
+
+Корневой `.env` нужен только для production-деплоя через docker-compose.prod.yml.
+Содержит одну переменную: `POSTGRES_PASSWORD` — должна совпадать с паролем в `DATABASE_URL` из `backend/.env`.
+
+```bash
+# Первичная настройка на сервере
+cp .env.example .env
+nano .env   # вписать POSTGRES_PASSWORD
+
+cp backend/.env.example backend/.env
+nano backend/.env  # вписать все REQUIRED-поля
+```
+
+Все настройки приложения — `backend/app/core/config.py` (Pydantic Settings).
 
 ### Ключевые переменные окружения (backend/.env)
 
