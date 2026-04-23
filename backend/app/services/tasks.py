@@ -415,7 +415,9 @@ def check_data_completeness(self, order_id: str):
             return
 
         uploaded_categories = {f.category.value for f in order.files}
-        missing = compute_client_document_missing(uploaded_categories)
+        missing = compute_client_document_missing(
+            uploaded_categories, order.survey_data
+        )
         if (
             FileCategory.COMPANY_CARD.value not in uploaded_categories
             and FileCategory.COMPANY_CARD.value not in missing
@@ -760,7 +762,19 @@ def process_client_response(self, order_id: str):
             return
 
         uploaded_categories = {f.category.value for f in order.files}
-        missing = compute_client_document_missing(uploaded_categories)
+
+        if (
+            order.survey_data
+            and "scheme_config" in order.survey_data
+            and FileCategory.HEAT_SCHEME.value not in uploaded_categories
+        ):
+            if _auto_generate_scheme_if_configured(session, order):
+                session.refresh(order)
+                uploaded_categories = {f.category.value for f in order.files}
+
+        missing = compute_client_document_missing(
+            uploaded_categories, order.survey_data
+        )
         if (
             FileCategory.COMPANY_CARD.value not in uploaded_categories
             and FileCategory.COMPANY_CARD.value not in missing

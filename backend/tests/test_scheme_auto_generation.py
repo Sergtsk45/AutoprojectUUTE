@@ -171,3 +171,53 @@ class TestAutoGenerateScheme:
 
         assert result is False
         session.add.assert_not_called()
+
+
+class TestProcessClientResponseIntegration:
+    """Интеграционные тесты: process_client_response + автогенерация."""
+
+    def test_heat_scheme_not_in_missing_when_auto_generated(self, tmp_path, monkeypatch):
+        """После успешной автогенерации heat_scheme отсутствует в missing_params."""
+        from app.services import tasks
+
+        monkeypatch.setattr(tasks.settings, "upload_dir", tmp_path)
+
+        session = MagicMock()
+        order = MagicMock()
+        order.id = uuid.uuid4()
+        order.survey_data = {
+            "scheme_config": {
+                "connection_type": "dependent",
+                "has_valve": False,
+                "has_gwp": False,
+                "has_ventilation": False,
+            }
+        }
+        order.parsed_params = {}
+        order.object_address = "ул. Ленина"
+        order.client_organization = "ООО"
+
+        existing_files = [
+            MagicMock(category=MagicMock(value="BALANCE_ACT")),
+            MagicMock(category=MagicMock(value="CONNECTION_PLAN")),
+            MagicMock(category=MagicMock(value="heat_point_plan")),
+            MagicMock(category=MagicMock(value="company_card")),
+        ]
+        order.files = list(existing_files)
+
+        def fake_add(obj):
+            order.files.append(MagicMock(category=MagicMock(value="heat_scheme")))
+
+        session.add.side_effect = fake_add
+
+        with patch.object(tasks, "render_scheme_pdf", return_value=b"%PDF"):
+            success = tasks._auto_generate_scheme_if_configured(session, order)
+
+        assert success is True
+        uploaded = {f.category.value for f in order.files}
+        assert "heat_scheme" in uploaded
+
+        from app.services.param_labels import compute_client_document_missing
+
+        missing = compute_client_document_missing(uploaded, order.survey_data)
+        assert "heat_scheme" not in missing
