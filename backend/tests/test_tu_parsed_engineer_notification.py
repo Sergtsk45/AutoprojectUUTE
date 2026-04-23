@@ -34,6 +34,7 @@ class TuParsedEngineerNotificationTests(unittest.TestCase):
             files=[],
             missing_params=[],
             waiting_client_info_at=None,
+            survey_data=None,
         )
         notify_task = Mock()
 

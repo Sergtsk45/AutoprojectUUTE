@@ -518,7 +518,7 @@
         renderComparisonTable(order.parsed_params, order.survey_data);
       } else {
         document.getElementById('comparisonCard').style.display = 'none';
-        renderParsedParams(order.parsed_params, order.missing_params);
+        renderParsedParams(order.parsed_params, order.missing_params, order.survey_data, order.files);
         renderSurveyData(order.survey_data);
       }
 

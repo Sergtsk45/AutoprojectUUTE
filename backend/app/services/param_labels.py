@@ -18,9 +18,28 @@ CLIENT_DOCUMENT_PARAM_CODES: tuple[str, ...] = (
 )
 
 
-def compute_client_document_missing(uploaded_categories: set[str]) -> list[str]:
-    """Какие из четырёх обязательных документов ещё не загружены."""
-    return [c for c in CLIENT_DOCUMENT_PARAM_CODES if c not in uploaded_categories]
+def compute_client_document_missing(
+    uploaded_categories: set[str],
+    survey_data: dict | None = None,
+) -> list[str]:
+    """Какие из обязательных документов ещё не загружены.
+
+    Args:
+        uploaded_categories: Множество кодов уже загруженных файлов.
+        survey_data: Данные опросного листа. Если содержит ``scheme_config``,
+            ``heat_scheme`` исключается из missing (будет сгенерирован автоматически).
+
+    Returns:
+        Список кодов недостающих документов.
+    """
+    missing: list[str] = []
+    for code in CLIENT_DOCUMENT_PARAM_CODES:
+        if code in uploaded_categories:
+            continue
+        if code == "heat_scheme" and survey_data and "scheme_config" in survey_data:
+            continue
+        missing.append(code)
+    return missing
 
 
 _LEGACY_DOCUMENT_PARAM_CODES = frozenset(

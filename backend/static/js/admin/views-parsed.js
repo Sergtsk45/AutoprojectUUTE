@@ -420,7 +420,56 @@
         </details>`;
     }
 
-    function renderParsedParams(params, missing) {
+    function renderSchemeConfigSection(schemeConfig, files) {
+      if (!schemeConfig || typeof schemeConfig !== 'object') return '';
+
+      const connectionType = schemeConfig.connection_type;
+      const typeLabel = connectionType === 'dependent'
+        ? 'Зависимая'
+        : connectionType === 'independent' ? 'Независимая' : '—';
+
+      let valveLabel = 'Нет';
+      if (schemeConfig.has_valve) {
+        valveLabel = connectionType === 'dependent'
+          ? 'Да (3-ходовой с насосом на перемычке)'
+          : 'Да (2-ходовой с насосом)';
+      }
+
+      const gwpLabel = schemeConfig.has_gwp ? 'Да' : 'Нет';
+      const ventLabel = schemeConfig.has_ventilation ? 'Да' : 'Нет';
+
+      const schemeFile = (files || []).find(f => f.category === 'heat_scheme');
+      const statusLabel = schemeFile ? '✓ Сгенерирована' : '⏳ Ожидает генерации';
+
+      const rows = [
+        parsedTableRow('Тип присоединения', `<td class="parsed-value-cell"><span class="parsed-value">${esc(typeLabel)}</span></td>`),
+        parsedTableRow('Регулирующий клапан', `<td class="parsed-value-cell"><span class="parsed-value">${esc(valveLabel)}</span></td>`),
+        parsedTableRow('Система ГВС', `<td class="parsed-value-cell"><span class="parsed-value">${esc(gwpLabel)}</span></td>`),
+        parsedTableRow('Вентиляция (параллельная)', `<td class="parsed-value-cell"><span class="parsed-value">${esc(ventLabel)}</span></td>`),
+        parsedTableRow('Статус PDF', `<td class="parsed-value-cell"><span class="parsed-value">${esc(statusLabel)}</span></td>`),
+      ];
+
+      let sectionHtml = parsedSectionHtml('Конфигурация схемы', rows);
+
+      if (schemeFile) {
+        const downloadUrl = `${API_BASE}/admin/files/${schemeFile.id}/download`;
+        sectionHtml += `
+          <div style="margin-top:10px;">
+            <a href="${downloadUrl}"
+               class="btn btn-primary btn-sm"
+               style="font-size:12px; padding:6px 14px;"
+               target="_blank"
+               onclick="this.href = addKeyToUrl(this.href)">
+              ↓ Скачать PDF схемы
+            </a>
+          </div>
+        `;
+      }
+
+      return sectionHtml;
+    }
+
+    function renderParsedParams(params, missing, surveyData, files) {
       const card = document.getElementById('parsedCard');
       const content = document.getElementById('parsedContent');
       card.style.display = 'block';
@@ -446,6 +495,10 @@
         html += '<p class="parsed-empty-msg">\u041f\u0430\u0440\u0441\u0438\u043d\u0433 \u043d\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d</p>';
       } else {
         html += buildParsedParamsTablesHtml(params);
+      }
+
+      if (surveyData && surveyData.scheme_config) {
+        html += renderSchemeConfigSection(surveyData.scheme_config, files || []);
       }
 
       if (missing && missing.length > 0) {

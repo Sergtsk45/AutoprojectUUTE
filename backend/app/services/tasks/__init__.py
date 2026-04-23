@@ -13,6 +13,7 @@ from ._common import (  # noqa: F401
     _transition,
 )
 from .client_response import (  # noqa: F401
+    _auto_generate_scheme_if_configured,
     notify_engineer_client_documents_received,
     notify_engineer_new_order,
     notify_engineer_tu_parsed,
@@ -42,6 +43,7 @@ from .reminders import (  # noqa: F401
 from .tu_parsing import check_data_completeness, start_tu_parsing  # noqa: F401
 
 __all__ = [  # explicit for re-exports / type checkers
+    "_auto_generate_scheme_if_configured",
     "compute_client_document_missing",
     "INFO_REQUEST_AUTO_DELAY_SECONDS",
     "FINAL_PAYMENT_REMINDER_DELAY_DAYS",

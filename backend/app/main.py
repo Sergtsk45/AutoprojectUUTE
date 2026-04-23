@@ -13,6 +13,7 @@ from app.api.parsing import router as parsing_router
 from app.api.admin import router as admin_router
 from app.api.landing import router as landing_router
 from app.api.calculator_config import router as calculator_config_router
+from app.api.scheme_generator import router as scheme_generator_router
 from app.core.config import settings
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -67,6 +68,7 @@ app.include_router(parsing_router, prefix="/api/v1")
 app.include_router(landing_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(calculator_config_router, prefix="/api/v1")
+app.include_router(scheme_generator_router, prefix="/api/v1")
 
 
 @app.get("/health")

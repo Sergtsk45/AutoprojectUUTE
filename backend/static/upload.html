@@ -274,6 +274,59 @@
         </div>
       </div>
 
+      <!-- Scheme configurator (between survey and files) -->
+      <div class="card" id="schemeConfiguratorCard" style="display:none;">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
+          </svg>
+          Принципиальная схема теплового пункта
+        </h2>
+        <div class="scheme-intro">
+          <p>Ответьте на несколько вопросов, и система автоматически подберёт типовую схему УУТЭ.</p>
+        </div>
+        <div class="survey-group">
+          <div class="survey-group-title">1. Тип присоединения к тепловой сети</div>
+          <div class="scheme-radio-group">
+            <label class="scheme-radio-label"><input type="radio" name="connection_type" value="dependent"><span class="radio-custom"></span><span class="radio-text"><strong>Зависимая</strong><span class="radio-hint">Прямое подключение к тепловой сети</span></span></label>
+            <label class="scheme-radio-label"><input type="radio" name="connection_type" value="independent"><span class="radio-custom"></span><span class="radio-text"><strong>Независимая</strong><span class="radio-hint">Через теплообменник (два контура)</span></span></label>
+            <label class="scheme-radio-label"><input type="radio" name="connection_type" value="unknown"><span class="radio-custom"></span><span class="radio-text"><strong>Не знаю</strong><span class="radio-hint">Определит инженер по ТУ</span></span></label>
+          </div>
+        </div>
+        <div class="survey-group" id="schemeValveQuestion" style="display:none;">
+          <div class="survey-group-title">2. Регулирующий клапан и насос</div>
+          <div class="scheme-radio-group">
+            <label class="scheme-radio-label"><input type="radio" name="has_valve" value="no"><span class="radio-custom"></span><span class="radio-text"><strong>Нет</strong><span class="radio-hint">Простая схема без регулирования</span></span></label>
+            <label class="scheme-radio-label"><input type="radio" name="has_valve" value="yes"><span class="radio-custom"></span><span class="radio-text"><strong>Есть 3-ходовой клапан и насос на перемычке</strong><span class="radio-hint">Для регулирования температуры</span></span></label>
+          </div>
+        </div>
+        <div class="survey-group">
+          <div class="survey-group-title">3. Система ГВС (горячее водоснабжение)</div>
+          <label class="scheme-checkbox-label"><input type="checkbox" id="has_gwp"><span class="checkbox-custom"></span><span class="checkbox-text"><strong>Есть двухступенчатый подогреватель ГВС</strong><span class="checkbox-hint">Подогрев воды для бытовых нужд</span></span></label>
+        </div>
+        <div class="survey-group" id="schemeVentQuestion" style="display:none;">
+          <div class="survey-group-title">4. Система вентиляции</div>
+          <label class="scheme-checkbox-label"><input type="checkbox" id="has_ventilation"><span class="checkbox-custom"></span><span class="checkbox-text"><strong>Есть параллельное включение вентиляции</strong><span class="checkbox-hint">Отдельная ветка для вентиляции</span></span></label>
+        </div>
+        <div id="schemeConfigSummary" class="scheme-summary" style="display:none;">
+          <strong>Выбранная конфигурация:</strong> <span id="schemeSummaryText"></span>
+        </div>
+        <div id="schemePreviewBlock" style="display:none;">
+          <div class="scheme-preview-header"><strong>Предварительный просмотр схемы</strong><button type="button" class="btn-link" id="schemeRefreshBtn">Обновить</button></div>
+          <div id="schemePreviewContainer" class="scheme-preview-container"><div class="scheme-preview-loading"><div class="spinner"></div><p>Генерация схемы...</p></div></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="schemeGenerateBtn" disabled>Подтвердить и сгенерировать PDF</button>
+        </div>
+        <div id="schemeError" class="error-message" style="display:none;"></div>
+        <div id="schemeSuccess" class="success-message" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <span id="schemeSuccessText">Схема успешно сгенерирована!</span>
+          <a href="#" id="schemeDownloadLink" class="btn-link">Скачать PDF</a>
+        </div>
+      </div>
+
       <!-- Required documents checklist -->
       <div class="card" id="requiredDocsCard">
         <h2>
@@ -397,6 +450,7 @@
   <script src="/static/js/upload/utils.js"></script>
   <script src="/static/js/upload/survey.js"></script>
   <script src="/static/js/upload/contract.js"></script>
+  <script src="/static/js/upload/scheme.js"></script>
   <script src="/static/js/upload/upload.js"></script>
 </body>
 </html>
