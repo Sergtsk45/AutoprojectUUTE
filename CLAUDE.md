@@ -140,15 +140,30 @@ AutoprojectUUTE/
 ## Быстрый старт (production)
 
 ```bash
-# Обновление и пересборка
+# ✅ ПРАВИЛЬНО: атомарная пересборка через скрипт (рекомендуется)
+cd ~/uute-project && bash deploy.sh
+
+# ✅ ПРАВИЛЬНО: вручную — пересборка ВСЕХ сервисов без указания имён
 cd ~/uute-project
 git pull
 cd frontend && npm run build && cd ..
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build   # <── БЕЗ имени сервиса!
+
+# ❌ ЗАПРЕЩЕНО: частичная пересборка одного сервиса
+# docker compose -f docker-compose.prod.yml up -d --build backend
+# Причина: celery-worker и celery-beat работают на том же образе (uute-app:latest).
+# Если пересобрать только backend — воркер останется на старом коде и получит
+# ошибку "Received unregistered task" для новых Celery-задач.
 
 # Перезагрузка Caddy (если менялся Caddyfile)
 docker exec n8n-caddy-1 caddy reload --config /etc/caddy/Caddyfile
 ```
+
+> **Архитектура образов:** `backend`, `celery-worker` и `celery-beat` используют
+> единый Docker-образ `uute-app:latest` (см. `docker-compose.prod.yml`). Образ
+> собирается один раз через секцию `build:` в сервисе `backend`; остальные два
+> сервиса только ссылаются на него через `image: uute-app:latest` (без `build:`).
+> Это гарантирует единую версию кода во всех трёх процессах.
 
 ### Локальная разработка
 
@@ -528,7 +543,7 @@ roadmap или tasktracker. Roadmap — план фаз аудита; tasktracke
 2. Re-export: добавить имя в `backend/app/services/tasks/__init__.py` (импорт + `__all__`, если публичный API).
 3. Вызвать из нужного места через `.delay()` или `.apply_async()`
 4. Для периодических задач — добавить в `beat_schedule` в `backend/app/core/celery_app.py` (строка `task: "app.services.tasks...."`).
-5. Перезапустить воркер: `docker compose -f docker-compose.prod.yml restart celery-worker`
+5. **Деплой: пересобрать ВСЕ сервисы** — `bash deploy.sh` или `docker compose -f docker-compose.prod.yml up -d --build` (без указания имени сервиса). Частичный `--build backend` оставит воркер на старом коде — он не будет знать о новой задаче.
 
 ### Новая категория файлов (FileCategory)
 

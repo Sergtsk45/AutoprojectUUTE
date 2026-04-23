@@ -1,0 +1,103 @@
+services:
+  # ── Инфраструктура ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: uute-project-postgres-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: uute_db
+      POSTGRES_USER: uute
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - uute-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uute -d uute_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: uute-project-redis-1
+    restart: unless-stopped
+    networks:
+      - uute-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Приложение (общий образ) ──────────────────────────────────────────
+  # ВАЖНО: backend, celery-worker и celery-beat используют ОДИН образ uute-app.
+  # Это гарантирует, что все три сервиса всегда работают на одной версии кода.
+  # При `docker compose up -d --build` образ собирается один раз и применяется ко всем.
+  # НЕ ДОПУСКАЕТСЯ частичный --build (например: up -d --build backend) —
+  # используйте только: docker compose -f docker-compose.prod.yml up -d --build
+  # или скрипт deploy.sh.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: uute-app:latest           # <── даём образу имя
+    container_name: uute-backend
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    env_file: ./backend/.env
+    volumes:
+      - uploads:/var/uute-service/uploads
+      - ./frontend/dist:/app/frontend-dist:ro
+    networks:
+      - uute-net
+      - n8n_web
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    image: uute-app:latest           # <── тот же образ, без build
+    container_name: uute-project-celery-worker-1
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker -l info -Q default --concurrency=2
+    env_file: ./backend/.env
+    volumes:
+      - uploads:/var/uute-service/uploads
+    networks:
+      - uute-net
+    depends_on:
+      backend:                       # <── образ собирается через backend
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    image: uute-app:latest           # <── тот же образ, без build
+    container_name: uute-project-celery-beat-1
+    restart: unless-stopped
+    command: celery -A app.core.celery_app beat -l info
+    env_file: ./backend/.env
+    networks:
+      - uute-net
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+# ── Тома ──────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+  uploads:
+
+# ── Сети ──────────────────────────────────────────────────────────────
+networks:
+  uute-net:
+    driver: bridge
+  n8n_web:
+    external: true   # Caddy от соседнего n8n-проекта
