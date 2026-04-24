@@ -5,6 +5,17 @@
 > **выполненных/активных** задач; всё, что остаётся «на потом» после
 > закрытия задачи, — переносим в backlog с ID `BL-XXX` и ссылкой.
 
+## Задача: Исправить скачивание PDF принципиальной схемы на `/upload`
+- **Статус**: Завершена
+- **Описание**: После генерации PDF схемы клиентская ссылка «Скачать PDF» указывала на несуществующий публичный маршрут `/api/v1/orders/{order_id}/files/{file_id}/download`, из-за чего браузер переходил обратно на сайт вместо скачивания файла. Добавлен публичный endpoint скачивания только для файлов категории `heat_scheme`, а фронт переключён на новый URL в пространстве `/api/v1/schemes/...`.
+- **Шаги выполнения**:
+  - [x] Прослежен фронтенд-флоу `scheme.js`: `POST /schemes/{order_id}/generate` → установка `href` для download-link.
+  - [x] Подтверждена причина: публичного `/api/v1/orders/.../download` нет; существующий `/api/v1/admin/files/{file_id}/download` защищён admin-key.
+  - [x] Добавлен regression-test на публичное скачивание с проверкой `FileResponse`.
+  - [x] Добавлен `GET /api/v1/schemes/{order_id}/files/{file_id}/download` с фильтром по `order_id`, `file_id` и `FileCategory.HEAT_SCHEME`.
+  - [x] `backend/static/js/upload/scheme.js` переключён на новый публичный маршрут.
+- **Зависимости**: модуль конфигуратора схем (`scheme.js`) и API `scheme_generator.py`.
+
 ## Задача: Фаза C1+C2 — удаление legacy-статусов OrderStatus (2026-04-22)
 - **Статус**: Завершена (частичный scope)
 - **Описание**: Roadmap-фаза C предполагала удаление 4 legacy-статусов (`data_complete`, `generating_project`, `review`, `awaiting_contract`). По итогам разведки удалено только 3 — `AWAITING_CONTRACT` остался, так как активно используется в `payment.html`-ветке оплаты (bank_transfer + YooKassa-заглушка). C1 и C2 слиты в один PR, как предлагал roadmap §13.1.

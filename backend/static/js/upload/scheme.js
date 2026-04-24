@@ -128,7 +128,7 @@
         }
         const data = await response.json();
         $schemeSuccessText.textContent = `Схема успешно сгенерирована! (${data.filename})`;
-        $schemeDownloadLink.href = `${API_BASE}/orders/${ORDER_ID}/files/${data.file_id}/download`;
+        $schemeDownloadLink.href = `${API_BASE}/schemes/${ORDER_ID}/files/${data.file_id}/download`;
         $schemeSuccess.style.display = 'inline-flex';
         $schemeGenerateBtn.style.display = 'none';
         if (typeof fetchOrder === 'function') await fetchOrder();
@@ -192,7 +192,7 @@
             $schemeGenerateBtn.style.display = 'none';
             $schemeSuccess.style.display = 'inline-flex';
             $schemeSuccessText.textContent = 'Схема успешно сгенерирована!';
-            $schemeDownloadLink.href = `${API_BASE}/orders/${ORDER_ID}/files/${schemeFile.id}/download`;
+            $schemeDownloadLink.href = `${API_BASE}/schemes/${ORDER_ID}/files/${schemeFile.id}/download`;
           }
         } else {
           suggestSchemeFromParsedParams();

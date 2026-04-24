@@ -6,7 +6,9 @@
 """
 
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.models.models import FileCategory
 from app.services.param_labels import (
@@ -217,3 +219,43 @@ class TestProcessClientResponseIntegration:
 
         missing = compute_client_document_missing(uploaded, order.survey_data)
         assert "heat_scheme" not in missing
+
+
+class TestPublicSchemeDownload:
+    """Тесты публичного скачивания PDF схемы клиентом."""
+
+    @pytest.mark.asyncio
+    async def test_download_returns_pdf_for_matching_heat_scheme_file(self, tmp_path, monkeypatch):
+        from app.api.scheme_generator import download_generated_scheme_file
+        from app.core.config import settings
+        from app.models.models import OrderFile
+
+        order_id = uuid.uuid4()
+        file_id = uuid.uuid4()
+        relative_path = f"{order_id}/heat_scheme/heat_scheme_test.pdf"
+        pdf_path = tmp_path / relative_path
+        pdf_path.parent.mkdir(parents=True)
+        pdf_path.write_bytes(b"%PDF-1.4 test")
+
+        monkeypatch.setattr(settings, "upload_dir", tmp_path)
+
+        order_file = OrderFile(
+            id=file_id,
+            order_id=order_id,
+            category=FileCategory.HEAT_SCHEME,
+            original_filename="heat_scheme_test.pdf",
+            storage_path=relative_path,
+            content_type="application/pdf",
+            file_size=pdf_path.stat().st_size,
+        )
+
+        result_proxy = MagicMock()
+        result_proxy.scalar_one_or_none.return_value = order_file
+        db = MagicMock()
+        db.execute = AsyncMock(return_value=result_proxy)
+
+        response = await download_generated_scheme_file(order_id, file_id, db)
+
+        assert response.path == str(pdf_path)
+        assert response.filename == "heat_scheme_test.pdf"
+        assert response.media_type == "application/pdf"

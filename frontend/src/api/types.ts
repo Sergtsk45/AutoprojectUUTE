@@ -908,6 +908,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/schemes/{order_id}/files/{file_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Generated Scheme File
+         * @description Публичное скачивание PDF принципиальной схемы клиентом.
+         *
+         *     Доступ ограничен UUID заявки и только категорией ``heat_scheme``: другие
+         *     файлы заявки остаются за admin/API-флоу.
+         */
+        get: operations["download_generated_scheme_file_api_v1_schemes__order_id__files__file_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/schemes/{order_id}/generate": {
         parameters: {
             query?: never;
@@ -2183,9 +2206,9 @@ export interface components {
             heat_supply_source?: string | null;
             /**
              * Manufacturer
-             * @description Производитель тепловычислителя
+             * @description Производитель тепловычислителя (код из select upload.html)
              */
-            manufacturer?: ("teplovizor" | "vzlyot" | "tekon" | "elf" | "logika" | "shkala" | "karat" | "magika" | "other") | null;
+            manufacturer?: string | null;
             /**
              * Manufacturer Other
              * @description Производитель (если manufacturer='other')
@@ -3807,6 +3830,38 @@ export interface operations {
             header?: never;
             path: {
                 order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_generated_scheme_file_api_v1_schemes__order_id__files__file_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                file_id: string;
             };
             cookie?: never;
         };

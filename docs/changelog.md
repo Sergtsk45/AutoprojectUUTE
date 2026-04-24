@@ -9,6 +9,7 @@
 - Ранее закоммиченные файлы под `.cursor/` удалены из индекса Git (`git rm -r --cached .cursor`); на машине разработчика папка остаётся.
 - [`backend/static/js/upload/upload.js`](../backend/static/js/upload/upload.js), [`survey.js`](../backend/static/js/upload/survey.js): после вынесения конфигуратора схем в `scheme.js` функция `showSchemeConfiguratorIfNeeded()` нигде не вызывалась — блок «Принципиальная схема» на `/upload/<id>` оставался скрытым. Добавлены вызовы после инициализации страницы, после сохранения опроса и после завершения polling парсинга ТУ.
 - [`backend/app/schemas/jsonb/survey.py`](../backend/app/schemas/jsonb/survey.py): поле `manufacturer` переведено с устаревшего `Literal` на `str | None` — значения в [`upload.html`](../backend/static/upload.html) (`esko`, `teplokom`, `logika`, `pulsar`, `other`) не совпадали со списком в схеме, из‑за чего сохранение опроса custom заявки падало с `literal_error`.
+- [`backend/app/api/scheme_generator.py`](../backend/app/api/scheme_generator.py), [`backend/static/js/upload/scheme.js`](../backend/static/js/upload/scheme.js): ссылка «Скачать PDF» после генерации схемы указывала на несуществующий публичный маршрут `/api/v1/orders/.../download`, поэтому клиент попадал обратно на сайт вместо скачивания. Добавлен публичный download-endpoint только для `heat_scheme`, ссылка переключена на `/api/v1/schemes/{order_id}/files/{file_id}/download`.
 
 ## [2026-04-23] — Инфраструктура деплоя: shared image + deploy.sh
 

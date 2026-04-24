@@ -16,7 +16,7 @@
 
 ## Лендинг загрузки документов (`/upload/<id>`, `backend/static/upload.html`)
 
-**Структура статики (фаза E4, 2026-04-22).** `upload.html` теперь — тонкий HTML-скелет (~22 KB, 402 строки) с внешним CSS и пятью `<script>`-тегами (обычные скрипты, чтобы сохранился единственный inline `onclick="toggleSurveyCollapse()"`):
+**Структура статики (фаза E4, 2026-04-22).** `upload.html` теперь — тонкий HTML-скелет (~22 KB, 402 строки) с внешним CSS и шестью `<script>`-тегами (обычные скрипты, чтобы сохранился единственный inline `onclick="toggleSurveyCollapse()"`):
 
 ```mermaid
 flowchart LR
@@ -26,13 +26,14 @@ flowchart LR
   UT[js/upload/utils.js<br/>формат+DOM-refs+ошибки]
   SV[js/upload/survey.js<br/>опросный лист]
   CT[js/upload/contract.js<br/>договор+signed upload]
+  SC[js/upload/scheme.js<br/>конфигуратор схемы]
   UP[js/upload/upload.js<br/>init+checklist+upload+poll]
 
   HTML -->|link| CSS
-  HTML -->|script, в порядке| CFG --> UT --> SV --> CT --> UP
+  HTML -->|script, в порядке| CFG --> UT --> SV --> CT --> SC --> UP
 ```
 
-Переходы между состояниями: сначала заявка собирается (`new` → `tu_parsing` → `tu_parsed`), затем открывается опросный лист (`survey.js` заполняет его из `parsed_params` или сохранённого snapshot), параллельно можно догружать недостающие документы. После стадии `contract_sent` показывается экран с реквизитами договора и зона загрузки подписанного скана (`contract.js`). `upload.js` держит polling `/landing/orders/<id>/upload-page` в интервале 5с, пока статус в `tu_parsing`.
+Переходы между состояниями: сначала заявка собирается (`new` → `tu_parsing` → `tu_parsed`), затем открывается опросный лист (`survey.js` заполняет его из `parsed_params` или сохранённого snapshot), параллельно можно догружать недостающие документы. Для custom-заявок после сохранения опросного листа `scheme.js` показывает конфигуратор принципиальной схемы, вызывает `POST /api/v1/schemes/{order_id}/generate`, сохраняет PDF как `OrderFile(category=heat_scheme)` и отдаёт клиенту ссылку на публичный `GET /api/v1/schemes/{order_id}/files/{file_id}/download`. Этот download-route разрешает скачивать только файл схемы, совпадающий по `order_id` и `file_id`; остальные файлы заявки скачиваются через защищённые admin/API-маршруты. После стадии `contract_sent` показывается экран с реквизитами договора и зона загрузки подписанного скана (`contract.js`). `upload.js` держит polling `/landing/orders/<id>/upload-page` в интервале 5с, пока статус в `tu_parsing`.
 
 ## Админка (`/admin`, `backend/static/admin.html`)
 

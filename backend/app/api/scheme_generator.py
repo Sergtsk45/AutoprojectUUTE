@@ -12,7 +12,10 @@ from pathlib import Path
 import aiofiles
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from fastapi.responses import FileResponse
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models import Order, OrderFile, FileCategory
 from app.schemas.scheme import (
@@ -233,6 +236,42 @@ async def generate_scheme_pdf(
         "scheme_type": scheme_type.value,
         "message": "PDF схемы успешно сгенерирован и сохранен",
     }
+
+
+# ── GET /api/v1/schemes/{order_id}/files/{file_id}/download ──────────────────
+
+
+@router.get("/{order_id}/files/{file_id}/download")
+async def download_generated_scheme_file(
+    order_id: uuid.UUID,
+    file_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Публичное скачивание PDF принципиальной схемы клиентом.
+
+    Доступ ограничен UUID заявки и только категорией ``heat_scheme``: другие
+    файлы заявки остаются за admin/API-флоу.
+    """
+    stmt = select(OrderFile).where(
+        OrderFile.id == file_id,
+        OrderFile.order_id == order_id,
+        OrderFile.category == FileCategory.HEAT_SCHEME,
+    )
+    result = await db.execute(stmt)
+    order_file = result.scalar_one_or_none()
+
+    if order_file is None:
+        raise HTTPException(status_code=404, detail="Схема не найдена")
+
+    full_path = settings.upload_dir / order_file.storage_path
+    if not full_path.exists():
+        raise HTTPException(status_code=404, detail="Файл схемы не найден на диске")
+
+    return FileResponse(
+        path=str(full_path),
+        filename=order_file.original_filename,
+        media_type=order_file.content_type or "application/pdf",
+    )
 
 
 # ── GET /api/v1/schemes/{order_id}/config ──────────────────────────────────────
