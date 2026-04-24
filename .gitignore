@@ -17,6 +17,7 @@ build/
 *.local
 
 # IDE
+.cursor/
 .vscode/
 .idea/
 *.swp
