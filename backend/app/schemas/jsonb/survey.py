@@ -11,21 +11,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# Типы, ограниченные enum-ами из select-ов на странице upload.html.
-# Если UI добавит новое значение — сначала фронт, потом сюда. Пока — open string
-# для устойчивости к несогласованности (см. `extra='ignore'` ниже).
+# Да/нет — фиксированные значения select на upload.html.
+# Производитель (`manufacturer`) — произвольная строка: значения option в UI менялись
+# (esko, teplokom, logika, pulsar, other), а старый Literal ломал сохранение опроса.
 YesNo = Literal["yes", "no"]
-Manufacturer = Literal[
-    "teplovizor",
-    "vzlyot",
-    "tekon",
-    "elf",
-    "logika",
-    "shkala",
-    "karat",
-    "magika",
-    "other",
-]
 
 
 class SurveyData(BaseModel):
@@ -77,7 +66,7 @@ class SurveyData(BaseModel):
     # ── Оборудование узла учёта ───────────────────────────────────────────────
     has_mud_separators: YesNo | None = Field(None, description="Есть грязевики")
     has_filters: YesNo | None = Field(None, description="Есть фильтры")
-    manufacturer: Manufacturer | None = Field(None, description="Производитель тепловычислителя")
+    manufacturer: str | None = Field(None, description="Производитель тепловычислителя (код из select upload.html)")
     manufacturer_other: str | None = Field(
         None, description="Производитель (если manufacturer='other')"
     )

@@ -119,9 +119,10 @@ class SurveyDataTests(unittest.TestCase):
         self.assertIsNone(data.building_type)
         self.assertIsNone(data.manufacturer)
 
-    def test_manufacturer_literal_enforced(self) -> None:
-        with self.assertRaises(ValidationError):
-            SurveyData.model_validate({"manufacturer": "UNKNOWN_VENDOR"})
+    def test_manufacturer_any_string_accepted(self) -> None:
+        """Производитель — строка из UI; калькулятор отфильтрует неизвестные коды отдельно."""
+        data = SurveyData.model_validate({"manufacturer": "teplokom"})
+        self.assertEqual(data.manufacturer, "teplokom")
 
     def test_valid_full_survey(self) -> None:
         data = SurveyData.model_validate(
@@ -132,13 +133,13 @@ class SurveyDataTests(unittest.TestCase):
                 "city": "Москва",
                 "supply_temp": 130,
                 "return_temp": 70,
-                "manufacturer": "teplovizor",
+                "manufacturer": "logika",
                 "manufacturer_other": None,
                 "has_mud_separators": "yes",
                 "has_filters": "no",
             }
         )
-        self.assertEqual(data.manufacturer, "teplovizor")
+        self.assertEqual(data.manufacturer, "logika")
         self.assertEqual(data.has_mud_separators, "yes")
 
     def test_extra_keys_ignored(self) -> None:
