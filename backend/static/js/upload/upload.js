@@ -5,7 +5,7 @@
  *   drag&drop + XHR-загрузку файлов, submit-хендлер «Всё загружено»,
  *   finalize (showCompleted), polling статуса парсинга ТУ и переход
  *   к initCustomOrderUi. Привязывает обработчик подписанного договора.
- * @dependencies: config.js, utils.js, survey.js, contract.js
+ * @dependencies: config.js, utils.js, survey.js, contract.js, scheme.js
  * @created: 2026-04-22
  */
 
@@ -44,6 +44,9 @@
           applySurveySavedVisuals(false);
         }
         showUploadAlongsideSurveyIfNeeded(orderData);
+        if (typeof showSchemeConfiguratorIfNeeded === 'function') {
+          showSchemeConfiguratorIfNeeded();
+        }
         return true;
       }
       if (status === 'advance_paid' || status === 'awaiting_final_payment' || status === 'completed') {
@@ -113,6 +116,9 @@
         surveySavedCustom =
           orderData.order_type === 'custom' && hasMeaningfulSurveyData(orderData.survey_data);
         syncSubmitButtonState();
+        if (typeof showSchemeConfiguratorIfNeeded === 'function') {
+          showSchemeConfiguratorIfNeeded();
+        }
       } catch (err) {
         $loading.style.display = 'none';
         $error.style.display = 'block';
@@ -441,6 +447,9 @@
               applySurveySavedVisuals(false);
             }
             syncSubmitButtonState();
+            if (typeof showSchemeConfiguratorIfNeeded === 'function') {
+              showSchemeConfiguratorIfNeeded();
+            }
             showBanner('success', 'Анализ завершён! Проверьте и дополните данные.');
           }
         } catch (e) {

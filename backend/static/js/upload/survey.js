@@ -452,6 +452,9 @@
         surveySavedCustom = true;
         applySurveySavedVisuals(true);
         syncSubmitButtonState();
+        if (typeof showSchemeConfiguratorIfNeeded === 'function') {
+          showSchemeConfiguratorIfNeeded();
+        }
         if ($surveyCard) {
           $surveyCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }

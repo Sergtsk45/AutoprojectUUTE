@@ -7,6 +7,7 @@
 
 ### Исправлено
 - Ранее закоммиченные файлы под `.cursor/` удалены из индекса Git (`git rm -r --cached .cursor`); на машине разработчика папка остаётся.
+- [`backend/static/js/upload/upload.js`](../backend/static/js/upload/upload.js), [`survey.js`](../backend/static/js/upload/survey.js): после вынесения конфигуратора схем в `scheme.js` функция `showSchemeConfiguratorIfNeeded()` нигде не вызывалась — блок «Принципиальная схема» на `/upload/<id>` оставался скрытым. Добавлены вызовы после инициализации страницы, после сохранения опроса и после завершения polling парсинга ТУ.
 
 ## [2026-04-23] — Инфраструктура деплоя: shared image + deploy.sh
 
