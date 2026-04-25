@@ -30,16 +30,31 @@ def _strip_xml_declaration(svg_string: str) -> str:
     return svg_string
 
 
-def _load_ezdxf_renderer() -> tuple[Any, Any, Any, Any, Any, Any, Any] | None:
+def _load_ezdxf_renderer() -> tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any] | None:
     try:
         import ezdxf
         from ezdxf.addons.drawing import Frontend, RenderContext, layout, svg
-        from ezdxf.addons.drawing.config import Configuration, ImagePolicy
+        from ezdxf.addons.drawing.config import (
+            BackgroundPolicy,
+            ColorPolicy,
+            Configuration,
+            ImagePolicy,
+        )
     except ImportError as exc:
         logger.warning("ezdxf is unavailable, DXF template render skipped: %s", exc)
         return None
 
-    return ezdxf, Frontend, RenderContext, layout, svg, Configuration, ImagePolicy
+    return (
+        ezdxf,
+        Frontend,
+        RenderContext,
+        layout,
+        svg,
+        Configuration,
+        ImagePolicy,
+        BackgroundPolicy,
+        ColorPolicy,
+    )
 
 
 def render_template_scheme(scheme_type: SchemeType, params: SchemeParams) -> str | None:
@@ -52,7 +67,17 @@ def render_template_scheme(scheme_type: SchemeType, params: SchemeParams) -> str
     renderer_deps = _load_ezdxf_renderer()
     if renderer_deps is None:
         return None
-    ezdxf, Frontend, RenderContext, layout, svg, Configuration, ImagePolicy = renderer_deps
+    (
+        ezdxf,
+        Frontend,
+        RenderContext,
+        layout,
+        svg,
+        Configuration,
+        ImagePolicy,
+        BackgroundPolicy,
+        ColorPolicy,
+    ) = renderer_deps
 
     if not DEP_SIMPLE_TEMPLATE_PATH.exists():
         logger.warning("DXF template is missing: %s", DEP_SIMPLE_TEMPLATE_PATH)
@@ -66,7 +91,11 @@ def render_template_scheme(scheme_type: SchemeType, params: SchemeParams) -> str
 
     try:
         backend = svg.SVGBackend()
-        config = Configuration(image_policy=ImagePolicy.IGNORE)
+        config = Configuration(
+            image_policy=ImagePolicy.IGNORE,
+            background_policy=BackgroundPolicy.OFF,
+            color_policy=ColorPolicy.BLACK,
+        )
         Frontend(RenderContext(doc), backend, config=config).draw_layout(doc.modelspace())
         page = layout.Page(
             _TEMPLATE_PAGE_WIDTH_MM,
