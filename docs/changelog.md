@@ -9,6 +9,9 @@
 ### Изменено
 - Остальные 7 типов схем временно остаются на legacy programmatic renderer в [`scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py) до появления исходников DXF/SVG.
 
+### Исправлено
+- [`backend/app/services/scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py): DXF-шаблон рендерится без тёмного modelspace-фона `ezdxf` и с чёрной монохромной графикой, чтобы итоговый SVG/PDF не превращался в чёрный лист.
+
 ## [2026-04-25] — Репозиторий: `.cursor` вне Git
 
 ### Изменено
