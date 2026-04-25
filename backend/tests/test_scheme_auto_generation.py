@@ -15,6 +15,70 @@ from app.services.param_labels import (
     CLIENT_DOCUMENT_PARAM_CODES,
     compute_client_document_missing,
 )
+from app.schemas.scheme import SchemeParams, SchemeType
+
+
+class TestRenderSchemeTemplateIntegration:
+    """Тесты подключения DXF-шаблонов к общему SVG-диспетчеру."""
+
+    def test_dep_simple_returns_template_content_when_available(self, monkeypatch):
+        from app.services import scheme_svg_renderer as renderer
+
+        template_marker = '<g id="template-marker">template content</g>'
+        monkeypatch.setattr(
+            renderer,
+            "render_template_scheme",
+            lambda scheme_type, params: template_marker,
+            raising=False,
+        )
+
+        result = renderer.render_scheme(SchemeType.DEP_SIMPLE, SchemeParams())
+
+        assert result == template_marker
+
+    def test_dep_simple_returns_empty_template_content_without_fallback(self, monkeypatch):
+        from app.services import scheme_svg_renderer as renderer
+
+        monkeypatch.setattr(
+            renderer,
+            "render_template_scheme",
+            lambda scheme_type, params: "",
+            raising=False,
+        )
+
+        result = renderer.render_scheme(SchemeType.DEP_SIMPLE, SchemeParams())
+
+        assert result == ""
+
+    def test_dep_simple_falls_back_to_programmatic_svg_when_template_missing(self, monkeypatch):
+        from app.services import scheme_svg_renderer as renderer
+
+        template_marker = '<g id="template-marker">template content</g>'
+        monkeypatch.setattr(
+            renderer,
+            "render_template_scheme",
+            lambda scheme_type, params: None,
+            raising=False,
+        )
+
+        result = renderer.render_scheme(SchemeType.DEP_SIMPLE, SchemeParams())
+
+        assert result != template_marker
+        assert "Т1 (подача)" in result
+
+    def test_other_scheme_type_falls_back_when_template_missing(self, monkeypatch):
+        from app.services import scheme_svg_renderer as renderer
+
+        monkeypatch.setattr(
+            renderer,
+            "render_template_scheme",
+            lambda scheme_type, params: None,
+            raising=False,
+        )
+
+        result = renderer.render_scheme(SchemeType.DEP_SIMPLE_GWP, SchemeParams())
+
+        assert "Зона ГВС" in result
 
 
 class TestComputeClientDocumentMissing:

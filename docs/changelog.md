@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-25] — DXF-шаблон первой схемы
+
+### Добавлено
+- [`backend/app/services/scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py): первая схема `SchemeType.DEP_SIMPLE` теперь использует DXF-шаблонный путь (`ezdxf` → SVG-фрагмент → ГОСТ-рамка → PDF).
+- [`backend/templates/schemes/dxf/1_2_dep_simple.dxf`](../backend/templates/schemes/dxf/1_2_dep_simple.dxf): runtime-копия исходной DXF-схемы.
+
+### Изменено
+- Остальные 7 типов схем временно остаются на legacy programmatic renderer в [`scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py) до появления исходников DXF/SVG.
+
 ## [2026-04-25] — Репозиторий: `.cursor` вне Git
 
 ### Изменено

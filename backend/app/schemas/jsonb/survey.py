@@ -66,7 +66,9 @@ class SurveyData(BaseModel):
     # ── Оборудование узла учёта ───────────────────────────────────────────────
     has_mud_separators: YesNo | None = Field(None, description="Есть грязевики")
     has_filters: YesNo | None = Field(None, description="Есть фильтры")
-    manufacturer: str | None = Field(None, description="Производитель тепловычислителя (код из select upload.html)")
+    manufacturer: str | None = Field(
+        None, description="Производитель тепловычислителя (код из select upload.html)"
+    )
     manufacturer_other: str | None = Field(
         None, description="Производитель (если manufacturer='other')"
     )

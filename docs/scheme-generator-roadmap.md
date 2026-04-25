@@ -12,7 +12,7 @@
 
 ## 2. Решение
 
-Заменить загрузку PDF-схем на **интерактивный конфигуратор**: клиент отвечает на вопросы (радиокнопки/чекбоксы), система подбирает типовую схему из библиотеки SVG-шаблонов, подставляет параметры из `parsed_params` и генерирует готовый PDF с ГОСТ-рамкой.
+Заменить загрузку PDF-схем на **интерактивный конфигуратор**: клиент отвечает на вопросы (радиокнопки/чекбоксы), система подбирает типовую схему, подставляет параметры из `parsed_params` и генерирует готовый PDF с ГОСТ-рамкой. С 2026-04-25 первая схема (`SchemeType.DEP_SIMPLE`) переведена на DXF-шаблонный путь; остальные 7 схем временно остаются на legacy programmatic renderer до подготовки исходников DXF/SVG.
 
 ### Scope MVP
 
@@ -77,8 +77,10 @@ Q4: Есть ли параллельное включение вентиляци
     │
     ▼
 POST /api/v1/schemes/preview
-    │ → resolve_scheme(config) → имя SVG-шаблона
-    │ → render_scheme_svg(template, params) → SVG строка
+    │ → resolve_scheme(config) → SchemeType
+    │ → render_scheme(type, params)
+    │   ├─ DEP_SIMPLE: DXF source → ezdxf SVG rendering
+    │   └─ остальные / fallback: legacy programmatic renderer
     │
     ▼
 Превью в браузере (inline SVG)
@@ -86,7 +88,7 @@ POST /api/v1/schemes/preview
     ▼ [Клиент нажимает «Подтвердить»]
     │
 POST /api/v1/schemes/{order_id}/generate
-    │ → SVG + ГОСТ HTML-обёртка → WeasyPrint → PDF bytes
+    │ → SVG → gost_frame_a3 → WeasyPrint → PDF bytes
     │ → сохранение OrderFile(category=heat_scheme)
     │ → scheme_config → survey_data.scheme_config
     │
@@ -94,13 +96,11 @@ POST /api/v1/schemes/{order_id}/generate
 PDF с ГОСТ-рамкой и штампом в файлах заявки
 ```
 
-### Подход к SVG: программная генерация (svgwrite)
+### Подход к SVG: DXF-шаблон + legacy programmatic renderer
 
-Каждая схема генерируется Python-кодом через `svgwrite`. Преимущества:
-- Легко итерировать и менять элементы
-- Параметры подставляются программно (не Jinja2-плейсхолдеры)
-- Проще добавлять новые конфигурации
-- Единый стиль через константы
+Первая схема (`DEP_SIMPLE`) рендерится из DXF-исходника через `ezdxf` в SVG-фрагмент, который затем встраивается в существующую ГОСТ-рамку. Если DXF-шаблон недоступен или renderer возвращает `None`, `render_scheme()` использует прежний программный renderer.
+
+Оставшиеся 7 схем пока генерируются Python-кодом в `scheme_svg_renderer.py`. Для их миграции нужны согласованные исходники DXF/SVG.
 
 ### Элементы SVG (инженерные символы ГОСТ)
 
@@ -144,10 +144,14 @@ backend/
 │   │   └── scheme.py                        # ✅ ГОТОВО — Pydantic: SchemeConfig, SchemeGenerateRequest
 │   ├── services/
 │   │   ├── scheme_service.py                # ✅ ГОТОВО — Логика подбора шаблона, маппинг конфигураций
-│   │   ├── scheme_svg_renderer.py           # Программная генерация SVG (svgwrite)
+│   │   ├── scheme_template_renderer.py       # DXF → SVG-фрагмент для DEP_SIMPLE
+│   │   ├── scheme_svg_renderer.py           # Диспетчер + legacy programmatic renderer для 7 схем
 │   │   ├── scheme_svg_elements.py           # Библиотека SVG-элементов (насос, клапан...)
 │   │   └── scheme_pdf_renderer.py           # SVG → HTML → PDF (WeasyPrint)
 ├── templates/
+│   ├── schemes/
+│   │   └── dxf/
+│   │       └── 1_2_dep_simple.dxf           # DXF-исходник первой схемы
 │   └── scheme_pdf/
 │       ├── gost_frame_a3.html               # ГОСТ рамка A3 (Jinja2)
 │       └── gost_frame_a4.html               # ГОСТ рамка A4 (Jinja2)
@@ -160,7 +164,7 @@ backend/
 | `backend/app/main.py` | Подключение роутера `scheme_generator` |
 | `backend/static/upload.html` | Секция конфигуратора схем (вопросы + превью) |
 | `backend/static/admin.html` | Отображение выбранной конфигурации в карточке |
-| `backend/requirements.txt` | `svgwrite`, `weasyprint` |
+| `backend/requirements.txt` | `ezdxf`, `weasyprint` |
 
 ## 6. Задачи (roadmap)
 
@@ -213,10 +217,10 @@ backend/
 
 ### Задача 3: SVG-рендер схем (8 конфигураций) ✅
 - **Статус**: Завершена (2026-04-20)
-- **Файлы**: `backend/app/services/scheme_svg_renderer.py`
-- **Описание**: Реализовать функции компоновки полных схем из элементов задачи 2. Каждая из 8 конфигураций — отдельная функция компоновки, определяющая расположение элементов на canvas. Общий размер SVG — 1190×842 px (A3 landscape). Разбивка по подзадачам:
+- **Файлы**: `backend/app/services/scheme_svg_renderer.py`, `backend/app/services/scheme_template_renderer.py`, `backend/templates/schemes/dxf/1_2_dep_simple.dxf`
+- **Описание**: 8 конфигураций доступны через общий `render_scheme()`. С 2026-04-25 схема 1 (`DEP_SIMPLE`) сначала рендерится из DXF-шаблона через `ezdxf`; остальные 7 конфигураций остаются на программной компоновке до появления исходников DXF/SVG.
 - **Подзадачи**:
-  - **3.1 — Схема 1 (эталон) ✅**: `render_scheme_01_dep_simple(params)` — зависимая без клапана. Самая простая схема. Используется для отладки пропорций, проверки читаемости, калибровки размеров элементов.
+  - **3.1 — Схема 1 (эталон) ✅**: `render_template_scheme(SchemeType.DEP_SIMPLE, params)` использует `backend/templates/schemes/dxf/1_2_dep_simple.dxf`; при fallback остаётся доступен `render_scheme_01_dep_simple(params)`.
   - **3.2 — Схемы 2–5 (зависимые) ✅**:
     - **✅ `render_scheme_02_dep_simple_gwp(params)`** — + блок ГВС (двухступенчатый подогреватель, насос ГВС, G3, врезки в подачу/обратку)
     - **✅ `render_scheme_03_dep_valve(params)`** — + трёхходовой клапан и насос на перемычке (регулирование температуры)
@@ -312,13 +316,13 @@ backend/
 ---
 
 ### Задача 8: Документация и деплой
-- **Статус**: Не начата
+- **Статус**: В работе
 - **Файлы**: `docs/changelog.md`, `docs/tasktracker.md`, `docs/project.md`
 - **Описание**: Фиксация изменений, обновление документации, деплой.
 - **Шаги**:
-  - [ ] Запись в `docs/changelog.md`
-  - [ ] Обновить `docs/tasktracker.md`
-  - [ ] Обновить `docs/project.md` (архитектура, новые файлы)
+  - [x] Запись в `docs/changelog.md`
+  - [x] Обновить `docs/tasktracker.md`
+  - [x] Обновить `docs/project.md` (архитектура, новые файлы)
   - [ ] Обновить `CLAUDE.md` (новые файлы и роуты)
   - [ ] Установка системных зависимостей WeasyPrint в Dockerfile
   - [ ] Деплой и проверка на проде
@@ -368,20 +372,18 @@ backend/
 
 ## 8. Технические решения и ограничения
 
-### Выбор подхода: программная генерация SVG (Путь Б)
+### Выбор подхода: DXF-шаблон для первой схемы
 
-Каждая схема генерируется Python-кодом (`svgwrite`), а не рисуется вручную в Inkscape.
+Первая схема (`DEP_SIMPLE`) переведена на DXF-шаблон, потому что программная геометрия оказалась недостаточно близкой к инженерному исходнику. Актуальный путь: `DXF source -> ezdxf SVG rendering -> gost_frame_a3 -> WeasyPrint PDF`.
 
 **Плюсы:**
-- Быстрее для итераций и правок
-- Параметры подставляются программно
-- Проще добавлять новые конфигурации
-- Единый стиль через константы
-- Версионирование в Git
+- Визуальная база совпадает с согласованным CAD-исходником.
+- Существующий PDF-пайплайн и ГОСТ-рамка сохраняются.
+- Есть graceful fallback на legacy renderer.
 
 **Минусы:**
-- Первоначальная разработка сложнее
-- Нужна точная геометрия элементов
+- Для миграции остальных 7 схем нужны исходники DXF/SVG.
+- Требуется зависимость `ezdxf` и контроль качества SVG-вывода.
 
 ### WeasyPrint vs Puppeteer
 
