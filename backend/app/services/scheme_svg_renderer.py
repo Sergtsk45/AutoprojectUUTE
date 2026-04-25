@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app.schemas.scheme import SchemeParams, SchemeType
+from app.services.scheme_template_renderer import render_template_scheme
 from app.services.scheme_svg_elements import (
     check_valve,
     connection_line,
@@ -42,6 +43,10 @@ def render_scheme(scheme_type: SchemeType, params: SchemeParams) -> str:
 
     Возвращает SVG-контент (без корневого <svg> и ГОСТ-рамки) — только группы элементов.
     """
+    template_content = render_template_scheme(scheme_type, params)
+    if template_content is not None:
+        return template_content
+
     renderers = {
         SchemeType.DEP_SIMPLE: render_scheme_01_dep_simple,
         SchemeType.DEP_SIMPLE_GWP: render_scheme_02_dep_simple_gwp,
