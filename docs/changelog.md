@@ -3,7 +3,7 @@
 ## [2026-04-26] — Обновление DXF эталона схемы 1
 
 ### Изменено
-- [`backend/templates/schemes/dxf/1_2_dep_simple.dxf`](../backend/templates/schemes/dxf/1_2_dep_simple.dxf): синхронизировано с обновлённым исходником [`docs/scheme/...`](scheme/1_2_Сх_зависимая%20без%20ГВС%20без%20клапана%20коррект%20.dxf) — путь `DEP_SIMPLE_TEMPLATE_PATH` в [`scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py) не менялся.
+- [`backend/templates/schemes/dxf/1_2_dep_simple.dxf`](../backend/templates/schemes/dxf/1_2_dep_simple.dxf): синхронизировано с обновлённым исходником [`docs/scheme/...`](scheme/1_2_Сх_зависимая%20без%20ГВС%20без%20клапана.dxf) — путь `DEP_SIMPLE_TEMPLATE_PATH` в [`scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py) не менялся.
 
 ## [2026-04-25] — DXF-шаблон первой схемы
 

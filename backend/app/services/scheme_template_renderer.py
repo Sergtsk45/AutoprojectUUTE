@@ -15,7 +15,7 @@ from app.schemas.scheme import SchemeParams, SchemeType
 
 logger = logging.getLogger(__name__)
 
-# Исходник в репозитории: docs/scheme/1_2_Сх_зависимая без ГВС без клапана коррект .dxf
+# Исходник в репозитории: docs/scheme/1_2_Сх_зависимая без ГВС без клапана.dxf
 # (при правке копировать в runtime-путь ниже — Docker и prod читают только его).
 DEP_SIMPLE_TEMPLATE_PATH = (
     Path(__file__).resolve().parents[2] / "templates" / "schemes" / "dxf" / "1_2_dep_simple.dxf"
