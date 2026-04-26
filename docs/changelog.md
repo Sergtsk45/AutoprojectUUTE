@@ -4,6 +4,7 @@
 
 ### Изменено
 - [`backend/templates/schemes/dxf/1_2_dep_simple.dxf`](../backend/templates/schemes/dxf/1_2_dep_simple.dxf): синхронизировано с обновлённым исходником [`docs/scheme/...`](scheme/1_2_Сх_зависимая%20без%20ГВС%20без%20клапана%202.dxf) — путь `DEP_SIMPLE_TEMPLATE_PATH` в [`scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py) не менялся.
+- [`backend/app/services/scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py): DXF-шаблон `DEP_SIMPLE` уменьшен и сдвинут в верхнюю левую рабочую область листа, чтобы схема целиком попадала в предпросмотр и PDF.
 
 ## [2026-04-25] — DXF-шаблон первой схемы
 
