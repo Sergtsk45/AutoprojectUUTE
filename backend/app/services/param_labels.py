@@ -13,7 +13,6 @@ CLIENT_DOCUMENT_PARAM_CODES: tuple[str, ...] = (
     "balance_act",
     "connection_plan",
     "heat_point_plan",
-    "heat_scheme",
     "company_card",
 )
 
@@ -26,8 +25,8 @@ def compute_client_document_missing(
 
     Args:
         uploaded_categories: Множество кодов уже загруженных файлов.
-        survey_data: Данные опросного листа. Если содержит ``scheme_config``,
-            ``heat_scheme`` исключается из missing (будет сгенерирован автоматически).
+        survey_data: Данные опросного листа. Сохраняется для совместимости
+            сигнатуры; клиентская PDF-генерация схем отключена.
 
     Returns:
         Список кодов недостающих документов.
@@ -35,8 +34,6 @@ def compute_client_document_missing(
     missing: list[str] = []
     for code in CLIENT_DOCUMENT_PARAM_CODES:
         if code in uploaded_categories:
-            continue
-        if code == "heat_scheme" and survey_data and "scheme_config" in survey_data:
             continue
         missing.append(code)
     return missing
@@ -111,7 +108,6 @@ SAMPLE_DOCUMENTS: dict[str, str] = {
     "balance_act": "samples/sample_balance_act.pdf",
     "connection_plan": "samples/sample_connection_plan.pdf",
     "heat_point_plan": "samples/sample_heat_point_plan.pdf",
-    "heat_scheme": "samples/sample_heat_scheme.pdf",
 }
 
 

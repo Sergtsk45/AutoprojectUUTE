@@ -5,6 +5,8 @@
 ### Изменено
 - [`backend/templates/schemes/dxf/1_2_dep_simple.dxf`](../backend/templates/schemes/dxf/1_2_dep_simple.dxf): синхронизировано с обновлённым исходником [`docs/scheme/...`](scheme/1_2_Сх_зависимая%20без%20ГВС%20без%20клапана%202.dxf) — путь `DEP_SIMPLE_TEMPLATE_PATH` в [`scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py) не менялся.
 - [`backend/app/services/scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py): DXF-шаблон `DEP_SIMPLE` уменьшен и сдвинут в верхнюю левую рабочую область листа, чтобы схема целиком попадала в предпросмотр и PDF.
+- [`backend/app/api/scheme_generator.py`](../backend/app/api/scheme_generator.py), [`backend/static/js/upload/scheme.js`](../backend/static/js/upload/scheme.js), [`backend/static/upload.html`](../backend/static/upload.html): клиентский конфигуратор схем переведён в режим демонстрации — без ГОСТ-рамки, кнопки генерации PDF и ссылки скачивания; публичный endpoint генерации PDF возвращает `410 Gone`.
+- [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py), [`backend/app/services/tasks/client_response.py`](../backend/app/services/tasks/client_response.py): `heat_scheme` больше не запрашивается как обязательный клиентский документ, скрытая автогенерация PDF при обработке ответа клиента отключена.
 
 ## [2026-04-25] — DXF-шаблон первой схемы
 

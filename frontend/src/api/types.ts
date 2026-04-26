@@ -845,7 +845,7 @@ export interface paths {
          *         request: Конфигурация схемы (SchemeConfig) и опциональные параметры (SchemeParams)
          *
          *     Returns:
-         *         SVG-контент схемы с ГОСТ-рамкой для отображения в браузере
+         *         SVG-контент схемы без ГОСТ-рамки для отображения в браузере
          *
          *     Raises:
          *         HTTPException 400: Если конфигурация невалидна или комбинация параметров недопустима
@@ -942,18 +942,7 @@ export interface paths {
         put?: never;
         /**
          * Generate Scheme Pdf
-         * @description Генерирует PDF схемы и сохраняет как файл заявки.
-         *
-         *     Args:
-         *         order_id: UUID заявки
-         *         request: Конфигурация схемы и параметры
-         *
-         *     Returns:
-         *         Информация о сохраненном файле (id, category, filename)
-         *
-         *     Raises:
-         *         HTTPException 404: Заявка не найдена
-         *         HTTPException 400: Невалидная конфигурация схемы
+         * @description Клиентская PDF-генерация отключена: конфигуратор только показывает превью.
          */
         post: operations["generate_scheme_pdf_api_v1_schemes__order_id__generate_post"];
         delete?: never;
