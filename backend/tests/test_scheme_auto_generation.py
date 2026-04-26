@@ -18,6 +18,55 @@ from app.services.param_labels import (
 from app.schemas.scheme import SchemeParams, SchemeType
 
 
+class TestSchemePreviewApi:
+    """Тесты клиентского preview-only конфигуратора схем."""
+
+    @pytest.mark.asyncio
+    async def test_preview_returns_standalone_svg_without_gost_frame(self, monkeypatch):
+        from app.api import scheme_generator as api
+        from app.schemas.scheme import SchemeConfig, SchemeGenerateRequest
+
+        monkeypatch.setattr(api, "render_scheme", lambda scheme_type, params: '<g id="demo"></g>')
+
+        response = await api.preview_scheme(
+            SchemeGenerateRequest(
+                config=SchemeConfig(
+                    connection_type="dependent",
+                    has_valve=False,
+                    has_gwp=False,
+                    has_ventilation=False,
+                )
+            )
+        )
+
+        assert response.svg_content.startswith("<svg")
+        assert 'id="demo"' in response.svg_content
+        assert "gost-stamp" not in response.svg_content
+        assert "gost-working-area" not in response.svg_content
+
+    @pytest.mark.asyncio
+    async def test_public_pdf_generation_is_disabled(self):
+        from fastapi import HTTPException
+
+        from app.api.scheme_generator import generate_scheme_pdf
+        from app.schemas.scheme import SchemeConfig, SchemeGenerateRequest
+
+        with pytest.raises(HTTPException) as exc_info:
+            await generate_scheme_pdf(
+                uuid.uuid4(),
+                SchemeGenerateRequest(
+                    config=SchemeConfig(
+                        connection_type="dependent",
+                        has_valve=False,
+                        has_gwp=False,
+                        has_ventilation=False,
+                    )
+                ),
+            )
+
+        assert exc_info.value.status_code == 410
+
+
 class TestRenderSchemeTemplateIntegration:
     """Тесты подключения DXF-шаблонов к общему SVG-диспетчеру."""
 
@@ -93,31 +142,29 @@ class TestComputeClientDocumentMissing:
         result = compute_client_document_missing(set())
         assert set(result) == set(CLIENT_DOCUMENT_PARAM_CODES)
 
-    def test_heat_scheme_excluded_when_scheme_config_present(self):
-        """Если в survey_data есть scheme_config, heat_scheme не должен быть в missing."""
+    def test_heat_scheme_not_required_when_scheme_config_present(self):
+        """Принципиальная схема больше не запрашивается у клиента как документ."""
         uploaded = {"BALANCE_ACT", "CONNECTION_PLAN", "heat_point_plan", "company_card"}
         survey_data = {"scheme_config": {"connection_type": "dependent"}}
         result = compute_client_document_missing(uploaded, survey_data)
         assert "heat_scheme" not in result
 
-    def test_heat_scheme_required_when_no_scheme_config(self):
-        """Если scheme_config отсутствует, heat_scheme должен быть в missing."""
+    def test_heat_scheme_not_required_without_scheme_config(self):
         uploaded = {"BALANCE_ACT", "CONNECTION_PLAN", "heat_point_plan", "company_card"}
         result = compute_client_document_missing(uploaded, survey_data=None)
-        assert "heat_scheme" in result
+        assert "heat_scheme" not in result
 
-    def test_heat_scheme_required_when_empty_survey_data(self):
+    def test_heat_scheme_not_required_when_empty_survey_data(self):
         uploaded = {"BALANCE_ACT", "CONNECTION_PLAN", "heat_point_plan", "company_card"}
         result = compute_client_document_missing(uploaded, survey_data={})
-        assert "heat_scheme" in result
+        assert "heat_scheme" not in result
 
     def test_other_missing_documents_still_reported(self):
-        """heat_scheme исключается, но остальные отсутствующие документы возвращаются."""
-        uploaded = {"heat_scheme"}
+        """Остальные отсутствующие документы возвращаются."""
+        uploaded = set()
         survey_data = {"scheme_config": {"connection_type": "dependent"}}
         result = compute_client_document_missing(uploaded, survey_data)
-        expected = {c for c in CLIENT_DOCUMENT_PARAM_CODES if c != "heat_scheme"}
-        assert set(result) == expected
+        assert set(result) == set(CLIENT_DOCUMENT_PARAM_CODES)
 
     def test_backward_compatible_without_survey_data(self):
         """Вызов без survey_data работает как раньше."""
@@ -138,11 +185,9 @@ class TestAutoGenerateScheme:
         order.client_organization = "ООО «Ромашка»"
         return order
 
-    def test_success_with_valid_config(self, tmp_path, monkeypatch):
-        """Успешная генерация создаёт файл и OrderFile."""
+    def test_client_pdf_generation_is_disabled(self, tmp_path):
+        """Клиентский выбор схемы больше не создаёт PDF/OrderFile."""
         from app.services.tasks import client_response as cr
-
-        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(
@@ -156,28 +201,16 @@ class TestAutoGenerateScheme:
             }
         )
 
-        with patch(
-            "app.services.scheme_pdf_renderer.render_scheme_pdf", return_value=b"%PDF-fake-bytes"
-        ):
-            result = cr._auto_generate_scheme_if_configured(session, order)
+        result = cr._auto_generate_scheme_if_configured(session, order)
 
-        assert result is True
-        session.add.assert_called_once()
-        added_file = session.add.call_args[0][0]
-        assert added_file.category == FileCategory.HEAT_SCHEME
-        assert added_file.order_id == order.id
-        assert added_file.file_size == len(b"%PDF-fake-bytes")
-        session.commit.assert_called()
-
-        scheme_dir = tmp_path / str(order.id) / "heat_scheme"
-        assert scheme_dir.exists()
-        assert any(scheme_dir.iterdir()), "PDF file must be written"
+        assert result is False
+        session.add.assert_not_called()
+        session.commit.assert_not_called()
+        assert not (tmp_path / str(order.id) / "heat_scheme").exists()
 
     def test_invalid_config_returns_false(self, tmp_path, monkeypatch):
         """Недопустимая комбинация параметров → False, файл не создаётся."""
         from app.services.tasks import client_response as cr
-
-        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(
@@ -198,8 +231,6 @@ class TestAutoGenerateScheme:
     def test_missing_scheme_config_returns_false(self, tmp_path, monkeypatch):
         from app.services.tasks import client_response as cr
 
-        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
-
         session = MagicMock()
         order = self._make_order_mock(survey_data={})
 
@@ -207,11 +238,8 @@ class TestAutoGenerateScheme:
         assert result is False
         session.add.assert_not_called()
 
-    def test_pdf_render_exception_returns_false(self, tmp_path, monkeypatch):
-        """Если WeasyPrint падает, функция возвращает False без пробрасывания."""
+    def test_pdf_render_is_not_called(self, tmp_path):
         from app.services.tasks import client_response as cr
-
-        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = self._make_order_mock(
@@ -225,24 +253,20 @@ class TestAutoGenerateScheme:
             }
         )
 
-        with patch(
-            "app.services.scheme_pdf_renderer.render_scheme_pdf",
-            side_effect=RuntimeError("WeasyPrint error"),
-        ):
+        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf") as render_pdf:
             result = cr._auto_generate_scheme_if_configured(session, order)
 
         assert result is False
+        render_pdf.assert_not_called()
         session.add.assert_not_called()
 
 
 class TestProcessClientResponseIntegration:
-    """Интеграционные тесты: process_client_response + автогенерация."""
+    """Интеграционные тесты: process_client_response без клиентской PDF-генерации."""
 
-    def test_heat_scheme_not_in_missing_when_auto_generated(self, tmp_path, monkeypatch):
-        """После успешной автогенерации heat_scheme отсутствует в missing_params."""
+    def test_heat_scheme_not_in_missing_without_auto_generation(self):
+        """heat_scheme отсутствует в missing_params без создания PDF."""
         from app.services.tasks import client_response as cr
-
-        monkeypatch.setattr(cr.settings, "upload_dir", tmp_path)
 
         session = MagicMock()
         order = MagicMock()
@@ -267,17 +291,12 @@ class TestProcessClientResponseIntegration:
         ]
         order.files = list(existing_files)
 
-        def fake_add(obj):
-            order.files.append(MagicMock(category=MagicMock(value="heat_scheme")))
+        success = cr._auto_generate_scheme_if_configured(session, order)
 
-        session.add.side_effect = fake_add
-
-        with patch("app.services.scheme_pdf_renderer.render_scheme_pdf", return_value=b"%PDF"):
-            success = cr._auto_generate_scheme_if_configured(session, order)
-
-        assert success is True
+        assert success is False
+        session.add.assert_not_called()
         uploaded = {f.category.value for f in order.files}
-        assert "heat_scheme" in uploaded
+        assert "heat_scheme" not in uploaded
 
         from app.services.param_labels import compute_client_document_missing
 

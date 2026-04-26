@@ -2,8 +2,8 @@
  * @file: scheme.js
  * @description: Модуль конфигуратора принципиальной схемы теплового пункта.
  *   Управляет опросником (тип присоединения, клапан, ГВС, вентиляция),
- *   превью SVG и генерацией PDF через API. Показывается для custom-заявок
- *   после сохранения опросного листа.
+ *   и демонстрационным превью SVG. Показывается для custom-заявок после
+ *   сохранения опросного листа.
  * @dependencies: config.js, utils.js, upload.js (ORDER_ID, orderData,
  *   surveySavedCustom, CUSTOM_EDITABLE_STATUSES, fetchOrder)
  * @created: 2026-04-23
@@ -18,12 +18,7 @@
     const $schemeSummaryText = document.getElementById('schemeSummaryText');
     const $schemePreviewBlock = document.getElementById('schemePreviewBlock');
     const $schemePreviewContainer = document.getElementById('schemePreviewContainer');
-    const $schemeGenerateBtn = document.getElementById('schemeGenerateBtn');
     const $schemeRefreshBtn = document.getElementById('schemeRefreshBtn');
-    const $schemeError = document.getElementById('schemeError');
-    const $schemeSuccess = document.getElementById('schemeSuccess');
-    const $schemeSuccessText = document.getElementById('schemeSuccessText');
-    const $schemeDownloadLink = document.getElementById('schemeDownloadLink');
 
     let currentSchemeConfig = null;
 
@@ -76,7 +71,6 @@
       if (!config) {
         $schemeConfigSummary.style.display = 'none';
         $schemePreviewBlock.style.display = 'none';
-        $schemeGenerateBtn.disabled = true;
         return;
       }
 
@@ -86,7 +80,6 @@
       if (config.has_ventilation) summaryParts.push('Вентиляция');
       $schemeSummaryText.textContent = summaryParts.join(', ');
       $schemeConfigSummary.style.display = '';
-      $schemeGenerateBtn.disabled = false;
 
       loadSchemePreview(config);
     }
@@ -94,7 +87,7 @@
     async function loadSchemePreview(config) {
       if (!config) return;
       $schemePreviewBlock.style.display = '';
-      $schemePreviewContainer.innerHTML = '<div class="scheme-preview-loading"><div class="spinner"></div><p>Генерация схемы...</p></div>';
+      $schemePreviewContainer.innerHTML = '<div class="scheme-preview-loading"><div class="spinner"></div><p>Загрузка схемы...</p></div>';
       try {
         const response = await fetch(`${API_BASE}/schemes/preview`, {
           method: 'POST',
@@ -107,37 +100,6 @@
       } catch (error) {
         console.error('Scheme preview error:', error);
         $schemePreviewContainer.innerHTML = '<p style="color: var(--c-error);">Ошибка загрузки превью. Попробуйте обновить.</p>';
-      }
-    }
-
-    async function generateSchemePDF() {
-      if (!currentSchemeConfig) return;
-      $schemeGenerateBtn.disabled = true;
-      $schemeGenerateBtn.textContent = 'Генерация...';
-      $schemeError.style.display = 'none';
-      $schemeSuccess.style.display = 'none';
-      try {
-        const response = await fetch(`${API_BASE}/schemes/${ORDER_ID}/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: currentSchemeConfig }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || 'Ошибка генерации схемы');
-        }
-        const data = await response.json();
-        $schemeSuccessText.textContent = `Схема успешно сгенерирована! (${data.filename})`;
-        $schemeDownloadLink.href = `${API_BASE}/schemes/${ORDER_ID}/files/${data.file_id}/download`;
-        $schemeSuccess.style.display = 'inline-flex';
-        $schemeGenerateBtn.style.display = 'none';
-        if (typeof fetchOrder === 'function') await fetchOrder();
-      } catch (error) {
-        console.error('Scheme generation error:', error);
-        $schemeError.textContent = error.message;
-        $schemeError.style.display = '';
-        $schemeGenerateBtn.disabled = false;
-        $schemeGenerateBtn.textContent = 'Подтвердить и сгенерировать PDF';
       }
     }
 
@@ -187,13 +149,6 @@
         $schemeConfiguratorCard.style.display = 'block';
         if (orderData.survey_data && orderData.survey_data.scheme_config) {
           prefillSchemeConfig(orderData.survey_data.scheme_config);
-          const schemeFile = (orderData.files_uploaded || []).find(f => f.category === 'heat_scheme');
-          if (schemeFile) {
-            $schemeGenerateBtn.style.display = 'none';
-            $schemeSuccess.style.display = 'inline-flex';
-            $schemeSuccessText.textContent = 'Схема успешно сгенерирована!';
-            $schemeDownloadLink.href = `${API_BASE}/schemes/${ORDER_ID}/files/${schemeFile.id}/download`;
-          }
         } else {
           suggestSchemeFromParsedParams();
         }
@@ -209,6 +164,5 @@
       if (gwpCb) gwpCb.addEventListener('change', handleGwpChange);
       const ventCb = document.getElementById('has_ventilation');
       if (ventCb) ventCb.addEventListener('change', updateSchemeUI);
-      if ($schemeGenerateBtn) $schemeGenerateBtn.addEventListener('click', generateSchemePDF);
       if ($schemeRefreshBtn) $schemeRefreshBtn.addEventListener('click', () => { if (currentSchemeConfig) loadSchemePreview(currentSchemeConfig); });
     }

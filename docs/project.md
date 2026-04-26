@@ -33,7 +33,7 @@ flowchart LR
   HTML -->|script, в порядке| CFG --> UT --> SV --> CT --> SC --> UP
 ```
 
-Переходы между состояниями: сначала заявка собирается (`new` → `tu_parsing` → `tu_parsed`), затем открывается опросный лист (`survey.js` заполняет его из `parsed_params` или сохранённого snapshot), параллельно можно догружать недостающие документы. Для custom-заявок после сохранения опросного листа `scheme.js` показывает конфигуратор принципиальной схемы, вызывает `POST /api/v1/schemes/{order_id}/generate`, сохраняет PDF как `OrderFile(category=heat_scheme)` и отдаёт клиенту ссылку на публичный `GET /api/v1/schemes/{order_id}/files/{file_id}/download`. Этот download-route разрешает скачивать только файл схемы, совпадающий по `order_id` и `file_id`; остальные файлы заявки скачиваются через защищённые admin/API-маршруты. После стадии `contract_sent` показывается экран с реквизитами договора и зона загрузки подписанного скана (`contract.js`). `upload.js` держит polling `/landing/orders/<id>/upload-page` в интервале 5с, пока статус в `tu_parsing`.
+Переходы между состояниями: сначала заявка собирается (`new` → `tu_parsing` → `tu_parsed`), затем открывается опросный лист (`survey.js` заполняет его из `parsed_params` или сохранённого snapshot), параллельно можно догружать недостающие документы. Для custom-заявок после сохранения опросного листа `scheme.js` показывает конфигуратор принципиальной схемы: клиент выбирает галочки, а `POST /api/v1/schemes/preview` возвращает демонстрационное SVG-превью без ГОСТ-рамки и без создания файлов. Клиентская PDF-генерация отключена; подготовка PDF схемы переносится в будущий инженерный admin-flow. После стадии `contract_sent` показывается экран с реквизитами договора и зона загрузки подписанного скана (`contract.js`). `upload.js` держит polling `/landing/orders/<id>/upload-page` в интервале 5с, пока статус в `tu_parsing`.
 
 ## Генерация принципиальной схемы (`heat_scheme`)
 
@@ -44,13 +44,12 @@ flowchart LR
   DXF[DXF source<br/>backend/templates/schemes/dxf/1_2_dep_simple.dxf]
   EZ[ezdxf SVG rendering<br/>scheme_template_renderer.py]
   SVG[SVG fragment<br/>scheme-template-dep-simple]
-  FRAME[gost_frame_a3<br/>ГОСТ-рамка]
-  PDF[WeasyPrint PDF<br/>OrderFile heat_scheme]
+  PREVIEW[Standalone SVG preview<br/>/api/v1/schemes/preview]
 
-  DXF --> EZ --> SVG --> FRAME --> PDF
+  DXF --> EZ --> SVG --> PREVIEW
 ```
 
-Pipeline: `DXF source -> ezdxf SVG rendering -> gost_frame_a3 -> WeasyPrint PDF`. Шаблон лежит в [`backend/templates/schemes/dxf/`](../backend/templates/schemes/dxf/), runtime renderer — [`backend/app/services/scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py). `render_scheme()` сначала пробует `render_template_scheme()`. Если тип схемы не поддержан, `ezdxf` недоступен, DXF-файл отсутствует или рендер завершился ошибкой, renderer возвращает `None`, и выполнение падает обратно на legacy programmatic renderer в [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py). Остальные 7 типов схем остаются на этом старом пути до появления исходников DXF/SVG.
+Pipeline клиентского предпросмотра: `DXF source -> ezdxf SVG rendering -> standalone SVG preview`. Шаблон лежит в [`backend/templates/schemes/dxf/`](../backend/templates/schemes/dxf/), runtime renderer — [`backend/app/services/scheme_template_renderer.py`](../backend/app/services/scheme_template_renderer.py). `render_scheme()` сначала пробует `render_template_scheme()`. Если тип схемы не поддержан, `ezdxf` недоступен, DXF-файл отсутствует или рендер завершился ошибкой, renderer возвращает `None`, и выполнение падает обратно на legacy programmatic renderer в [`backend/app/services/scheme_svg_renderer.py`](../backend/app/services/scheme_svg_renderer.py). Остальные 7 типов схем остаются на этом старом пути до появления исходников DXF/SVG. ГОСТ-рамка и PDF для схемы пока не применяются в клиентском flow; будущая генерация PDF планируется в админке инженера.
 
 ## Админка (`/admin`, `backend/static/admin.html`)
 

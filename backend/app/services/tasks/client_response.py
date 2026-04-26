@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import logging
 import uuid
-from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.celery_app import celery_app
-from app.core.config import settings
-from app.models.models import EmailType, FileCategory, Order, OrderFile, OrderStatus
+from app.models.models import EmailType, FileCategory, Order, OrderStatus
 from app.services.param_labels import compute_client_document_missing
 
 from ._common import SyncSession, _get_order, _transition
@@ -210,121 +208,16 @@ def notify_engineer_client_documents_received(order_id: str):
 
 
 def _auto_generate_scheme_if_configured(session: Session, order: Order) -> bool:
-    """Автогенерация PDF схемы из сохранённой конфигурации.
+    """Клиентская автогенерация PDF схемы отключена.
 
-    Использует ``order.survey_data['scheme_config']`` и ``order.parsed_params``
-    для подбора шаблона и генерации PDF. Сохраняет файл в хранилище и создаёт
-    запись ``OrderFile(category=HEAT_SCHEME)``.
-
-    Returns:
-        True при успехе, False если конфигурация невалидна или произошла ошибка.
-        Не пробрасывает исключения — ошибки логируются.
+    Конфигуратор на странице клиента теперь только демонстрирует выбранную
+    схему. PDF будет генерироваться позднее в инженерской админке.
     """
-    try:
-        from app.schemas.scheme import SchemeConfig
-        from app.services.scheme_gost_frame import gost_frame_a3
-        from app.services.scheme_pdf_renderer import render_scheme_pdf
-        from app.services.scheme_service import (
-            extract_scheme_params_from_parsed,
-            resolve_scheme_type,
-        )
-        from app.services.scheme_svg_renderer import render_scheme
-
-        if not order.survey_data or "scheme_config" not in order.survey_data:
-            logger.info(
-                "auto_generate_scheme: order=%s пропуск, нет scheme_config",
-                order.id,
-            )
-            return False
-
-        raw_cfg = dict(order.survey_data["scheme_config"])
-        raw_cfg.pop("scheme_type", None)
-        raw_cfg.pop("generated_at", None)
-        scheme_config = SchemeConfig(**raw_cfg)
-
-        scheme_type = resolve_scheme_type(scheme_config)
-        if scheme_type is None:
-            logger.error(
-                "auto_generate_scheme: order=%s невалидная комбинация: %s",
-                order.id,
-                raw_cfg,
-            )
-            return False
-
-        params = extract_scheme_params_from_parsed(order.parsed_params or {})
-        if not params.project_number:
-            params.project_number = f"УУТЭ-{str(order.id)[:8].upper()}"
-        if not params.object_address and order.object_address:
-            params.object_address = order.object_address
-        if not params.company_name and order.client_organization:
-            params.company_name = order.client_organization
-
-        scheme_svg = render_scheme(scheme_type, params)
-
-        stamp_data = {
-            "project_number": params.project_number or "",
-            "object_name": params.object_address or "",
-            "sheet_name": "Схема функциональная",
-            "sheet_title": "Узел учета тепловой энергии",
-            "company": params.company_name or "",
-            "gip": "",
-            "executor": params.engineer_name or "",
-            "inspector": "",
-            "stage": "П",
-            "sheet_num": "1",
-            "total_sheets": "1",
-            "format": "A3",
-        }
-
-        svg_with_frame = gost_frame_a3(scheme_svg, stamp_data)
-        pdf_bytes = render_scheme_pdf(svg_with_frame, stamp_data, "A3")
-
-        file_uuid = uuid.uuid4().hex[:12]
-        filename = f"heat_scheme_{file_uuid}.pdf"
-        relative_path = f"{order.id}/heat_scheme/{filename}"
-        full_path = settings.upload_dir / relative_path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(full_path, "wb") as fh:
-            fh.write(pdf_bytes)
-
-        order_file = OrderFile(
-            order_id=order.id,
-            category=FileCategory.HEAT_SCHEME,
-            original_filename=filename,
-            storage_path=relative_path,
-            content_type="application/pdf",
-            file_size=len(pdf_bytes),
-        )
-        session.add(order_file)
-
-        if order.survey_data is None:
-            order.survey_data = {}
-        order.survey_data.setdefault("scheme_config", {})
-        order.survey_data["scheme_config"]["scheme_type"] = scheme_type.value
-        order.survey_data["scheme_config"]["auto_generated"] = True
-
-        session.commit()
-
-        logger.info(
-            "auto_generate_scheme: order=%s успех, файл=%s",
-            order.id,
-            filename,
-        )
-        return True
-
-    except Exception as exc:
-        logger.error(
-            "auto_generate_scheme: order=%s ошибка: %s",
-            order.id,
-            exc,
-            exc_info=True,
-        )
-        try:
-            session.rollback()
-        except Exception:
-            pass
-        return False
+    del session
+    logger.info(
+        "auto_generate_scheme: order=%s пропуск, клиентская PDF-генерация отключена", order.id
+    )
+    return False
 
 
 @celery_app.task(name="app.services.tasks.process_client_response", bind=True)
@@ -355,15 +248,6 @@ def process_client_response(self, order_id: str):
             return
 
         uploaded_categories = {f.category.value for f in order.files}
-
-        if (
-            order.survey_data
-            and "scheme_config" in order.survey_data
-            and FileCategory.HEAT_SCHEME.value not in uploaded_categories
-        ):
-            if _auto_generate_scheme_if_configured(session, order):
-                session.refresh(order)
-                uploaded_categories = {f.category.value for f in order.files}
 
         missing = compute_client_document_missing(uploaded_categories, order.survey_data)
         if (
