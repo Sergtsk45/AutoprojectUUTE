@@ -108,7 +108,6 @@ SAMPLE_DOCUMENTS: dict[str, str] = {
     "balance_act": "samples/sample_balance_act.pdf",
     "connection_plan": "samples/sample_connection_plan.pdf",
     "heat_point_plan": "samples/sample_heat_point_plan.pdf",
-    "heat_scheme": "samples/sample_heat_scheme.pdf",
 }
 
 

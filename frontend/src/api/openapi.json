@@ -5759,7 +5759,7 @@
     },
     "/api/v1/schemes/preview": {
       "post": {
-        "description": "Генерирует превью SVG схемы по конфигурации.\n\nArgs:\n    request: Конфигурация схемы (SchemeConfig) и опциональные параметры (SchemeParams)\n\nReturns:\n    SVG-контент схемы с ГОСТ-рамкой для отображения в браузере\n\nRaises:\n    HTTPException 400: Если конфигурация невалидна или комбинация параметров недопустима",
+        "description": "Генерирует превью SVG схемы по конфигурации.\n\nArgs:\n    request: Конфигурация схемы (SchemeConfig) и опциональные параметры (SchemeParams)\n\nReturns:\n    SVG-контент схемы без ГОСТ-рамки для отображения в браузере\n\nRaises:\n    HTTPException 400: Если конфигурация невалидна или комбинация параметров недопустима",
         "operationId": "preview_scheme_api_v1_schemes_preview_post",
         "requestBody": {
           "content": {
@@ -5921,7 +5921,7 @@
     },
     "/api/v1/schemes/{order_id}/generate": {
       "post": {
-        "description": "Генерирует PDF схемы и сохраняет как файл заявки.\n\nArgs:\n    order_id: UUID заявки\n    request: Конфигурация схемы и параметры\n\nReturns:\n    Информация о сохраненном файле (id, category, filename)\n\nRaises:\n    HTTPException 404: Заявка не найдена\n    HTTPException 400: Невалидная конфигурация схемы",
+        "description": "Клиентская PDF-генерация отключена: конфигуратор только показывает превью.",
         "operationId": "generate_scheme_pdf_api_v1_schemes__order_id__generate_post",
         "parameters": [
           {
