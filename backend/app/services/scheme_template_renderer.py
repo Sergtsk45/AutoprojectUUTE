@@ -23,7 +23,7 @@ DEP_SIMPLE_TEMPLATE_PATH = (
 
 _TEMPLATE_PAGE_WIDTH_MM = 420
 _TEMPLATE_PAGE_HEIGHT_MM = 297
-_TEMPLATE_TRANSFORM = "translate(40 40) scale(0.82)"
+_TEMPLATE_TRANSFORM = "translate(35 35) scale(0.36)"
 
 
 def _strip_xml_declaration(svg_string: str) -> str:

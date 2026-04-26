@@ -16,7 +16,7 @@ def test_dep_simple_template_returns_svg_content():
 
     assert svg is not None
     assert '<g id="scheme-template-dep-simple"' in svg
-    assert "transform=" in svg
+    assert 'transform="translate(35 35) scale(0.36)"' in svg
     assert "<svg" in svg
     assert "G1" in svg or "G2" in svg
 
