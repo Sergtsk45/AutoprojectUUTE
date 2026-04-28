@@ -77,9 +77,7 @@ def generate_completion_act(
     # ── Заголовок акта ────────────────────────────────────────────────────────
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run(
-        f"АКТ ОБ ОКАЗАНИИ УСЛУГ № {contract_number}\nот {ru_date(now)}"
-    )
+    run = p.add_run(f"АКТ ОБ ОКАЗАНИИ УСЛУГ № {contract_number}\nот {ru_date(now)}")
     run.bold = True
     run.font.size = Pt(14)
 
@@ -191,7 +189,8 @@ def generate_completion_act(
     _sig_cell(1, 0, s.company_full_name)
     _sig_cell(1, 1, requisites["full_name"])
     _sig_cell(
-        2, 0,
+        2,
+        0,
         f"{s.company_director_position}: __________ / {s.company_director_name}",
     )
     director_pos = requisites.get("director_position") or "Генеральный директор"

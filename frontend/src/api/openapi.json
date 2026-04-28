@@ -655,6 +655,7 @@
           "contract",
           "invoice",
           "final_invoice",
+          "completion_act",
           "rso_scan",
           "rso_remarks"
         ],

@@ -1395,7 +1395,7 @@ export interface components {
          *     (`upload_dir/<order_id>/<category.value>/...`).
          * @enum {string}
          */
-        FileCategory: "tu" | "balance_act" | "connection_plan" | "heat_point_plan" | "heat_scheme" | "generated_excel" | "generated_project" | "other" | "company_card" | "signed_contract" | "contract" | "invoice" | "final_invoice" | "rso_scan" | "rso_remarks";
+        FileCategory: "tu" | "balance_act" | "connection_plan" | "heat_point_plan" | "heat_scheme" | "generated_excel" | "generated_project" | "other" | "company_card" | "signed_contract" | "contract" | "invoice" | "final_invoice" | "completion_act" | "rso_scan" | "rso_remarks";
         /**
          * FileResponse
          * @description Информация о загруженном файле.
