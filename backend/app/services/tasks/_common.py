@@ -210,6 +210,51 @@ def _ensure_final_invoice_attachment(
     return persisted_invoice_path, temp_invoice_path
 
 
+def _ensure_completion_act_attachment(
+    session: Session,
+    order: Order,
+) -> tuple[Path | None, Path | None]:
+    """Возвращает акт выполненных работ, при необходимости генерируя его один раз.
+
+    Returns:
+        (persisted_path, temp_path) — temp_path удаляет вызывающий код.
+    """
+    from app.services.contract_generator import generate_completion_act
+
+    existing_act_path = _existing_order_file_path(order, FileCategory.COMPLETION_ACT)
+    if existing_act_path is not None:
+        return existing_act_path, None
+    if _latest_order_file(order, FileCategory.COMPLETION_ACT) is not None:
+        return None, None
+
+    if order.payment_amount is None:
+        return None, None
+
+    order_id_short = str(order.id)[:8]
+    req = _normalize_client_requisites(
+        get_company_requisites_dict(order),
+        order.client_name,
+    )
+    temp_act_path = generate_completion_act(
+        order_id_short,
+        order.contract_number or order_id_short,
+        order.object_address or "—",
+        order.payment_amount,
+        req,
+    )
+    if not temp_act_path or not temp_act_path.exists():
+        return None, temp_act_path
+
+    persisted_act_path = _store_generated_file(
+        session=session,
+        order=order,
+        source_path=temp_act_path,
+        category=FileCategory.COMPLETION_ACT,
+        prefix="akt",
+    )
+    return persisted_act_path, temp_act_path
+
+
 def _has_successful_final_payment_reminder(
     session: Session,
     order_id: uuid.UUID,

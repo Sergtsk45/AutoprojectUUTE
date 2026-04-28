@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-04-28] — Акт выполненных работ в письме с проектом
+
+### Добавлено
+- [`backend/app/services/contract/completion_act.py`](../backend/app/services/contract/completion_act.py): генератор DOCX акта об оказании услуг (`generate_completion_act`) — шапка с банком, стороны, таблица работ, итого прописью, две колонки подписей (исполнитель + заказчик).
+- [`backend/app/services/contract/__init__.py`](../backend/app/services/contract/__init__.py): экспорт `generate_completion_act`.
+- [`backend/app/models/models.py`](../backend/app/models/models.py): `FileCategory.COMPLETION_ACT = "completion_act"`.
+- [`backend/alembic/versions/20260428_uute_completion_act_category.py`](../backend/alembic/versions/20260428_uute_completion_act_category.py): `ALTER TYPE file_category ADD VALUE 'COMPLETION_ACT'`.
+- [`backend/app/services/tasks/_common.py`](../backend/app/services/tasks/_common.py): `_ensure_completion_act_attachment` — генерирует и сохраняет акт (по аналогии с `_ensure_final_invoice_attachment`).
+- [`backend/app/services/tasks/post_project_flow.py`](../backend/app/services/tasks/post_project_flow.py): акт добавлен в вложения `_send_post_project_delivery` — уходит клиенту вместе с проектом, сопроводительным письмом и счётом на остаток.
+- [`backend/app/services/param_labels.py`](../backend/app/services/param_labels.py): метка `completion_act` в `MISSING_PARAM_LABELS`.
 ## [2026-04-26] — Обновление DXF эталона схемы 1
 
 ### Изменено
