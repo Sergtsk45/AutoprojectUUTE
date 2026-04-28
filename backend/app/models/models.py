@@ -156,6 +156,7 @@ class FileCategory(str, enum.Enum):
     CONTRACT = "contract"  # Сгенерированный договор (DOCX)
     INVOICE = "invoice"  # Счёт на оплату (DOCX)
     FINAL_INVOICE = "final_invoice"  # Счёт на остаток по договору (DOCX)
+    COMPLETION_ACT = "completion_act"  # Акт выполненных работ (DOCX)
     RSO_SCAN = "rso_scan"  # Скан письма с входящим номером РСО
     RSO_REMARKS = "rso_remarks"  # Замечания РСО по согласованию проекта
 

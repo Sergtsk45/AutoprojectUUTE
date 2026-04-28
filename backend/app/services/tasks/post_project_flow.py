@@ -17,6 +17,7 @@ from app.models.models import FileCategory, Order, OrderStatus, EmailType
 from ._common import (
     SyncSession,
     _collect_project_attachments,
+    _ensure_completion_act_attachment,
     _ensure_final_invoice_attachment,
     _existing_order_file_path,
     _get_order,
@@ -59,6 +60,17 @@ def _send_post_project_delivery(
         return False, temporary_paths
     if final_invoice_path is not None:
         attachment_paths.append(str(final_invoice_path))
+
+    completion_act_path, temp_act_path = _ensure_completion_act_attachment(session, order)
+    if temp_act_path is not None:
+        temporary_paths.append(temp_act_path)
+    if completion_act_path is not None:
+        attachment_paths.append(str(completion_act_path))
+    else:
+        logger.warning(
+            "_send_post_project_delivery: акт выполненных работ не создан для order=%s",
+            order.id,
+        )
 
     send_fn = send_project_redelivery if is_redelivery else send_project
     success = send_fn(
